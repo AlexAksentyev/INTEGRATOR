@@ -19,7 +19,7 @@ p = PCL.Particle(state)
 
 #%%
 
-FODO = [fquad, ds_25, dquad, ds_25]
+FODO = [ds_25, fquad, ds_25, dquad, ds_25]
 
 B0 = .46
 R = ENT.MDipole.computeRadius(p,B0)
@@ -32,7 +32,7 @@ wa = ENT.Wien(1.808,R,.05,V,B0)
 
 #%%
 
-p.track([sol],1000,FWD=True)
+p.track(FODO,10,FWD=True)
 x = [p.fStateLog[i][0] for i in p.fStateLog]
 y = [p.fStateLog[i][1] for i in p.fStateLog]
 t = [p.fStateLog[i][2] for i in p.fStateLog]
