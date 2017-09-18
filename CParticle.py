@@ -115,6 +115,7 @@ class Particle:
     
     def track(self, ElementSeq, ntimes, FWD = True):
         brks = 101
+        self._fState= list(self._fIniState)
         self.fStateLog = {0:list(self._fState)}
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
@@ -130,3 +131,9 @@ class Particle:
         
 
 
+class Ensemble:
+    """ Ensemble of particles; handles tracking of multiple particles. 
+    Create a bunch of worker nodes and call particle.track for the particles
+    """
+    
+    
