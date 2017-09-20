@@ -1,7 +1,8 @@
 from scipy.integrate import odeint
-import numpy as np
+import numpy as NP
 import pandas as PDS
-
+#import pathos.multiprocessing as MP
+#import multiprocessing as MP
 
 class Particle:
     
@@ -10,8 +11,8 @@ class Particle:
     _ezero = 1.602176462e-19 # Coulomb
     _clight = 2.99792458e8 # m/s
     
-    _fIniState = None
-    _fState = None 
+    __fIniState = None
+    __fState = None 
     fStateLog = dict()
     
     fMass0 = 1876.5592 # deuteron mass in MeV
@@ -22,9 +23,9 @@ class Particle:
     fBeta0 = None  # gamma, beta
     
     def __init__(self, State0):
-        
-        self._fIniState = list(State0)
-        self._fState = list(State0)
+            
+        self.__fIniState = list(State0)
+        self.__fState = list(State0)
         self.fGamma0, self.fBeta0 = self.GammaBeta(self.fKinEn0)
         
         
@@ -36,17 +37,17 @@ class Particle:
     
     def GammaBeta(self, NRG):
         gamma = NRG / self.fMass0 + 1
-        beta = np.sqrt(gamma**2-1)/gamma
+        beta = NP.sqrt(gamma**2-1)/gamma
         return (gamma, beta)
     
     def Pc(self, KNRG):
-        return np.sqrt((self.fMass0 + KNRG)**2 - self.fMass0**2)
+        return NP.sqrt((self.fMass0 + KNRG)**2 - self.fMass0**2)
         
     def getState(self):
-        return self._fState[:]
+        return self.__fState[:]
     
     def setState(self, value):
-        self._fState = value[:]
+        self.__fState = value[:]
     
     def _RHS(self, state, at, element):
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
@@ -57,7 +58,7 @@ class Particle:
         P0c = self.Pc(self.fKinEn0) # reference momentum
         
         Px,Py = [P0c*x for x in (px,py)] # turn px,py back to MeVs
-        Ps = np.sqrt(Pc**2 - Px**2 - Py**2)
+        Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
         
         Ex,Ey,Es = element.EField(state)
         Bx,By,Bs = element.BField(state)
@@ -85,7 +86,7 @@ class Particle:
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
         
         ## I don't understand the following formulas
-        betap = (dEnp*(self.fMass0)**2)/((KinEn+self.fMass0)**2*np.sqrt(KinEn**2+2*KinEn*self.fMass0))
+        betap = (dEnp*(self.fMass0)**2)/((KinEn+self.fMass0)**2*NP.sqrt(KinEn**2+2*KinEn*self.fMass0))
         D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
         
         # these two are in the original dimensions
@@ -115,18 +116,18 @@ class Particle:
     
     def track(self, ElementSeq, ntimes, FWD = True):
         brks = 101
-        self._fState= list(self._fIniState)
-        self.fStateLog = {0:list(self._fState)}
+        self.__fState= list(self.__fIniState)
+        self.fStateLog = {0:list(self.__fState)}
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]
-                at = np.linspace(0, element.fLength, brks)
+                at = NP.linspace(0, element.fLength, brks)
                 
                 element.frontKick(self)
-                self._fState = odeint(self._RHS, self._fState, at, args=(element,))[brks-1]
+                self.__fState = odeint(self._RHS, self.__fState, at, args=(element,))[brks-1]
                 element.rearKick(self)
-            self.fStateLog.update({n:self._fState})
+            self.fStateLog.update({n:self.__fState})
         
     def getDataFrame(self):
         x = [self.fStateLog[i][0] for i in self.fStateLog]
@@ -147,5 +148,30 @@ class Ensemble:
     """ Ensemble of particles; handles tracking of multiple particles. 
     Create a bunch of worker nodes and call particle.track for the particles
     """
+    __fParticle = dict() # dictionary of particle pointers
     
+    def __init__(self, ParticleList):
+        self.addParticles(ParticleList)
+        
+    @classmethod
+    def from_state(cls, StateList):
+        pcls = [Particle(state) for state in StateList]
+        return cls(pcls)
+    
+    def addParticles(self, ParticleList):
+        names = [e for e in range(len(ParticleList))]
+        self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
+        
+    def getParticles(self):
+        return self.__fParticle
+        
+    def track(self, ElementSeq, ntimes, FWD = True):
+        for pcl in self.__fParticle.values():
+            pcl.track(ElementSeq, ntimes, FWD)
+        
+    def size(self):
+        return len(self.__fParticle)
+        
+    def __getitem__(self, index):
+        return self.__fParticle[index]
     
