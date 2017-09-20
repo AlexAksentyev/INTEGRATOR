@@ -36,15 +36,15 @@ class MQuad(Element):
     """ magnetic quadrupole
     """
     
-    _fGrad = None
+    __fGrad = None
     
     def __init__(self, Length, Grad):
         Element.__init__(self, 0, Length)
-        self._fGrad = Grad
+        self.__fGrad = Grad
         
     def BField(self, arg):
         x,y = arg[0:2]
-        return (-self._fGrad*x, -self._fGrad*y,0)
+        return (-self.__fGrad*x, -self.__fGrad*y,0)
         
 
 class MDipole(Element):
@@ -54,7 +54,7 @@ class MDipole(Element):
     and fCurve = 0
     """
     
-    _fBField = None
+    __fBField = None
     
     def __init__(self, Length, R, BField):
         Element.__init__(self, 1/R, Length)
@@ -62,10 +62,10 @@ class MDipole(Element):
         
     def setBField(self,BField):
         if not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
-        self._fBField = BField[:]
+        self.__fBField = BField[:]
         
     def getBField(self):
-        return self._fBField[:]
+        return self.__fBField[:]
     
     @classmethod    
     def computeBStrength(cls,particle, R):
@@ -77,7 +77,7 @@ class MDipole(Element):
         
         
     def BField(self, arg):
-        return self._fBField
+        return self.__fBField
   
 
 class Solenoid(MDipole):
@@ -98,30 +98,30 @@ class MSext(Element):
     """ magnetic sextupole
     """
     
-    _fGrad = None
+    __fGrad = None
     
     def __init__(self, Length, Grad):
         Element.__init__(self, 0, Length)
-        self._fGrad = Grad
+        self.__fGrad = Grad
         
     def BField(self, arg):
         x,y=arg[0:2]
-        return (self._fGrad*x*y,.5*self._fGrad*(x**2 - y**2), 0)
+        return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
 class Wien(Element):
     """ wien filter ?!?! 
     The magnetic field definition is weird
     """
     
-    _fR = None
-    _fVolt = None
-    _fBField = None
+    __fR = None
+    __fVolt = None
+    __fBField = None
     
     def __init__(self, Length, R, Hgap, Voltage, BField):
         Element.__init__(self, 1/R, Length)
-        self._fR = [R, R - Hgap, R**2/(R-Hgap)]
-        self._fVolt = Voltage
-        self._fBField = BField
+        self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
+        self.__fVolt = Voltage
+        self.__fBField = BField
         
     @staticmethod
     def computeVoltage(particle, R, Hgap):
@@ -146,29 +146,29 @@ class Wien(Element):
         
     def EField(self, arg):
         x = arg[0]
-        Ex = -2*self._fVolt/(NP.log(self._fR[2]/self._fR[1])*(self._fR[0]+x))
+        Ex = -2*self.__fVolt/(NP.log(self.__fR[2]/self.__fR[1])*(self.__fR[0]+x))
         return (Ex, 0, 0)
     
     def BField(self, arg):        
-        return (0, self._fBField, 0)
+        return (0, self.__fBField, 0)
     
     def frontKick(self, particle):
-        x=particle._fState[0]
-        R = self._fR[0]
-        R1 = self._fR[1]
-        R2 = self._fR[2]
-        V = self._fVolt
+        x=particle.__fState[0]
+        R = self.__fR[0]
+        R1 = self.__fR[1]
+        R2 = self.__fR[2]
+        V = self.__fVolt
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk = particle.getState()
         Xk[5] -= u*1e-6/particle.fKinEn0
         particle.setState(Xk)
         
     def rearKick(self, particle):
-        x=particle._fState[0]
-        R = self._fR[0]
-        R1 = self._fR[1]
-        R2 = self._fR[2]
-        V = self._fVolt
+        x=particle.__fState[0]
+        R = self.__fR[0]
+        R1 = self.__fR[1]
+        R2 = self.__fR[2]
+        V = self.__fVolt
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk = particle.getState()
         Xk[5] += u*1e-6/particle.fKinEn0
