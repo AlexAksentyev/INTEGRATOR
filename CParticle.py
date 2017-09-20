@@ -1,8 +1,7 @@
 from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
-#import pathos.multiprocessing as MP
-#import multiprocessing as MP
+import PyDSTool as DST
 
 class Particle:
     
@@ -58,6 +57,9 @@ class Particle:
         P0c = self.Pc(self.fKinEn0) # reference momentum
         
         Px,Py = [P0c*x for x in (px,py)] # turn px,py back to MeVs
+        if (Pc**2 - Px**2 - Py**2) == 0: 
+            print('Particle flew off')
+            return [0]*10 # doesn;t work smh
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
         
         Ex,Ey,Es = element.EField(state)
