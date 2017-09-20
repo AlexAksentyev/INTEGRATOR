@@ -52,7 +52,6 @@ B = ENT.Wien.computeBStrength(p, R, h)
 
 WA = ENT.Wien(1.808, 9.297, h, V, B)
 
-
 #%%
 # lattice definition
 
@@ -89,3 +88,6 @@ SS1H1 = [QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
          QDS]
 
 lattice = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
+
+#%%
+# work code
