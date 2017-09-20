@@ -33,6 +33,7 @@ FODO = [ds_25, fquad, ds_25, dquad, ds_25]
 B0 = .46
 R = ENT.MDipole.computeRadius(p,B0)
 mdip = ENT.MDipole(1.8, R, B0)
+mdip2 = ENT.MDipole(1.8,R,(B0/100, B0, 0))
 sol = ENT.Solenoid(1.8, .46)
 
 V = ENT.Wien.computeVoltage(p,R,.05)
@@ -41,16 +42,18 @@ wa = ENT.Wien(1.808,R,.05,V,B0)
 
 #%%
 
-E = PCL.Ensemble.from_state(StateList)
-E.track([mdip],1000)
+E = PCL.Particle(StateList[2])
 
-df = E[0].getDataFrame() 
-n = len(df)
-for i in range(1,E.size()): df=df.append(E[i].getDataFrame())
-    
-df['PID'] = NP.repeat(list(range(E.size())), n)
+#E = PCL.Ensemble.from_state(StateList[0])
+E.track([mdip2],1000)
 
-
-df = PDS.melt(df, id_vars=['PID','t','H'])
-ggplot(df.loc[df['variable'].isin(['x','y','Sx','Sy'])],aes(x='t',y='value'))\
-    + geom_line() + facet_grid('PID','variable',scales='free')
+#df = E[0].getDataFrame() 
+#n = len(df)
+#for i in range(1,E.size()): df=df.append(E[i].getDataFrame())
+#    
+#df['PID'] = NP.repeat(list(range(E.size())), n)
+#
+#
+#df = PDS.melt(df, id_vars=['PID','t','H'])
+#ggplot(df.loc[df['variable'].isin(['x','y','Sx','Sy'])],aes(x='t',y='value'))\
+#    + geom_line() + facet_grid('PID','variable',scales='free')
