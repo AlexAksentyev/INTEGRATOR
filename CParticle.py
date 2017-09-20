@@ -1,6 +1,6 @@
 from scipy.integrate import odeint
 import numpy as np
-
+import pandas as PDS
 
 
 class Particle:
@@ -128,7 +128,19 @@ class Particle:
                 element.rearKick(self)
             self.fStateLog.update({n:self._fState})
         
+    def getDataFrame(self):
+        x = [self.fStateLog[i][0] for i in self.fStateLog]
+        y = [self.fStateLog[i][1] for i in self.fStateLog]
+        t = [self.fStateLog[i][2] for i in self.fStateLog]
+        px = [self.fStateLog[i][3] for i in self.fStateLog]
+        py = [self.fStateLog[i][4] for i in self.fStateLog]
+        dW = [self.fStateLog[i][5] for i in self.fStateLog]
+        Sx = [self.fStateLog[i][6] for i in self.fStateLog]
+        Sy = [self.fStateLog[i][7] for i in self.fStateLog]
+        Ss = [self.fStateLog[i][8] for i in self.fStateLog]
+        H = [self.fStateLog[i][9] for i in self.fStateLog]
         
+        return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H})
 
 
 class Ensemble:
