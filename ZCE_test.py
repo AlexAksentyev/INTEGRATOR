@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 #%%
-# Ayatem definition
+# System definition
 
 pars = {'eps': 1e-2, 'a': 0.5}
 icdict = {'x': pars['a'],
