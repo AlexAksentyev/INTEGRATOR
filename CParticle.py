@@ -4,11 +4,9 @@ import pandas as PDS
 import PyDSTool as DST
 
 class Particle:
-    
-    _Stats = {}
-    
-    _ezero = 1.602176462e-19 # Coulomb
-    _clight = 2.99792458e8 # m/s
+        
+    __ezero = 1.602176462e-19 # Coulomb
+    __clight = 2.99792458e8 # m/s
     
     __fIniState = None
     __fState = None 
@@ -29,10 +27,10 @@ class Particle:
         
         
     def CLIGHT(self):
-        return self._clight
+        return self.__clight
     
     def EZERO(self):
-        return self._ezero
+        return self.__ezero
     
     def GammaBeta(self, NRG):
         gamma = NRG / self.fMass0 + 1
@@ -80,8 +78,8 @@ class Particle:
         gammap = dEnp/self.fMass0 # gamma prime
         
         gamma,beta = self.GammaBeta(KinEn)
-        q = self._ezero
-        clight = self._clight
+        q = self.__ezero
+        clight = self.__clight
         v = beta*clight
         m0 = q*1e6*self.fMass0/clight**2
         
