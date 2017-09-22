@@ -116,6 +116,10 @@ class Particle:
         brks = 101
         self.__fState= list(self.__fIniState)
         self.fStateLog = {0:list(self.__fState)}
+        
+        # create an event handler
+        eh = EventHandler(self)
+        
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
@@ -123,8 +127,10 @@ class Particle:
                 at = NP.linspace(0, element.fLength, brks)
                 
                 element.frontKick(self)
-                # need to add event handling
-                self.__fState = odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
+                # replace the following by something like
+                # eventhandler.integrate(same arguments)
+                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
+                self.__fState = dat[brks-2]
                 element.rearKick(self)
             self.fStateLog.update({n:self.__fState})
             
@@ -175,3 +181,67 @@ class Ensemble:
     def __getitem__(self, index):
         return self.__fParticle[index]
     
+    
+class EventHandler:
+    """This will contain methods to analyze the ODE integration results 
+    to decide if to continue integration, or to terminate
+    """
+    
+    __fparticle = None
+    
+    def __init__(self, particle):
+        self.__fparticle = particle
+    
+    def stop(self, state):
+        KinEn = self.__fparticle.fKinEn0*(1+state[5]) # dEn = (En - En0) / En0
+        
+        Pc = self.__fparticle.Pc(KinEn) # momentum in MeVs
+        P0c = self.__fparticle.Pc(self.__fparticle.fKinEn0)
+        Px = P0c*state[3]
+        Py = P0c*state[4]
+        return Pc**2 - Px**2 - Py**2 <= 0
+    
+    def integrate(self, RHS, state, at, arguments = None):
+        nout = len(at)
+        fstate = [state,]
+        i=0
+        okay = True
+        while okay&(i<nout):
+            f = odeint(RHS, fstate[i], [at[i],at[i+1]], args=arguments)
+            i += 1
+            if self.stop(f[1]):
+                okay = False
+            else:
+                fstate.append(f[1])
+                
+        return NP.array(fstate)
+#        import numpy as np
+#        from scipy import integrate
+#        
+#        def df(f,t):
+#           return f-2.
+#        
+#        def df_stop(f,t):
+#           return f < 0.0
+#        
+#        f0 = 1.
+#        t0 = 0.
+#        t_max = 5.
+#        nout = 100
+#        ts = np.linspace(t0,t_max,nout)
+#        
+#        
+#        fs = [f0,]
+#        df_continue = True
+#        i = 0
+#        while df_continue:
+#            f = integrate.odeint(df,fs[i],[ts[i],ts[i+1]])
+#            i+=1
+#            if i==nout-1:
+#                df_continue = False
+#            elif df_stop(f[1][0],ts[i+1]):
+#                df_continue = False
+#            else:
+#                fs.append( f[1][0] )
+#        
+#        fs = np.array( fs )

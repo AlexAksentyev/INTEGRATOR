@@ -45,7 +45,7 @@ wa = ENT.Wien(1.808,R,.05,V,B0)
 E = PCL.Particle(StateList[1])
 
 #E = PCL.Ensemble.from_state(StateList[0])
-dat = E.track([mdip2],1000)
+E.track([mdip2],1000)
 
 #df = E[0].getDataFrame() 
 #n = len(df)
