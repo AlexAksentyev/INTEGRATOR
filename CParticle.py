@@ -2,6 +2,7 @@ from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
 import PyDSTool as DST
+import pycse as CSE
 
 class Particle:
         
@@ -46,7 +47,7 @@ class Particle:
     def setState(self, value):
         self.__fState = value[:]
     
-    def _RHS(self, state, at, element):
+    def __RHS(self, state, at, element):
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
@@ -55,9 +56,6 @@ class Particle:
         P0c = self.Pc(self.fKinEn0) # reference momentum
         
         Px,Py = [P0c*x for x in (px,py)] # turn px,py back to MeVs
-        if (Pc**2 - Px**2 - Py**2) == 0: 
-            print('Particle flew off')
-            return [0]*10 # doesn;t work smh
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
         
         Ex,Ey,Es = element.EField(state)
@@ -125,9 +123,11 @@ class Particle:
                 at = NP.linspace(0, element.fLength, brks)
                 
                 element.frontKick(self)
-                self.__fState = odeint(self._RHS, self.__fState, at, args=(element,))[brks-1]
+                # need to add event handling
+                self.__fState = odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
                 element.rearKick(self)
             self.fStateLog.update({n:self.__fState})
+            
         
     def getDataFrame(self):
         x = [self.fStateLog[i][0] for i in self.fStateLog]
