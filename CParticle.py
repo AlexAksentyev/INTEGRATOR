@@ -206,7 +206,7 @@ class EventHandler:
         fstate = [state,]
         i=0
         okay = True
-        while okay&(i<nout):
+        while okay&(i<nout-1):
             f = odeint(RHS, fstate[i], [at[i],at[i+1]], args=arguments)
             i += 1
             if self.stop(f[1]):
