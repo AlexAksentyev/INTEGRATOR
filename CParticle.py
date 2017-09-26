@@ -48,17 +48,8 @@ class Particle:
     
     def setState(self, value):
         self.__fState = value[:]
-        
-    def KinEn(self, dK):
-        return self.fKinEn0*(1+dK)
     
-    def Gamma_prime(self, dK_prime):
-        return dK_prime/self.fMass0
-    
-    def Beta_prime(self,KinEn,dK_prime):
-        return (dK_prime*(self.fMass0)**2)/((KinEn+self.fMass0)**2*NP.sqrt(KinEn**2+2*KinEn*self.fMass0))
-    
-    def __RHS(self, state, at, element):
+    def RHS(self, state, element):
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
@@ -119,9 +110,7 @@ class Particle:
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
         
-        DX = [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp]
-        
-        return DX
+        return [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp]
     
     def track(self, ElementSeq, ntimes, FWD = True):
         brks = 101
