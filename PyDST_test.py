@@ -12,19 +12,19 @@ from matplotlib import pyplot as PLT
 import PyDSTool as DST
 from importlib import reload
 
+#%%
 reload(PCL)
 reload(ENT)
 
-#%%
 L=20
 q = 1.602176462e-19
 #state = [1e-3, -1e-3, 0, -1e-3, 1e-3, 1e-4, 0, 0, 1, 0]
-state = [1e-3, -1e-3, 0, 1e-3, 0, 0, 0, 0, 1, 0]
+state = [1e-3, -1e-3, 0, 1e-3, 0, 1e-4, 0, 0, 1, 0]
 names = ['x','y','time','px','py','dK','Sx','Sy','Ss','H']
 icdict = dict(zip(names,state))
 
 p = PCL.Particle(state)
-el = ENT.MDipole(2,7.5,.46)
+el = ENT.MDipole(1.8,7.55,.46)
 
 xp = 'xp'
 yp = 'yp'
@@ -38,7 +38,7 @@ Syp = 'Syp'
 Ssp = 'Ssp'
 
 
-DSargs = DST.args(name='test')
+DSargs = DST.args(name=el.fName)
 
 DSargs.tdata = [0, L]
 DSargs.varspecs = {'x': xp, 'y': yp, 'time':tp, 'H':Hp, 
@@ -47,7 +47,7 @@ DSargs.varspecs = {'x': xp, 'y': yp, 'time':tp, 'H':Hp,
 DSargs.ics = icdict
 DSargs.ignorespecial = ['state','xp','yp','tp','pxp','pyp','dKp','Sxp','Syp','Ssp','Hp']
 DSargs.vfcodeinsert_start = """state = [x,y,time,px,py,dK,Sx,Sy,Ss,H]
-    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state,ds.Element)
+    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state,[0], ds.Element)
 """
 
 DS = DST.Vode_ODEsystem(DSargs)
