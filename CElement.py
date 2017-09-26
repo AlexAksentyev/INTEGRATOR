@@ -7,10 +7,12 @@ class Element:
     
     fCurve = None
     fLength = None
+    fName = None
     
-    def __init__(self, Curve, Length):
+    def __init__(self, Curve, Length, Name = "Element"):
         self.fCurve = Curve
         self.fLength = Length
+        self.fName = Name
     
     def EField(self,arg):
         return (0,0,0)
@@ -28,8 +30,8 @@ class Drift(Element):
     """ drift space
     """
     
-    def __init__(self, Length):
-        Element.__init__(self, 0, Length)
+    def __init__(self, Length, Name = "Driftspace"):
+        Element.__init__(self, 0, Length, Name)
         
 
 class MQuad(Element):
@@ -38,8 +40,8 @@ class MQuad(Element):
     
     __fGrad = None
     
-    def __init__(self, Length, Grad):
-        Element.__init__(self, 0, Length)
+    def __init__(self, Length, Grad, Name = "MQuad"):
+        Element.__init__(self, 0, Length, Name)
         self.__fGrad = Grad
         
     def BField(self, arg):
@@ -56,8 +58,8 @@ class MDipole(Element):
     
     __fBField = None
     
-    def __init__(self, Length, R, BField):
-        Element.__init__(self, 1/R, Length)
+    def __init__(self, Length, R, BField, Name = "MDipole"):
+        Element.__init__(self, 1/R, Length, Name)
         self.setBField(BField)
         
     def setBField(self,BField):
