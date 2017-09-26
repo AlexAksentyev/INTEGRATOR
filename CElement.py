@@ -40,7 +40,7 @@ class MQuad(Element):
     
     __fGrad = None
     
-    def __init__(self, Length, Grad, Name = "MQuad"):
+    def __init__(self, Length, Grad, Name = "MQuadrupole"):
         Element.__init__(self, 0, Length, Name)
         self.__fGrad = Grad
         
