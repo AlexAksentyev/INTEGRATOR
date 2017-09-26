@@ -57,6 +57,6 @@ DS.Particle = p
 traj = DS.compute('test')
 pts = traj.sample()
 PLT.plot(pts['t'], pts['x'], label='x')
-PLT.plot(pts['t'], pts['y'], label='y')
+PLT.plot(pts['t'], pts['Sx'], label='Sx')
 PLT.legend()
 PLT.xlabel('t')
