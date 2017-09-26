@@ -20,6 +20,8 @@ class Particle:
     fGamma0 = None # reference particle's
     fBeta0 = None  # gamma, beta
     
+    __fAuxVars=dict()
+    
     def __init__(self, State0):
             
         self.__fIniState = list(State0)
@@ -46,6 +48,15 @@ class Particle:
     
     def setState(self, value):
         self.__fState = value[:]
+        
+    def KinEn(self, dK):
+        return self.fKinEn0*(1+dK)
+    
+    def Gamma_prime(self, dK_prime):
+        return dK_prime/self.fMass0
+    
+    def Beta_prime(self,KinEn,dK_prime):
+        return (dK_prime*(self.fMass0)**2)/((KinEn+self.fMass0)**2*NP.sqrt(KinEn**2+2*KinEn*self.fMass0))
     
     def __RHS(self, state, at, element):
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
