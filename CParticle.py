@@ -9,6 +9,7 @@ class Particle:
     __ezero = 1.602176462e-19 # Coulomb
     __clight = 2.99792458e8 # m/s
     
+    __fStateNames = ['x','y','time','px','py','dK','Sx','Sy','Ss','H']
     __fIniState = None
     __fState = None 
     fStateLog = dict()
@@ -21,6 +22,8 @@ class Particle:
     fBeta0 = None  # gamma, beta
     
     __fAuxVars=dict()
+    
+    ODESys = None
     
     def __init__(self, State0):
             
@@ -49,7 +52,7 @@ class Particle:
     def setState(self, value):
         self.__fState = value[:]
     
-    def RHS(self, state, element):
+    def RHS(self, state, at, element):
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
@@ -115,7 +118,7 @@ class Particle:
     def track(self, ElementSeq, ntimes, FWD = True):
         brks = 101
         self.__fState= list(self.__fIniState)
-        self.fStateLog = {0:list(self.__fState)}
+#        self.fStateLog = {0:list(self.__fState)}
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
@@ -124,7 +127,25 @@ class Particle:
                 
                 element.frontKick(self)
                 # need to add event handling
-                self.__fState = odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
+                ##PyDSTool ODE definition
+#                icdict = dict(zip(self.__fStateNames,self.__fState))
+#                DSargs = DST.args(name=element.fName)
+#                DSargs.tdata = [0, L]
+#                DSargs.varspecs = {'x': 'xp', 'y': 'yp', 'time':'tp', 'H':'Hp', 
+#                                   'dK':'dKp', 'px':'pxp', 'py':'pyp', 
+#                                   'Sx':'Sxp', 'Sy':'Syp', 'Ss':'Ssp'}
+#                DSargs.ics = icdict
+#                DSargs.ignorespecial = ['state','xp','yp','tp','pxp','pyp','dKp','Sxp','Syp','Ssp','Hp']
+#                DSargs.vfcodeinsert_start = """state = [x,y,time,px,py,dK,Sx,Sy,Ss,H]
+#                    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state,ds.Element)
+#                """
+#                
+#                DS = DST.Vode_ODEsystem(DSargs)
+#                DS.Element = elelent
+#                DS.Particle = self
+#                traj = DS.compute(element.fName+str(n))
+                ##
+                self.__fState = odeint(self.RHS, self.__fState, at, args=(element,))[brks-1]
                 element.rearKick(self)
             self.fStateLog.update({n:self.__fState})
             
