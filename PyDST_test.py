@@ -34,25 +34,25 @@ s0=0
 for element in lattice:
     DSargs = DST.args(name=element.fName)
     DSargs.tdata = [0, element.fLength]
-    DSargs.varspecs = {'x': 'xp', 'y': 'yp', 'time':'tp', 'H':'Hp', 's':'1',
+    DSargs.varspecs = {'x': 'xp', 'y': 'yp', 'time':'tp', 'H':'Hp', 's':str(s0),
                        'dK':'dKp', 'px':'pxp', 'py':'pyp', 
                        'Sx':'Sxp', 'Sy':'Syp', 'Ss':'Ssp'}
     DSargs.ics = {key: value for key, value in icdict.items()}
     DSargs.ics.update({'s':s0})
-#    DSargs.xdomain={'x':[-1,1],'y':[-1,1],'time':[0, 100],
-#                    'px':[-1,1],'py':[-1,1],'dK':[-1,1],
-#                    'Sx':[-1,1],'Sy':[-1,1],'Ss':[-1,1],
-#                    'H':[0, 10000],'s':[0,10000]}
+    DSargs.xdomain={'x':[-1,1],'y':[-1,1],'time':[0, 100],
+                    'px':[-1,1],'py':[-1,1],'dK':[-1,1],
+                    'Sx':[-1,1],'Sy':[-1,1],'Ss':[-1,1],
+                    'H':[0, 10000],'s':s0}
+    s0+=1
     DSargs.pars={'L':element.fLength}
-    s0 += element.fLength
     DSargs.ignorespecial = ['state','xp','yp','tp','pxp','pyp','dKp','Sxp','Syp','Ssp','Hp']
     DSargs.vfcodeinsert_start = """state = [x,y,time,px,py,dK,Sx,Sy,Ss,H]
-    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state,[0], ds.Element)
+    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state, [], ds.Element)
     """
     event_args = {'name':'passed','eventtol':1e-3,'eventdelay':1e-6,'term':True}
     
     DSargs.events = DST.makeZeroCrossEvent('s-L',1,event_args,varnames=['s'],parnames=['L'])
-    DS = DST.embed(DST.Vode_ODEsystem(DSargs),name=element.fName,tdata=[0, 200])
+    DS = DST.embed(DST.Vode_ODEsystem(DSargs),name=element.fName)
     DS.Element = element
     DS.Particle = p
     ModList.append(DS)
