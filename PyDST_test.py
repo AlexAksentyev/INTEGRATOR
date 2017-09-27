@@ -18,57 +18,60 @@ reload(ENT)
 
 L=20
 q = 1.602176462e-19
-#state = [1e-3, -1e-3, 0, -1e-3, 1e-3, 1e-4, 0, 0, 1, 0]
-state = [1e-3, -1e-3, 0, 1e-3, 0, 1e-4, 0, 0, 1, 0, 0]
-names = ['x','y','time','px','py','dK','Sx','Sy','Ss','H','s']
+state = [1e-3, -1e-3, 0, 1e-3, 0, 1e-4, 0, 0, 1, 0, 0, 0]
+names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H','s', 'start']
 icdict = dict(zip(names,state))
 
 p = PCL.Particle(state)
-dip = ENT.MDipole(1.8,7.55,.46)
-quad = ENT.MQuad(5,.86)
-lattice = [dip, quad]
+quad1 = ENT.MQuad(5,-.831,Name="D")
+quad0 = ENT.MQuad(5,.86,Name="F")
+lattice = [quad0, ENT.Drift(.5,Name="O") , quad1]
 
 ModList = list()
 MI_list = list()
-s0=0
+_id=0
+at=0
 for element in lattice:
     DSargs = DST.args(name=element.fName)
-    DSargs.tdata = [0, element.fLength]
-    DSargs.varspecs = {'x': 'xp', 'y': 'yp', 'time':'tp', 'H':'Hp', 's':str(s0),
+    DSargs.tdata = [0, 200]
+    at += element.fLength
+    DSargs.varspecs = {'x': 'xp', 'y': 'yp', 'ts':'tp', 
+                       'H':'Hp', 's':'1', 'start':'0',
                        'dK':'dKp', 'px':'pxp', 'py':'pyp', 
                        'Sx':'Sxp', 'Sy':'Syp', 'Ss':'Ssp'}
-    DSargs.ics = {key: value for key, value in icdict.items()}
-    DSargs.ics.update({'s':s0})
-    DSargs.xdomain={'x':[-1,1],'y':[-1,1],'time':[0, 100],
-                    'px':[-1,1],'py':[-1,1],'dK':[-1,1],
-                    'Sx':[-1,1],'Sy':[-1,1],'Ss':[-1,1],
-                    'H':[0, 10000],'s':s0}
-    s0+=1
-    DSargs.pars={'L':element.fLength}
+    DSargs.xdomain={'start':_id}
+    _id +=1
+    DSargs.pars={'L':at}
     DSargs.ignorespecial = ['state','xp','yp','tp','pxp','pyp','dKp','Sxp','Syp','Ssp','Hp']
-    DSargs.vfcodeinsert_start = """state = [x,y,time,px,py,dK,Sx,Sy,Ss,H]
+    DSargs.vfcodeinsert_start = """state = [x,y,ts,px,py,dK,Sx,Sy,Ss,H]
     xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state, [], ds.Element)
     """
     event_args = {'name':'passed','eventtol':1e-3,'eventdelay':1e-6,'term':True}
     
     DSargs.events = DST.makeZeroCrossEvent('s-L',1,event_args,varnames=['s'],parnames=['L'])
-    DS = DST.embed(DST.Vode_ODEsystem(DSargs),name=element.fName)
+    DS = DST.Vode_ODEsystem(DSargs)
     DS.Element = element
     DS.Particle = p
+    DS = DST.embed(DS,name=element.fName)
     ModList.append(DS)
     MI_list.append(DST.intModelInterface(DS))
-    
-all_names = ['MDipole','MQuadrupole']
-dip_info = DST.makeModelInfoEntry(MI_list[0],all_names,[('passed','MQuadrupole')])
-quad_info = DST.makeModelInfoEntry(MI_list[1],all_names,[('passed','MDipole')])
-modelInfoDict = DST.makeModelInfo([dip_info,quad_info])
+
+
+all_names = ['F','O','D']
+F_info = DST.makeModelInfoEntry(MI_list[0],all_names,[('passed','O')])
+O_info = DST.makeModelInfoEntry(MI_list[1],all_names,[('passed','D')])
+D_info = DST.makeModelInfoEntry(MI_list[2],all_names,[('passed','F')])
+modelInfoDict = DST.makeModelInfo([F_info,O_info,D_info])
 
 mod_args = {'name':'Dip-Quad','modelInfo':modelInfoDict}
 Hyb = DST.Model.HybridModel(mod_args)
 
-Hyb.compute(trajname='test',tdata=[0,60],ics=icdict)
-pts = Hyb.sample()
-PLT.plot(pts['t'], pts['x'], label='x')
-PLT.plot(pts['t'], pts['Sx'], label='Sx')
+#%%
+
+Hyb.compute(trajname='test',tdata=[0,10],ics=icdict)
+pts = Hyb.sample('test')
+#%%
+PLT.plot(pts['s'], pts['x'], label='x')
+PLT.plot(pts['s'], pts['Sx'], label='Sx')
 PLT.legend()
-PLT.xlabel('t')
+PLT.xlabel('s')
