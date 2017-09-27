@@ -16,16 +16,15 @@ from importlib import reload
 reload(PCL)
 reload(ENT)
 
-L=20
-q = 1.602176462e-19
 state = [1e-3, -1e-3, 0, 1e-3, 0, 1e-4, 0, 0, 1, 0, 0, 0]
-names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H','s', 'start']
+names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
 icdict = dict(zip(names,state))
 
 p = PCL.Particle(state)
 quad1 = ENT.MQuad(5,-.831,Name="D")
 quad0 = ENT.MQuad(5,.86,Name="F")
-lattice = [quad0, ENT.Drift(.5,Name="O") , quad1]
+space = ENT.Drift(.5,Name="O")
+lattice = [quad0, space , quad1]
 
 ModList = list()
 MI_list = list()
@@ -35,8 +34,8 @@ for element in lattice:
     DSargs = DST.args(name=element.fName)
     DSargs.tdata = [0, 200]
     at += element.fLength
-    DSargs.varspecs = {'x': 'xp', 'y': 'yp', 'ts':'tp', 
-                       'H':'Hp', 's':'1', 'start':'0',
+    DSargs.varspecs = {'x': 'xp', 'y': 'yp', 's':'1',
+                       'ts':'tp', 'H':'Hp', 'start':'0',
                        'dK':'dKp', 'px':'pxp', 'py':'pyp', 
                        'Sx':'Sxp', 'Sy':'Syp', 'Ss':'Ssp'}
     DSargs.xdomain={'start':_id}
@@ -68,10 +67,10 @@ Hyb = DST.Model.HybridModel(mod_args)
 
 #%%
 
-Hyb.compute(trajname='test',tdata=[0,10],ics=icdict)
-pts = Hyb.sample('test')
+Hyb.compute(trajname='test1',tdata=[0,60],ics=icdict)
+pts = Hyb.sample('test1')
 #%%
-PLT.plot(pts['s'], pts['x'], label='x')
-PLT.plot(pts['s'], pts['Sx'], label='Sx')
-PLT.legend()
-PLT.xlabel('s')
+PLT.plot(pts['Sx'], pts['Ss'], label='x')
+#PLT.plot(pts['s'], pts['Sx'], label='Sx')
+#PLT.legend()
+#PLT.xlabel('s')
