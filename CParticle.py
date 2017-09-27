@@ -52,7 +52,7 @@ class Particle:
     def setState(self, value):
         self.__fState = value[:]
     
-    def RHS(self, state, at, element):
+    def RHS(self, state, at, element): #dummy argument 'at' here for use with scipy.odeint
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
