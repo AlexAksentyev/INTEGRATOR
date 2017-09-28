@@ -130,7 +130,7 @@ class Particle:
                 # replace the following by something like
                 # eventhandler.integrate(same arguments)
                 dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
-                self.__fState = dat[brks-2]
+                self.__fState = dat[len(dat)-1]
                 element.rearKick(self)
             self.fStateLog.update({n:self.__fState})
             
@@ -199,7 +199,7 @@ class EventHandler:
         P0c = self.__fparticle.Pc(self.__fparticle.fKinEn0)
         Px = P0c*state[3]
         Py = P0c*state[4]
-        return Pc**2 - Px**2 - Py**2 <= 0
+        return NP.any(NP.isnan([Pc,Px,Py]))
     
     def integrate(self, RHS, state, at, arguments = None):
         nout = len(at)
@@ -211,37 +211,8 @@ class EventHandler:
             i += 1
             if self.stop(f[1]):
                 okay = False
+                print(i)
             else:
                 fstate.append(f[1])
                 
         return NP.array(fstate)
-#        import numpy as np
-#        from scipy import integrate
-#        
-#        def df(f,t):
-#           return f-2.
-#        
-#        def df_stop(f,t):
-#           return f < 0.0
-#        
-#        f0 = 1.
-#        t0 = 0.
-#        t_max = 5.
-#        nout = 100
-#        ts = np.linspace(t0,t_max,nout)
-#        
-#        
-#        fs = [f0,]
-#        df_continue = True
-#        i = 0
-#        while df_continue:
-#            f = integrate.odeint(df,fs[i],[ts[i],ts[i+1]])
-#            i+=1
-#            if i==nout-1:
-#                df_continue = False
-#            elif df_stop(f[1][0],ts[i+1]):
-#                df_continue = False
-#            else:
-#                fs.append( f[1][0] )
-#        
-#        fs = np.array( fs )
