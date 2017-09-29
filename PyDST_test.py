@@ -21,10 +21,14 @@ names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
 icdict = dict(zip(names,state))
 
 p = PCL.Particle(state)
-quad1 = ENT.MQuad(5,-.831,Name="D")
-quad0 = ENT.MQuad(5,.86,Name="F")
-space = ENT.Drift(.25,Name="O")
-lattice = [quad0, space , quad1]
+quad11 = ENT.MQuad(1,-.831,Name="D1")
+quad01 = ENT.MQuad(1,.86,Name="F1")
+space1 = ENT.Drift(.25,Name="O1")
+quad12 = ENT.MQuad(1,-.831,Name="D2")
+quad02 = ENT.MQuad(1,.86,Name="F2")
+space2 = ENT.Drift(.25,Name="O2")
+lattice = [quad01, space1 , quad11, space2, quad02]
+size=len(lattice)
 
 ModList = list()
 MI_list = list()
@@ -44,16 +48,25 @@ event_args = {'name':'passed','eventtol':1e-4,'eventdelay':0,'term':True}
 
 _id=0
 at=0
+pardict = dict()
+for element in lattice:
+    at += element.fLength
+    pardict.update({'L'+element.fName:at})
+
+#events = list()
+#for element in lattice:
+#    event_args.update({'name':'passto'+str(_id)})
+#    DSargs.update({'events': DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
+    
+DSargs.pars = pardict
 for element in lattice:
     DSargs.update({'name':element.fName})
     DSargs.update({'xdomain':{'start':_id}})
     DSargs.xtype={'start':DST.int}
     DSargs.varspecs.update({'start': str(_id)})
     _id +=1
-    event_args.update({'name':'passto'+str(_id)})
-    at += element.fLength
-    DSargs.update({'pars':{'L':at}})
-    DSargs.update({'events': DST.makeZeroCrossEvent('s-L',1,event_args,varnames=['s'],parnames=['L'])})
+    event_args.update({'name':'passto'+str(_id%size)})
+    DSargs.update({'events': DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
     DS = DST.Vode_ODEsystem(DSargs)
     DS.Element = element
     DS.Particle = p
@@ -62,11 +75,13 @@ for element in lattice:
     MI_list.append(DST.intModelInterface(DS))
 
 
-all_names = ['F','O','D']
-F_info = DST.makeModelInfoEntry(MI_list[0],all_names,[('passto1','O')])
-O_info = DST.makeModelInfoEntry(MI_list[1],all_names,[('passto2','D')])
-D_info = DST.makeModelInfoEntry(MI_list[2],all_names,[('passto3','F')])
-modelInfoDict = DST.makeModelInfo([F_info,O_info,D_info])
+all_names = [e.fName for e in lattice]
+info = list()
+for i in range(len(MI_list)):
+    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),MI_list[(i+1)%size].model.name)]))
+    
+
+modelInfoDict = DST.makeModelInfo(info)
 
 mod_args = {'name':'FODO','modelInfo':modelInfoDict}
 Hyb = DST.Model.HybridModel(mod_args)
@@ -76,10 +91,10 @@ m1=Hyb.sub_models()[1]
 m2=Hyb.sub_models()[2]
 #%%
 icdict.update({'start':0}) # anything other than 0 fails inside RHS at Pc**2-Px**2-Py**2
-Hyb.compute(trajname='test',tdata=[0,60],ics=icdict)
+Hyb.compute(trajname='test',tdata=[0,20],ics=icdict)
 pts = Hyb.sample('test')
 #%%
 PLT.plot(pts['s'], pts['x'], label='x')
-#PLT.plot(pts['s'], pts['Sx'], label='Sx')
-#PLT.legend()
-#PLT.xlabel('s')
+PLT.plot(pts['s'], pts['Sx'], label='Sx')
+PLT.legend()
+PLT.xlabel('s')
