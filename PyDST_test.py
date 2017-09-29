@@ -53,6 +53,7 @@ for element in lattice:
     at += element.fLength
     pardict.update({'L'+element.fName:at})
 
+pardict.update({'Ltot':at})
 #events = list()
 #for element in lattice:
 #    event_args.update({'name':'passto'+str(_id)})
@@ -66,7 +67,7 @@ for element in lattice:
     DSargs.varspecs.update({'start': str(_id)})
     _id +=1
     event_args.update({'name':'passto'+str(_id%size)})
-    DSargs.update({'events': DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
+    DSargs.update({'events': DST.makeZeroCrossEvent('s%Ltot-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
     DS = DST.Vode_ODEsystem(DSargs)
     DS.Element = element
     DS.Particle = p
