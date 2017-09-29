@@ -127,10 +127,9 @@ class Particle:
                 at = NP.linspace(0, element.fLength, brks)
                 
                 element.frontKick(self)
-                # replace the following by something like
-                # eventhandler.integrate(same arguments)
-                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
-                self.__fState = dat[len(dat)-1]
+                self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
+#                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
+#                self.__fState = dat[len(dat)-1]
                 element.rearKick(self)
             self.fStateLog.update({n:self.__fState})
             
@@ -211,7 +210,7 @@ class EventHandler:
             i += 1
             if self.stop(f[1]):
                 okay = False
-                print(i)
+                print(i-1)
             else:
                 fstate.append(f[1])
                 

@@ -5,12 +5,15 @@ import CElement as ENT
 from importlib import reload
 import numpy as NP
 
+reload(ENT)
+reload(PCL)
+
 theme_bw()
 
 state = [1e-3, -1e-3, 0, 0, 0, 1e-4, 0, 0, 1, 0]
 StateList = [
         [1e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-        [0, 1e-3, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 1e-3, 0, 0, .7, 0, 0, 0, 1, 0],
         [0, 0, 0, 1e-4, 0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 1e-4, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 1e-4, 0, 0, 1, 0]
@@ -57,5 +60,6 @@ df = E.getDataFrame()
 df['PID'] = 1
 df = PDS.melt(df, id_vars=['PID','t','H'])
 #%%
-ggplot(df.loc[df['variable'].isin(['x','y','Sx','Sy'])],aes(x='t',y='value'))\
+ggplot(df.loc[df['variable'].isin(['px','py','Sx','Sy'])],aes(x='t',y='value'))\
     + geom_line() + facet_wrap('variable',scales='free')
+    
