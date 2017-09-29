@@ -21,13 +21,11 @@ names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
 icdict = dict(zip(names,state))
 
 p = PCL.Particle(state)
-quad11 = ENT.MQuad(1,-.831,Name="D1")
-quad01 = ENT.MQuad(1,.86,Name="F1")
-space1 = ENT.Drift(.25,Name="O1")
-quad12 = ENT.MQuad(1,-.831,Name="D2")
-quad02 = ENT.MQuad(1,.86,Name="F2")
-space2 = ENT.Drift(.25,Name="O2")
-lattice = [quad01, space1 , quad11, space2, quad02]
+
+lattice = list()
+for i in range(3):
+    lattice.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0), 'Dipole_'+str(i)))
+
 size=len(lattice)
 
 ModList = list()
@@ -60,6 +58,7 @@ pardict.update({'Ltot':at})
 #    DSargs.update({'events': DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
     
 DSargs.pars = pardict
+
 for element in lattice:
     DSargs.update({'name':element.fName})
     DSargs.update({'xdomain':{'start':_id}})
@@ -78,24 +77,26 @@ for element in lattice:
 
 all_names = [e.fName for e in lattice]
 info = list()
+#for i in range(len(MI_list)):
+#    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),MI_list[(i+1)%size].model.name)]))
+
 for i in range(len(MI_list)):
-    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),MI_list[(i+1)%size].model.name)]))
-    
+    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('time',MI_list[(i+1)%size].model.name)]))    
 
 modelInfoDict = DST.makeModelInfo(info)
 
-mod_args = {'name':'FODO','modelInfo':modelInfoDict}
+mod_args = {'name':'lattice','modelInfo':modelInfoDict}
 Hyb = DST.Model.HybridModel(mod_args)
 
 m0=Hyb.sub_models()[0]
 m1=Hyb.sub_models()[1]
 m2=Hyb.sub_models()[2]
 #%%
-icdict.update({'start':0}) # anything other than 0 fails inside RHS at Pc**2-Px**2-Py**2
-Hyb.compute(trajname='test',tdata=[0,20],ics=icdict)
+icdict.update({'start':0})
+Hyb.compute(trajname='test',tdata=[0,15],ics=icdict)
 pts = Hyb.sample('test')
 #%%
-PLT.plot(pts['s'], pts['x'], label='x')
-PLT.plot(pts['s'], pts['Sx'], label='Sx')
+PLT.plot(pts['s'], pts['Sy'], label='Sy')
+PLT.plot(pts['s'], pts['y'], label='y')
 PLT.legend()
 PLT.xlabel('s')
