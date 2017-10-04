@@ -30,7 +30,7 @@ for i in range(3):
     lattice.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0), 'Dipole_'+str(i)))
 #%% FODO lattice
 
-lattice = [ENT.MQuad(5, .86, "QF1"), ENT.Drift(2.5,"O1") , ENT.MQuad(5, -.831, "QD1"), ENT.Drift(2.5,"O2")]
+#lattice = [ENT.MQuad(5, .86, "QF1"), ENT.Drift(2.5,"O1") , ENT.MQuad(5, -.831, "QD1"), ENT.Drift(2.5,"O2")]
 
 #%%
 
@@ -76,7 +76,7 @@ NaN_event = DST.makeZeroCrossEvent('Ps2(dK,px,py)-10000',-1,
 
 for element in lattice:
     DSargs.update({'name':element.fName})
-    DSargs.update({'xdomain':{'start':_id}})
+    DSargs.update({'xdomain':{'start':_id}}) #this is actually a very important string here, for initial model selection!
     DSargs.xtype={'start':DST.int}
     DSargs.varspecs.update({'start': str(_id)})
     _id +=1
