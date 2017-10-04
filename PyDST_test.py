@@ -66,7 +66,10 @@ for element in lattice:
     DSargs.varspecs.update({'start': str(_id)})
     _id +=1
     event_args.update({'name':'passto'+str(_id%size)})
-    DSargs.update({'events': DST.makeZeroCrossEvent('s%Ltot-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
+    if _id%size != 0:
+        DSargs.update({'events': DST.makeZeroCrossEvent('s%Ltot-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
+    else:
+        DSargs.update({'events': DST.makeZeroCrossEvent('s-Ltot*ceil(s/(Ltot*1.001))',1,event_args,varnames=['s'],parnames=list(pardict.keys()))})
     DS = DST.Vode_ODEsystem(DSargs)
     DS.Element = element
     DS.Particle = p
@@ -81,7 +84,7 @@ info = list()
 #    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),MI_list[(i+1)%size].model.name)]))
 
 for i in range(len(MI_list)):
-    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('time',MI_list[(i+1)%size].model.name)]))    
+    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),MI_list[(i+1)%size].model.name)]))    
 
 modelInfoDict = DST.makeModelInfo(info)
 
@@ -93,7 +96,7 @@ m1=Hyb.sub_models()[1]
 m2=Hyb.sub_models()[2]
 #%%
 icdict.update({'start':0})
-Hyb.compute(trajname='test',tdata=[0,15],ics=icdict)
+Hyb.compute(trajname='test',tdata=[0,25],ics=icdict)
 pts = Hyb.sample('test')
 #%%
 PLT.plot(pts['s'], pts['Sy'], label='Sy')
