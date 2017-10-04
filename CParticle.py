@@ -2,7 +2,6 @@ from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
 import PyDSTool as DST
-import pycse as CSE
 
 class Particle:
         
@@ -21,7 +20,7 @@ class Particle:
     fGamma0 = None # reference particle's
     fBeta0 = None  # gamma, beta
     
-    __fAuxVars=dict()
+    fStats=dict()
     
     ODESys = None
     
@@ -61,7 +60,12 @@ class Particle:
         P0c = self.Pc(self.fKinEn0) # reference momentum
         
         Px,Py = [P0c*x for x in (px,py)] # turn px,py back to MeVs
+        self.fStats.update({'Ps2':Pc**2 - Px**2 - Py**2})
+#        if self.fStats['Ps2'] < 0:
+#            print([px, py, self.fStats['Ps2']])
+#            return [0]*10
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
+        
         
         Ex,Ey,Es = element.EField(state)
         Bx,By,Bs = element.BField(state)
