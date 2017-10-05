@@ -98,7 +98,8 @@ all_names = [e.fName for e in lattice]
 info = list()
 
 for i in range(len(MI_list)):
-    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),MI_list[(i+1)%size].model.name)]))    
+    epmapping = DST.EvMapping({'px':'px*(1-3e-1)'}, model=MI_list[i].model)
+    info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))    
 
 modelInfoDict = DST.makeModelInfo(info)
 
@@ -112,7 +113,7 @@ Hyb.compute(trajname=testname,tdata=[0,35],ics=icdict)
 pts = Hyb.sample(testname)
 #%%
 PLT.plot(pts['s'], pts['x'], label='x')
-PLT.plot(pts['s'], pts['y'], label='y')
+PLT.plot(pts['s'], pts['px'], label='px')
 PLT.legend()
 PLT.xlabel('s')
 #%%
