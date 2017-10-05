@@ -2,13 +2,13 @@ from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
 import PyDSTool as DST
-import pycse as CSE
 
 class Particle:
         
     __ezero = 1.602176462e-19 # Coulomb
     __clight = 2.99792458e8 # m/s
     
+    __fStateNames = ['x','y','time','px','py','dK','Sx','Sy','Ss','H']
     __fIniState = None
     __fState = None 
     fStateLog = dict()
@@ -19,6 +19,10 @@ class Particle:
     
     fGamma0 = None # reference particle's
     fBeta0 = None  # gamma, beta
+    
+    fStats=dict()
+    
+    ODESys = None
     
     def __init__(self, State0):
             
@@ -47,7 +51,9 @@ class Particle:
     def setState(self, value):
         self.__fState = value[:]
     
-    def __RHS(self, state, at, element):
+    # RHS will have to get spread out into multiple smaller functions
+    # defined as strings for use with PyDSTool
+    def RHS(self, state, at, element): #dummy argument 'at' here for use with scipy.odeint
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
@@ -56,7 +62,12 @@ class Particle:
         P0c = self.Pc(self.fKinEn0) # reference momentum
         
         Px,Py = [P0c*x for x in (px,py)] # turn px,py back to MeVs
+        self.fStats.update({'Ps2':Pc**2 - Px**2 - Py**2})
+#        if self.fStats['Ps2'] < 0:
+#            print([px, py, self.fStats['Ps2']])
+#            return [0]*10
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
+        
         
         Ex,Ey,Es = element.EField(state)
         Bx,By,Bs = element.BField(state)
@@ -108,18 +119,12 @@ class Particle:
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
         
-        DX = [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp]
-        
-        return DX
+        return [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp]
     
-    def track(self, ElementSeq, ntimes, FWD = True):
+    def track(self, ElementSeq, ntimes, FWD = True): #this's to go
         brks = 101
         self.__fState= list(self.__fIniState)
-        self.fStateLog = {0:list(self.__fState)}
-        
-        # create an event handler
-        eh = EventHandler(self)
-        
+#        self.fStateLog = {0:list(self.__fState)}
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
@@ -127,9 +132,26 @@ class Particle:
                 at = NP.linspace(0, element.fLength, brks)
                 
                 element.frontKick(self)
-                self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
-#                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
-#                self.__fState = dat[len(dat)-1]
+                # need to add event handling
+                ##PyDSTool ODE definition
+#                icdict = dict(zip(self.__fStateNames,self.__fState))
+#                DSargs = DST.args(name=element.fName)
+#                DSargs.tdata = [0, L]
+#                DSargs.varspecs = {'x': 'xp', 'y': 'yp', 'time':'tp', 'H':'Hp', 
+#                                   'dK':'dKp', 'px':'pxp', 'py':'pyp', 
+#                                   'Sx':'Sxp', 'Sy':'Syp', 'Ss':'Ssp'}
+#                DSargs.ics = icdict
+#                DSargs.ignorespecial = ['state','xp','yp','tp','pxp','pyp','dKp','Sxp','Syp','Ssp','Hp']
+#                DSargs.vfcodeinsert_start = """state = [x,y,time,px,py,dK,Sx,Sy,Ss,H]
+#                    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state,ds.Element)
+#                """
+#                
+#                DS = DST.Vode_ODEsystem(DSargs)
+#                DS.Element = elelent
+#                DS.Particle = self
+#                traj = DS.compute(element.fName+str(n))
+                ##
+                self.__fState = odeint(self.RHS, self.__fState, at, args=(element,))[brks-1]
                 element.rearKick(self)
             self.fStateLog.update({n:self.__fState})
             
@@ -149,69 +171,70 @@ class Particle:
         return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H})
 
 
-class Ensemble:
-    """ Ensemble of particles; handles tracking of multiple particles. 
-    Create a bunch of worker nodes and call particle.track for the particles
-    """
-    __fParticle = dict() # dictionary of particle pointers
-    
-    def __init__(self, ParticleList):
-        self.addParticles(ParticleList)
-        
-    @classmethod
-    def from_state(cls, StateList):
-        pcls = [Particle(state) for state in StateList]
-        return cls(pcls)
-    
-    def addParticles(self, ParticleList):
-        names = [e for e in range(len(ParticleList))]
-        self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
-        
-    def getParticles(self):
-        return self.__fParticle
-        
-    def track(self, ElementSeq, ntimes, FWD = True):
-        for pcl in self.__fParticle.values():
-            pcl.track(ElementSeq, ntimes, FWD)
-        
-    def size(self):
-        return len(self.__fParticle)
-        
-    def __getitem__(self, index):
-        return self.__fParticle[index]
-    
-    
-class EventHandler:
-    """This will contain methods to analyze the ODE integration results 
-    to decide if to continue integration, or to terminate
-    """
-    
-    __fparticle = None
-    
-    def __init__(self, particle):
-        self.__fparticle = particle
-    
-    def stop(self, state):
-        KinEn = self.__fparticle.fKinEn0*(1+state[5]) # dEn = (En - En0) / En0
-        
-        Pc = self.__fparticle.Pc(KinEn) # momentum in MeVs
-        P0c = self.__fparticle.Pc(self.__fparticle.fKinEn0)
-        Px = P0c*state[3]
-        Py = P0c*state[4]
-        return NP.any(NP.isnan([Pc,Px,Py]))
-    
-    def integrate(self, RHS, state, at, arguments = None):
-        nout = len(at)
-        fstate = [state,]
-        i=0
-        okay = True
-        while okay&(i<nout-1):
-            f = odeint(RHS, fstate[i], [at[i],at[i+1]], args=arguments)
-            i += 1
-            if self.stop(f[1]):
-                okay = False
-                print(i-1)
-            else:
-                fstate.append(f[1])
-                
-        return NP.array(fstate)
+#%% these won't be used i think
+#class Ensemble:
+#    """ Ensemble of particles; handles tracking of multiple particles. 
+#    Create a bunch of worker nodes and call particle.track for the particles
+#    """
+#    __fParticle = dict() # dictionary of particle pointers
+#    
+#    def __init__(self, ParticleList):
+#        self.addParticles(ParticleList)
+#        
+#    @classmethod
+#    def from_state(cls, StateList):
+#        pcls = [Particle(state) for state in StateList]
+#        return cls(pcls)
+#    
+#    def addParticles(self, ParticleList):
+#        names = [e for e in range(len(ParticleList))]
+#        self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
+#        
+#    def getParticles(self):
+#        return self.__fParticle
+#        
+#    def track(self, ElementSeq, ntimes, FWD = True):
+#        for pcl in self.__fParticle.values():
+#            pcl.track(ElementSeq, ntimes, FWD)
+#        
+#    def size(self):
+#        return len(self.__fParticle)
+#        
+#    def __getitem__(self, index):
+#        return self.__fParticle[index]
+#    
+#    
+#class EventHandler:
+#    """This will contain methods to analyze the ODE integration results 
+#    to decide if to continue integration, or to terminate
+#    """
+#    
+#    __fparticle = None
+#    
+#    def __init__(self, particle):
+#        self.__fparticle = particle
+#    
+#    def stop(self, state):
+#        KinEn = self.__fparticle.fKinEn0*(1+state[5]) # dEn = (En - En0) / En0
+#        
+#        Pc = self.__fparticle.Pc(KinEn) # momentum in MeVs
+#        P0c = self.__fparticle.Pc(self.__fparticle.fKinEn0)
+#        Px = P0c*state[3]
+#        Py = P0c*state[4]
+#        return NP.any(NP.isnan([Pc,Px,Py]))
+#    
+#    def integrate(self, RHS, state, at, arguments = None):
+#        nout = len(at)
+#        fstate = [state,]
+#        i=0
+#        okay = True
+#        while okay&(i<nout-1):
+#            f = odeint(RHS, fstate[i], [at[i],at[i+1]], args=arguments)
+#            i += 1
+#            if self.stop(f[1]):
+#                okay = False
+#                print(i-1)
+#            else:
+#                fstate.append(f[1])
+#                
+#        return NP.array(fstate)
