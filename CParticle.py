@@ -7,29 +7,13 @@ class Particle:
         
     __ezero = 1.602176462e-19 # Coulomb
     __clight = 2.99792458e8 # m/s
-      
-#    fMass0 = 1876.5592 # deuteron mass in MeV
-#    fKinEn0 = 270.005183 # deuteron magic energy
-#    fG = -.142987
-        
-    fParams = dict()
-    
-    fAuxFncs = {'KinEn':(['dK'],'Kin0*(1+dK)'), 
-                'Lgamma':(['dK'],'KinEn(dK)/Mass0 + 1'),
-                'Lbeta':(['dK'],'sqrt(pow(Lgamma(dK),2)-1)/Lgamma(dK)'),
-                 'Pc':(['dK'],'sqrt(pow(Mass0 + KinEn(dK),2) - pow(Mass0,2))'),
-                 'Ps2':(['dK','px','py'],'pow(Pc(dK),2)-pow(P0c,2)*(pow(px,2) + pow(py,2))'),
-                 'xp':(['hs','px','py','dK'],'px*P0c*hs/sqrt(Ps2(dK,px,py))'),
-                 'yp':(['hs','px','py','dK'],'py*P0c*hs/sqrt(Ps2(dK,px,py))'),
-                 'Hp':(['hs','px','py','dK'],'Pc(dK)*hs/sqrt(Ps2(dK,px,py))'),
-                 'dKp':(['xp','yp','Ex','Ey','Es'],'(Ex*xp +Ey*yp +Es) * 1e-6')}
-    
+          
     def __init__(self, Mass0MeV=1876.5592, KinEn0MeV=270.005183, G = -.142987):
-        q = self.EZERO()
-        clight = self.CLIGHT()
-        
-        self.fParams.update({'Mass0':Mass0MeV, 'Kin0':KinEn0MeV, 'P0c':self.Pc(KinEn0MeV),
-                             'q':q,'clight':clight,'m0':q*1e6*Mass0MeV/clight**2})
+        """Deuteron parameters by default
+        """
+        self.fMass0 = Mass0MeV
+        self.fKinEn0 = KinEn0MeV
+        self.fG = G
         
         
     def CLIGHT(self):
@@ -38,8 +22,8 @@ class Particle:
     def EZERO(self):
         return self.__ezero
     
-    def GammaBeta(self, NRG):
-        gamma = NRG / self.fMass0 + 1
+    def GammaBeta(self, KNRG):
+        gamma = KNRG / self.fMass0 + 1
         beta = NP.sqrt(gamma**2-1)/gamma
         return (gamma, beta)
     
@@ -52,8 +36,6 @@ class Particle:
     def setState(self, value):
         self.__fState = value[:]
     
-    # RHS will have to get spread out into multiple smaller functions
-    # defined as strings for use with PyDSTool
     def RHS(self, state, at, element): #dummy argument 'at' here for use with scipy.odeint
         x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
         

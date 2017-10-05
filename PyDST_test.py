@@ -20,7 +20,7 @@ state = [1e-3, -1e-3, 0, 1e-3, -1e-3, 1e-4, 0, 0, 1, 0, 0, 0]
 names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
 icdict = dict(zip(names,state))
 
-p = PCL.Particle(state)
+p = PCL.Particle()
 
 
 

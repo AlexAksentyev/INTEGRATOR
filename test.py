@@ -4,9 +4,12 @@ import CParticle as PCL
 import CElement as ENT
 from importlib import reload
 import numpy as NP
+import CLattice as LTC
+from matplotlib import pyplot as PLT
 
 reload(ENT)
 reload(PCL)
+reload(LTC)
 
 theme_bw()
 
@@ -27,11 +30,11 @@ dquad = ENT.MQuad(5,-.86)
 fsext = ENT.MSext(5,1.023)
 dsext = ENT.MSext(5,-1.34)
 
-p = PCL.Particle(state)
+p = PCL.Particle()
 
 #%%
 
-FODO = [ds_25, fquad, ds_25, dquad, ds_25]
+FODO = [ENT.MQuad(5, .86, "QF1"), ENT.Drift(2.5,"O1") , ENT.MQuad(5, -.831, "QD1"), ENT.Drift(2.5,"O2")]
 
 B0 = .46
 R = ENT.MDipole.computeRadius(p,B0)
@@ -40,26 +43,27 @@ mdip2 = ENT.MDipole(1.8,R,(B0/100, B0, 0))
 sol = ENT.Solenoid(1.8, .46)
 
 V = ENT.Wien.computeVoltage(p,R,.05)
-B1 = ENT.Wien.computeBStrength(p,R,.05)
+#B1 = ENT.Wien.computeBStrength(p,R,.05)
 wa = ENT.Wien(1.808,R,.05,V,B0)
 
+dips = list()
+for i in range(3):
+    dips.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0), 'Dipole_'+str(i)))
+
 #%%
 
-E = PCL.Particle(StateList[1])
+Lat = LTC.Lattice(FODO, p)
 
-#E = PCL.Ensemble.from_state(StateList[0])
-E.track([mdip2],1000)
+state = [1e-3, -1e-3, 0, 1e-3, -1e-3, 1e-4, 0, 0, 1, 0, 0, 0]
+names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
+icdict = dict(zip(names,state))
 
-#df = E[0].getDataFrame() 
-#n = len(df)
-#for i in range(1,E.size()): df=df.append(E[i].getDataFrame())
-#    
-#df['PID'] = NP.repeat(list(range(E.size())), n)
 
-df = E.getDataFrame()
-df['PID'] = 1
-df = PDS.melt(df, id_vars=['PID','t','H'])
+testname = 'test'
+Lat.fDSModel.compute(testname,ics=icdict,tdata=[0,35])
+pts = Lat.fDSModel.sample(testname)
 #%%
-ggplot(df.loc[df['variable'].isin(['px','py','Sx','Sy'])],aes(x='t',y='value'))\
-    + geom_line() + facet_wrap('variable',scales='free')
-    
+PLT.plot(pts['s'], pts['x'], label='x')
+PLT.plot(pts['s'], pts['y'], label='y')
+PLT.legend()
+PLT.xlabel('s')
