@@ -20,11 +20,15 @@ class Element:
     def BField(self,arg):
         return (0,0,0)
 
-    def frontKick(self,particle):
-        pass # do nothing
+    def frontKick(self, state):
+        print('front')
+        print(state)
+        return state
     
-    def rearKick(self,particle):
-        pass # do nothing
+    def rearKick(self, state):
+        print('rear')
+        print(state)
+        return state
 
 class Drift(Element):
     """ drift space

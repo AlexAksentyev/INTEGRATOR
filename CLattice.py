@@ -50,6 +50,7 @@ class Lattice:
                            'Sx':'Sxp', 'Sy':'Syp', 'Ss':'Ssp'}
         
         MI_list = list()
+        ModList = list()
         _id=0
         for element in ElementSeq:
             pardict.update({'L'+element.fName:element.fLength}) # log in the element position along the optical axis
@@ -66,6 +67,7 @@ class Lattice:
             DS = DST.Vode_ODEsystem(DSargs)
             DS.Element = element
             DS.Particle = RefPart
+            ModList.append(DS)
             DS = DST.embed(DS,name=element.fName)
             MI_list.append(DST.intModelInterface(DS))
         

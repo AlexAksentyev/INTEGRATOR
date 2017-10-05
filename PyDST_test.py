@@ -11,6 +11,7 @@ import numpy as NP
 from matplotlib import pyplot as PLT
 import PyDSTool as DST
 from importlib import reload
+import math
 
 #%%
 reload(PCL)
@@ -53,13 +54,10 @@ DSargs.vfcodeinsert_start = """state = [x,y,ts,px,py,dK,Sx,Sy,Ss,H]
 """
 
 _id=0
-at=0
 pardict = dict()
 for element in lattice:
-    at += element.fLength
     pardict.update({'L'+element.fName:element.fLength})
 
-#pardict.update({'Ltot':at})
 pardict.update({'Mass0':p.fMass0, 'Kin0':p.fKinEn0, 'P0c':p.Pc(p.fKinEn0)})
 
 fndict = {'KinEn':(['dK'],'Kin0*(1+dK)'), 
@@ -75,6 +73,8 @@ NaN_event = DST.makeZeroCrossEvent('Ps2(dK,px,py)-10000',-1,
                                    event_args,varnames=['dK','px','py'],
                                    fnspecs=fndict,parnames=['Mass0','P0c','Kin0'])
 
+all_names = [e.fName for e in lattice]
+
 for element in lattice:
     DSargs.update({'name':element.fName})
     DSargs.update({'xdomain':{'start':_id}}) #this is actually a very important string here, for initial model selection!
@@ -82,25 +82,22 @@ for element in lattice:
     DSargs.varspecs.update({'start': str(_id)})
     _id +=1
     event_args.update({'name':'passto'+str(_id%size)})
-#    if _id%size != 0:
-#        pass_event = DST.makeZeroCrossEvent('s%Ltot-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
-#    else: 
-#        pass_event = DST.makeZeroCrossEvent('s-Ltot*ceil(s/(Ltot*1.001))',1,event_args,varnames=['s'],parnames=list(pardict.keys())) #the factor at Ltot must be > eventtol
     pass_event = DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
     DSargs.events = [pass_event, NaN_event]
     DS = DST.Vode_ODEsystem(DSargs)
     DS.Element = element
     DS.Particle = p
-    DS = DST.embed(DS,name=element.fName)
     ModList.append(DS)
+    DS = DST.embed(DS,name=element.fName)
     MI_list.append(DST.intModelInterface(DS))
 
-
-all_names = [e.fName for e in lattice]
 info = list()
 
 for i in range(len(MI_list)):
-    epmapping = DST.EvMapping({'s':'0'}, model=MI_list[i].model)
+    transdict = {'dK':"self.testfun(x,dK)"} # this'll be frontkick_n+1(backkick_n(state))
+    transdict.update({'s':'0'}) # then reset s in this element
+    epmapping = DST.EvMapping(transdict, model=MI_list[i].model)
+    epmapping.testfun = lambda x,dK: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick([x,dK]))[1]
     info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))    
 
 modelInfoDict = DST.makeModelInfo(info)
