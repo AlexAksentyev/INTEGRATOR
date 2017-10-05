@@ -13,26 +13,14 @@ class Lattice:
     
     def __init__(self, ElementSeq, RefPart):
         
-        #%% logging in the particle data
+        size = len(ElementSeq)
+        
+        #%% initializer dictionaries
         pardict = {'Mass0':RefPart.fMass0, 'Kin0':RefPart.fKinEn0, 'P0c':RefPart.Pc(RefPart.fKinEn0)}
         fndict = {'KinEn':(['dK'],'Kin0*(1+dK)'), 
                   'Lgamma':(['dK'],'KinEn(dK)/Mass0 + 1'),
                   'Lbeta':(['dK'],'sqrt(pow(Lgamma(dK),2)-1)/Lgamma(dK)'),
                   'Pc':(['dK'],'sqrt(pow(Mass0 + KinEn(dK),2) - pow(Mass0,2))')}
-        
-        #%% logging in the element data
-        size = len(ElementSeq)
-        
-        
-        at=0
-        for element in ElementSeq:
-            at += element.fLength
-            pardict.update({'L'+element.fName:at}) # log in the element position along the optical axis
-            pardict.update({'kappa'+element.fName:element.fCurve})
-        
-        pardict.update({'Ltot':at}) # the total lattice length
-        
-        DSargs = DST.args(tdata=[0, pardict['Ltot']]) #in PyDSTool t is the independent variable; t is equiv to s
         
         #%% global event definitions
         event_args = {'name':'NaN_event','eventtol':1e-4,'eventdelay':0,'term':True, 'active':True}
@@ -46,6 +34,7 @@ class Lattice:
         #%% constructing the differential systems for each element
         # terminal element events are defined here
         
+        DSargs = DST.args()        
         DSargs.pars = pardict
         DSargs.fnspecs = fndict
         
@@ -60,10 +49,11 @@ class Lattice:
                            'dK':'dKp', 'px':'pxp', 'py':'pyp', 
                            'Sx':'Sxp', 'Sy':'Syp', 'Ss':'Ssp'}
         
-        ModList = list()
         MI_list = list()
         _id=0
         for element in ElementSeq:
+            pardict.update({'L'+element.fName:element.fLength}) # log in the element position along the optical axis
+            pardict.update({'kappa'+element.fName:element.fCurve})
             DSargs.update({'name':element.fName})
             DSargs.update({'xdomain':{'start':_id}}) #this is actually a very important string here, for initial model selection!
             DSargs.xtype={'start':DST.int}
@@ -71,23 +61,20 @@ class Lattice:
             DSargs.fnspecs.update({'hs':(['x'],'1 + x*kappa'+element.fName)})
             _id +=1
             event_args.update({'name':'passto'+str(_id%size)})
-            if _id%size != 0:
-                pass_event = DST.makeZeroCrossEvent('s%Ltot-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
-            else: 
-                pass_event = DST.makeZeroCrossEvent('s-Ltot*ceil(s/(Ltot*1.001))',1,event_args,varnames=['s'],parnames=list(pardict.keys())) #the factor at Ltot must be > eventtol
+            pass_event = DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
             DSargs.events = [pass_event, NaN_event]
             DS = DST.Vode_ODEsystem(DSargs)
             DS.Element = element
             DS.Particle = RefPart
             DS = DST.embed(DS,name=element.fName)
-            ModList.append(DS)
             MI_list.append(DST.intModelInterface(DS))
         
         all_names = [e.fName for e in ElementSeq]
         info = list()
         
         for i in range(len(MI_list)):
-            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),MI_list[(i+1)%size].model.name)]))    
+            epmapping = DST.EvMapping({'s':'0'}, model=MI_list[i].model) #resets s for the passto event
+            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))
         
         modelInfoDict = DST.makeModelInfo(info)
         

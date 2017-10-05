@@ -46,13 +46,13 @@ V = ENT.Wien.computeVoltage(p,R,.05)
 #B1 = ENT.Wien.computeBStrength(p,R,.05)
 wa = ENT.Wien(1.808,R,.05,V,B0)
 
-dips = list()
+DIPS = list()
 for i in range(3):
-    dips.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0), 'Dipole_'+str(i)))
+    DIPS.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0), 'Dipole_'+str(i)))
 
 #%%
 
-Lat = LTC.Lattice(FODO, p)
+Lat = LTC.Lattice(DIPS, p)
 
 state = [1e-3, -1e-3, 0, 1e-3, -1e-3, 1e-4, 0, 0, 1, 0, 0, 0]
 names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
@@ -63,7 +63,7 @@ testname = 'test'
 Lat.fDSModel.compute(testname,ics=icdict,tdata=[0,35])
 pts = Lat.fDSModel.sample(testname)
 #%%
-PLT.plot(pts['s'], pts['x'], label='x')
-PLT.plot(pts['s'], pts['y'], label='y')
+PLT.plot(pts['t'], pts['x'], label='x')
+PLT.plot(pts['t'], pts['px'], label='px')
 PLT.legend()
 PLT.xlabel('s')

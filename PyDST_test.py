@@ -40,7 +40,8 @@ ModList = list()
 MI_list = list()
 
 
-DSargs = DST.args(tdata=[0,200])
+DSargs = DST.args()
+#DSargs = DST.args(tdata=[0,200])
 DSargs.varspecs = {'x': 'xp', 'y': 'yp', 's':'1',
                    'ts':'tp', 'H':'Hp', 'start':'0',
                    'dK':'dKp', 'px':'pxp', 'py':'pyp', 
@@ -56,9 +57,9 @@ at=0
 pardict = dict()
 for element in lattice:
     at += element.fLength
-    pardict.update({'L'+element.fName:at})
+    pardict.update({'L'+element.fName:element.fLength})
 
-pardict.update({'Ltot':at})
+#pardict.update({'Ltot':at})
 pardict.update({'Mass0':p.fMass0, 'Kin0':p.fKinEn0, 'P0c':p.Pc(p.fKinEn0)})
 
 fndict = {'KinEn':(['dK'],'Kin0*(1+dK)'), 
@@ -81,10 +82,11 @@ for element in lattice:
     DSargs.varspecs.update({'start': str(_id)})
     _id +=1
     event_args.update({'name':'passto'+str(_id%size)})
-    if _id%size != 0:
-        pass_event = DST.makeZeroCrossEvent('s%Ltot-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
-    else: 
-        pass_event = DST.makeZeroCrossEvent('s-Ltot*ceil(s/(Ltot*1.001))',1,event_args,varnames=['s'],parnames=list(pardict.keys())) #the factor at Ltot must be > eventtol
+#    if _id%size != 0:
+#        pass_event = DST.makeZeroCrossEvent('s%Ltot-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
+#    else: 
+#        pass_event = DST.makeZeroCrossEvent('s-Ltot*ceil(s/(Ltot*1.001))',1,event_args,varnames=['s'],parnames=list(pardict.keys())) #the factor at Ltot must be > eventtol
+    pass_event = DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
     DSargs.events = [pass_event, NaN_event]
     DS = DST.Vode_ODEsystem(DSargs)
     DS.Element = element
@@ -98,7 +100,7 @@ all_names = [e.fName for e in lattice]
 info = list()
 
 for i in range(len(MI_list)):
-    epmapping = DST.EvMapping({'px':'px*(1-3e-1)'}, model=MI_list[i].model)
+    epmapping = DST.EvMapping({'s':'0'}, model=MI_list[i].model)
     info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))    
 
 modelInfoDict = DST.makeModelInfo(info)
@@ -112,8 +114,8 @@ icdict.update({'start':0})
 Hyb.compute(trajname=testname,tdata=[0,35],ics=icdict)
 pts = Hyb.sample(testname)
 #%%
-PLT.plot(pts['s'], pts['x'], label='x')
-PLT.plot(pts['s'], pts['px'], label='px')
+PLT.plot(pts['t'], pts['x'], label='x')
+PLT.plot(pts['t'], pts['px'], label='px')
 PLT.legend()
 PLT.xlabel('s')
 #%%
