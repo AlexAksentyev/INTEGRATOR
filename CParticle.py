@@ -7,28 +7,29 @@ class Particle:
         
     __ezero = 1.602176462e-19 # Coulomb
     __clight = 2.99792458e8 # m/s
+      
+#    fMass0 = 1876.5592 # deuteron mass in MeV
+#    fKinEn0 = 270.005183 # deuteron magic energy
+#    fG = -.142987
+        
+    fParams = dict()
     
-    __fStateNames = ['x','y','time','px','py','dK','Sx','Sy','Ss','H']
-    __fIniState = None
-    __fState = None 
-    fStateLog = dict()
+    fAuxFncs = {'KinEn':(['dK'],'Kin0*(1+dK)'), 
+                'Lgamma':(['dK'],'KinEn(dK)/Mass0 + 1'),
+                'Lbeta':(['dK'],'sqrt(pow(Lgamma(dK),2)-1)/Lgamma(dK)'),
+                 'Pc':(['dK'],'sqrt(pow(Mass0 + KinEn(dK),2) - pow(Mass0,2))'),
+                 'Ps2':(['dK','px','py'],'pow(Pc(dK),2)-pow(P0c,2)*(pow(px,2) + pow(py,2))'),
+                 'xp':(['hs','px','py','dK'],'px*P0c*hs/sqrt(Ps2(dK,px,py))'),
+                 'yp':(['hs','px','py','dK'],'py*P0c*hs/sqrt(Ps2(dK,px,py))'),
+                 'Hp':(['hs','px','py','dK'],'Pc(dK)*hs/sqrt(Ps2(dK,px,py))'),
+                 'dKp':(['xp','yp','Ex','Ey','Es'],'(Ex*xp +Ey*yp +Es) * 1e-6')}
     
-    fMass0 = 1876.5592 # deuteron mass in MeV
-    fKinEn0 = 270.005183 # deuteron magic energy
-    fG = -.142987
-    
-    fGamma0 = None # reference particle's
-    fBeta0 = None  # gamma, beta
-    
-    fStats=dict()
-    
-    ODESys = None
-    
-    def __init__(self, State0):
-            
-        self.__fIniState = list(State0)
-        self.__fState = list(State0)
-        self.fGamma0, self.fBeta0 = self.GammaBeta(self.fKinEn0)
+    def __init__(self, Mass0MeV=1876.5592, KinEn0MeV=270.005183, G = -.142987):
+        q = self.EZERO()
+        clight = self.CLIGHT()
+        
+        self.fParams.update({'Mass0':Mass0MeV, 'Kin0':KinEn0MeV, 'P0c':self.Pc(KinEn0MeV),
+                             'q':q,'clight':clight,'m0':q*1e6*Mass0MeV/clight**2})
         
         
     def CLIGHT(self):
@@ -62,12 +63,7 @@ class Particle:
         P0c = self.Pc(self.fKinEn0) # reference momentum
         
         Px,Py = [P0c*x for x in (px,py)] # turn px,py back to MeVs
-        self.fStats.update({'Ps2':Pc**2 - Px**2 - Py**2})
-#        if self.fStats['Ps2'] < 0:
-#            print([px, py, self.fStats['Ps2']])
-#            return [0]*10
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
-        
         
         Ex,Ey,Es = element.EField(state)
         Bx,By,Bs = element.BField(state)
