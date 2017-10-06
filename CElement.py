@@ -5,10 +5,6 @@ import collections as CLN
 
 class Element:
     
-    fCurve = None
-    fLength = None
-    fName = None
-    
     def __init__(self, Curve, Length, Name = "Element"):
         self.fCurve = Curve
         self.fLength = Length
@@ -21,14 +17,10 @@ class Element:
         return (0,0,0)
 
     def frontKick(self, state):
-        print('front')
-        print(state)
-        return state
+        return list(state)
     
     def rearKick(self, state):
-        print('rear')
-        print(state)
-        return state
+        return list(state)
 
 class Drift(Element):
     """ drift space

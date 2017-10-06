@@ -7,7 +7,7 @@ class Particle:
         
     __ezero = 1.602176462e-19 # Coulomb
     __clight = 2.99792458e8 # m/s
-          
+              
     def __init__(self, Mass0MeV=1876.5592, KinEn0MeV=270.005183, G = -.142987):
         """Deuteron parameters by default
         """

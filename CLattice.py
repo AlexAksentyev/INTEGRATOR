@@ -9,8 +9,6 @@ import PyDSTool as DST
 
 class Lattice:
     
-    fDSModel = None
-    
     def __init__(self, ElementSeq, RefPart):
         
         size = len(ElementSeq)
