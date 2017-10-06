@@ -38,7 +38,7 @@ class Lattice:
         
         DSargs.ignorespecial = ['state','xp','yp','tp','pxp','pyp','dKp','Sxp','Syp','Ssp','Hp']
         DSargs.vfcodeinsert_start = """state = [x,y,ts,px,py,dK,Sx,Sy,Ss,H]
-    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state, [], ds.Element)
+    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state, ds.Element)
         """
         
         ## the derivatives
@@ -87,3 +87,6 @@ class Lattice:
         
         mod_args = {'name':'lattice','modelInfo':modelInfoDict}
         self.fDSModel = DST.Model.HybridModel(mod_args)
+
+    def getLength(self):
+        pass
