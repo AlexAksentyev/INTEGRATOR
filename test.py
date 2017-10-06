@@ -22,14 +22,6 @@ StateList = [
         [0, 0, 0, 0, 0, 1e-4, 0, 0, 1, 0]
         ]
 
-ds_25 = ENT.Drift(.25)
-ds_15 = ENT.Drift(.15)
-ds2_2 = ENT.Drift(2.2)
-fquad = ENT.MQuad(5,.831)
-dquad = ENT.MQuad(5,-.86)
-fsext = ENT.MSext(5,1.023)
-dsext = ENT.MSext(5,-1.34)
-
 p = PCL.Particle()
 
 #%%
@@ -60,7 +52,7 @@ icdict = dict(zip(names,state))
 
 
 testname = 'test2'
-icdict.update({'start':'2'})
+icdict.update({'start':'0'})
 Lat.fDSModel.compute(testname,ics=icdict,tdata=[0,35])
 pts = Lat.fDSModel.sample(testname)
 #%%
