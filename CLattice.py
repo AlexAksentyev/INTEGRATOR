@@ -106,7 +106,10 @@ class Lattice:
     def track(self, Ensemble, NTurns, StartID = '0'):
         tstp = NTurns * self.__fLength
         
-        #%% parallel computation
+        #%% parallel computation 
+        # would be nice to fix it
+        # however  unlikely, due to lack of knowledge of PyDSTool's internals
+        
 #        p = MLP.Pool(3)
 #        arg = list()
 #        for name,inistate in Ensemble.fStateDict.items():
@@ -119,6 +122,7 @@ class Lattice:
 #        self.fDSModel = val
     
         #%% sequential computation 
+        # this works as expected
             
         for name,inistate in Ensemble.fStateDict.items():
             inistate.update({'start':StartID})
