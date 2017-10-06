@@ -97,8 +97,9 @@ class Ensemble:
     
     fStateNames = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's']
     
-    def __init__(self, StateDict): # StateDict entry is particle ID: list of coordinates
+    def __init__(self, Particle, StateDict): # StateDict entry is particle ID: list of coordinates
         self.fStateDict = dict()
+        self.fParticle = Particle
         
         for name, state in StateDict.items():
             self.fStateDict.update({name : dict(zip(self.fStateNames,state))})
