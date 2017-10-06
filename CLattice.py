@@ -6,7 +6,7 @@ Created on Thu Oct  5 09:19:48 2017
 @author: alexa
 """
 import PyDSTool as DST
-import multiprocessing as MLP
+import pathos.multiprocessing as MLP
 
 class Lattice:
     
@@ -94,11 +94,33 @@ class Lattice:
     def getLength(self):
         return self.__fLength
     
+    def __compute(self, ArgDict):
+        tdata = ArgDict['tdata']
+        inistate = ArgDict['inistate']
+        name = ArgDict['name']
+        print(name)
+        self.fDSModel.compute(name,ics=inistate,tdata=tdata)
+        return self.fDSModel
+        
+    
     def track(self, Ensemble, NTurns, StartID = '0'):
         tstp = NTurns * self.__fLength
-                
+        
+        #%% parallel computation
+        p = MLP.Pool(3)
+        arg = list()
         for name,inistate in Ensemble.fStateDict.items():
             inistate.update({'start':StartID})
-            self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
-            
+            arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp]})
+        
+        val = p.starmap(self.__compute, zip(arg))
+        p.close()
+        
+        self.fDSModel = val
     
+        #%% sequential computation 
+            
+#        for name,inistate in Ensemble.fStateDict.items():
+#            inistate.update({'start':StartID})
+#            self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
+#            
