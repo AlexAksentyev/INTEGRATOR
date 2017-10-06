@@ -2,6 +2,7 @@ from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
 import PyDSTool as DST
+import pathos.multiprocessing as MLP
 
 class Particle:
         
@@ -103,3 +104,27 @@ class Ensemble:
         
         for name, state in StateDict.items():
             self.fStateDict.update({name : dict(zip(self.fStateNames,state))})
+            
+    def __compute(self, ArgDict):
+            Lattice = ArgDict['Lattice']
+            tdata = ArgDict['tdata']
+            inistate = ArgDict['inistate']
+            name = ArgDict['name']
+            
+            Lattice.fDSModel.compute(name,ics=inistate,tdata=tdata)
+            return Lattice.fDSModel.trajectories[name]
+            
+    def track(self, Lattice, NTurns, StartID = '0'): #parallel
+        tstp = NTurns * Lattice.getLength()
+        
+        p = MLP.Pool(3)
+        
+        arg = list()
+        for name,inistate in self.fStateDict.items():
+            inistate.update({'start':StartID})
+            arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp], 'Lattice':Lattice})
+        
+        val = p.starmap(self.__compute, zip(arg))
+        p.close()
+        
+        self.fTrajectories = dict(zip([el.name for el in val], val))
