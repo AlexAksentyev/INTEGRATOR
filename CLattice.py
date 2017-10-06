@@ -107,20 +107,20 @@ class Lattice:
         tstp = NTurns * self.__fLength
         
         #%% parallel computation
-        p = MLP.Pool(3)
-        arg = list()
-        for name,inistate in Ensemble.fStateDict.items():
-            inistate.update({'start':StartID})
-            arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp]})
-        
-        val = p.starmap(self.__compute, zip(arg))
-        p.close()
-        
-        self.fDSModel = val
+#        p = MLP.Pool(3)
+#        arg = list()
+#        for name,inistate in Ensemble.fStateDict.items():
+#            inistate.update({'start':StartID})
+#            arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp]})
+#        
+#        val = p.starmap(self.__compute, zip(arg))
+#        p.close()
+#        
+#        self.fDSModel = val
     
         #%% sequential computation 
             
-#        for name,inistate in Ensemble.fStateDict.items():
-#            inistate.update({'start':StartID})
-#            self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
-#            
+        for name,inistate in Ensemble.fStateDict.items():
+            inistate.update({'start':StartID})
+            self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
+            
