@@ -16,11 +16,18 @@ theme_bw()
 
 p = PCL.Particle()
 
-StateDict = {'X0':[0,0,0,0,0,0,0,0,1,0,0],
-             'X1':[1e-3,0,0,0,0,0,0,0,1,0,0],
-             'X2':[0,1e-3,0,0,0,0,0,0,1,0,0],
-             'X3':[0,0,0,1e-3,0,0,0,0,1,0,0],
-             'X4':[0,0,0,0,1e-3,0,0,0,1,0,0]}
+#%% form beam
+
+xs = NP.linspace(0, 5e-3, 10)
+ys = NP.linspace(0, 5e-3, 5)
+n = len(xs)*len(ys)
+
+StateDict=dict()
+i=0
+for x in xs:
+    for y in ys:
+        StateDict.update({"X"+str(i): [x,y,0,0,0,0,0,0,1,0,0]})
+        i += 1
 
 E = PCL.Ensemble(p, StateDict)
 
@@ -37,10 +44,10 @@ DIPS = list()
 for i in range(3):
     DIPS.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0), 'Dipole_'+str(i)))
 
-Lat = LTC.Lattice(FODO, p)
+Lat = LTC.Lattice(DIPS, p)
 #%%
 
-Lat.track(E, 100)
+E.track(Lat, 10)
 
 testpart = 'X4'
 pts = Lat.fDSModel.sample(testpart)
