@@ -50,7 +50,7 @@ DSargs.varspecs = {'x': 'xp', 'y': 'yp', 's':'1',
 
 DSargs.ignorespecial = ['state','xp','yp','tp','pxp','pyp','dKp','Sxp','Syp','Ssp','Hp']
 DSargs.vfcodeinsert_start = """state = [x,y,ts,px,py,dK,Sx,Sy,Ss,H]
-    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state, [], ds.Element)
+    xp,yp,tp,pxp,pyp,dKp,Sxp,Syp,Ssp,Hp = ds.Particle.RHS(state, ds.Element)
 """
 
 _id=0
@@ -94,10 +94,11 @@ for element in lattice:
 info = list()
 
 for i in range(len(MI_list)):
-    transdict = {'dK':"self.testfun([x,y,ts,px,py,dK])"} # this'll be frontkick_n+1(backkick_n(state))
+    transdict = {'dK':"self.testfun([x,y,ts,px,py,dK],self.Particle)"} # this'll be frontkick_n+1(backkick_n(state))
     transdict.update({'s':'0'}) # then reset s in this element
     epmapping = DST.EvMapping(transdict, model=MI_list[i].model)
-    epmapping.testfun = lambda state: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick(state))[5]
+    epmapping.testfun = lambda state, particle: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick(state,particle),particle)[5]
+    epmapping.Particle = p
     info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))    
 
 modelInfoDict = DST.makeModelInfo(info)
