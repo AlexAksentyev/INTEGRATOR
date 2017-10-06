@@ -49,8 +49,10 @@ class Lattice:
         
         MI_list = list()
         ModList = list()
-        _id=0
+        _id=0 #element id
+        self.__fLength = 0 #lattice length
         for element in ElementSeq:
+            self.__fLength += element.fLength
             pardict.update({'L'+element.fName:element.fLength}) # log in the element position along the optical axis
             pardict.update({'kappa'+element.fName:element.fCurve}) # and its curvature
             DSargs.update({'name':element.fName}) # initialize the differential system for the element
@@ -89,4 +91,13 @@ class Lattice:
         self.fDSModel = DST.Model.HybridModel(mod_args)
 
     def getLength(self):
-        pass
+        return self.__fLength
+    
+    def track(self, Ensemble, NTurns, StartID = '0'):
+        tstp = NTurns * self.__fLength
+        
+        for name,inistate in Ensemble.fStateDict.items():
+            inistate.update({'start':StartID})
+            self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
+            
+    
