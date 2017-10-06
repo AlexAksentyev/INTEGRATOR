@@ -54,16 +54,19 @@ class Lattice:
         _id=0
         for element in ElementSeq:
             pardict.update({'L'+element.fName:element.fLength}) # log in the element position along the optical axis
-            pardict.update({'kappa'+element.fName:element.fCurve})
-            DSargs.update({'name':element.fName})
-            DSargs.update({'xdomain':{'start':_id}}) #this is actually a very important string here, for initial model selection!
-            DSargs.xtype={'start':DST.int}
-            DSargs.varspecs.update({'start': str(_id)})
-            DSargs.fnspecs.update({'hs':(['x'],'1 + x*kappa'+element.fName)})
+            pardict.update({'kappa'+element.fName:element.fCurve}) # and its curvature
+            DSargs.update({'name':element.fName}) # initialize the differential system for the element
+            ## model selection
+            DSargs.update({'xdomain':{'start':_id}}) #can't select the initial model w/o this
+            DSargs.xtype={'start':DST.int} # ensure integer type
+            DSargs.varspecs.update({'start': '0'}) 
+            DSargs.fnspecs.update({'hs':(['x'],'1 + x*kappa'+element.fName)}) # superfluous
+            ## events
             _id +=1
             event_args.update({'name':'passto'+str(_id%size)})
             pass_event = DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
             DSargs.events = [pass_event, NaN_event]
+            ## DS construction
             DS = DST.Vode_ODEsystem(DSargs)
             DS.Element = element
             DS.Particle = RefPart
@@ -71,14 +74,14 @@ class Lattice:
             DS = DST.embed(DS,name=element.fName)
             MI_list.append(DST.intModelInterface(DS))
         
+        ## construction of the hybrid model
         all_names = [e.fName for e in ElementSeq]
         info = list()
-        
         for i in range(len(MI_list)):
             transdict = {'dK':"self.outin([x,y,ts,px,py,dK])"} # this is frontkick_n+1(backkick_n(state))
-            transdict.update({'s':'0'}) # then reset s in this element
-            epmapping = DST.EvMapping(transdict, model=MI_list[i].model) #resets s for the passto event
-            epmapping.outin = lambda state: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick(state))[5]
+            transdict.update({'s':'0'}) # then reset s for the next element
+            epmapping = DST.EvMapping(transdict, model=MI_list[i].model) # transition event state map
+            epmapping.outin = lambda state: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick(state))[5] # dK is state[5]
             info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))
         
         modelInfoDict = DST.makeModelInfo(info)
