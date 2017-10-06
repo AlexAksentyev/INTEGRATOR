@@ -94,10 +94,10 @@ for element in lattice:
 info = list()
 
 for i in range(len(MI_list)):
-    transdict = {'dK':"self.testfun(x,dK)"} # this'll be frontkick_n+1(backkick_n(state))
+    transdict = {'dK':"self.testfun([x,y,ts,px,py,dK])"} # this'll be frontkick_n+1(backkick_n(state))
     transdict.update({'s':'0'}) # then reset s in this element
     epmapping = DST.EvMapping(transdict, model=MI_list[i].model)
-    epmapping.testfun = lambda x,dK: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick([x,dK]))[1]
+    epmapping.testfun = lambda state: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick(state))[5]
     info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))    
 
 modelInfoDict = DST.makeModelInfo(info)
