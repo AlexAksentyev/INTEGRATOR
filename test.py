@@ -52,14 +52,15 @@ for i in range(3):
 
 #%%
 
-Lat = LTC.Lattice(DIPS, p)
+Lat = LTC.Lattice(FODO, p)
 
 state = [1e-3, -1e-3, 0, 1e-3, -1e-3, 1e-4, 0, 0, 1, 0, 0, 0]
 names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
 icdict = dict(zip(names,state))
 
 
-testname = 'test'
+testname = 'test2'
+icdict.update({'start':'2'})
 Lat.fDSModel.compute(testname,ics=icdict,tdata=[0,35])
 pts = Lat.fDSModel.sample(testname)
 #%%
