@@ -6,6 +6,7 @@ Created on Thu Oct  5 09:19:48 2017
 @author: alexa
 """
 import PyDSTool as DST
+import multiprocessing as MLP
 
 class Lattice:
     
@@ -21,7 +22,7 @@ class Lattice:
                   'Pc':(['dK'],'sqrt(pow(Mass0 + KinEn(dK),2) - pow(Mass0,2))')}
         
         #%% global event definitions
-        event_args = {'name':'NaN_event','eventtol':1e-4,'eventdelay':0,'term':True, 'active':True}
+        event_args = {'name':'NaN_event','eventtol':1e-4,'eventdelay':0,'term':True, 'active':True, 'precise':True}
         
         ## the NaN error handling event definition
         pardict.update({'offset':10000}) # require Ps**2 > 100**2
@@ -95,7 +96,7 @@ class Lattice:
     
     def track(self, Ensemble, NTurns, StartID = '0'):
         tstp = NTurns * self.__fLength
-        
+                
         for name,inistate in Ensemble.fStateDict.items():
             inistate.update({'start':StartID})
             self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])

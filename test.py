@@ -42,7 +42,7 @@ Lat = LTC.Lattice(FODO, p)
 
 Lat.track(E, 100)
 
-testpart = 'X3'
+testpart = 'X4'
 pts = Lat.fDSModel.sample(testpart)
 #%%
 PLT.plot(pts['t'], pts['y'], label='y')
