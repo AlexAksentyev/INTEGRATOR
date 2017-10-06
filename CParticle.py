@@ -105,6 +105,9 @@ class Ensemble:
         for name, state in StateDict.items():
             self.fStateDict.update({name : dict(zip(self.fStateNames,state))})
             
+    def __getitem__(self, label):
+        return self.fTrajectories[label]
+            
     def __compute(self, ArgDict):
             Lattice = ArgDict['Lattice']
             tdata = ArgDict['tdata']

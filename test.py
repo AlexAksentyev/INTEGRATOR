@@ -18,8 +18,8 @@ p = PCL.Particle()
 
 #%% form beam
 
-xs = NP.linspace(0, 5e-3, 10)
-ys = NP.linspace(0, 5e-3, 5)
+xs = NP.linspace(0, 5e-3, 2)
+ys = NP.linspace(0, 5e-3, 2)
 n = len(xs)*len(ys)
 
 StateDict=dict()
@@ -47,10 +47,10 @@ for i in range(3):
 Lat = LTC.Lattice(DIPS, p)
 #%%
 
-E.track(Lat, 10)
+E.track(Lat, 10,'1')
 
-testpart = 'X4'
-pts = Lat.fDSModel.sample(testpart)
+testpart = 'X2'
+pts = E[testpart].sample()
 #%%
 PLT.plot(pts['t'], pts['y'], label='y')
 PLT.plot(pts['t'], pts['x'], label='x')
