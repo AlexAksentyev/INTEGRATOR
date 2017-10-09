@@ -47,7 +47,8 @@ for i in range(3):
 Lat = LTC.Lattice(DIPS, p)
 #%%
 
-E.track(Lat, 10,'1')
+#E.track(Lat, 10,'1')
+Lat.track(E,10,'1')
 
 testpart = 'X2'
 pts = E[testpart].sample()
