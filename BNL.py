@@ -6,18 +6,27 @@ Created on Mon Sep 18 16:59:23 2017
 @author: alexa
 """
 #%%
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap
-import pandas as PDS
+from matplotlib import pyplot as PLT
+
 import CParticle as PCL
 import CElement as ENT
+import CLattice as LTC
+import numpy as NP
+
 from importlib import reload
 
-theme_bw()
+reload(ENT)
+reload(PCL)
+reload(LTC)
 
 # hardware parameters
 Lq = 5
-Ls = .15
+SSQDG = -.86
+SSQFG = .831
+AQDG = -1.023
+AQFG = 1.364
 
+Ls = .15
 GSFP = 0 
 GSDP = 0
 
@@ -26,68 +35,68 @@ R = 9.207
 
 #%%
 # particle definition
-state0 = [1e-3, -1e-3, 0, 0, 0, 0, 0, 0, 1, 0]
-p = PCL.Particle(state0)
+p = PCL.Particle()
+
+#%% form beam
+
+xs = NP.linspace(0, 5e-3, 2)
+ys = NP.linspace(0, 5e-3, 3)
+n = len(xs)*len(ys)
+
+StateDict=dict()
+i=0
+for x in xs:
+    for y in ys:
+        StateDict.update({"X"+str(i): [x,y,0,0,0,0,0,0,1,0,0]})
+        i += 1
+
+E = PCL.Ensemble(p, StateDict)
 
 #%%
-
-# lattice elements
-
-DL_25  = ENT.Drift(.25)
-DL_15 = ENT.Drift(.15)
-DL2_2 = ENT.Drift(2.2)
-BPM = ENT.Drift(15)
-
-QDS = ENT.MQuad(Lq, -.86)
-QFS = ENT.MQuad(Lq, .831)
-
-QDA = ENT.MQuad(Lq, -1.023)
-QFA = ENT.MQuad(Lq, 1.364)
-
-Sf = ENT.MSext(Ls, GSFP)
-Sd = ENT.MSext(Ls, GSDP)
-
 V = ENT.Wien.computeVoltage(p, R, h)
-B = ENT.Wien.computeBStrength(p, R, h)
+B = ENT.Wien.computeBStrength(p,0, R, h)
 
 WA = ENT.Wien(1.808, 9.297, h, V, B)
+
+
 
 #%%
 # lattice definition
 
-SS1H2 = [QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , DL_15 , #  RF ,
-                                     DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS]
+SS1H2 = [ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQFG) , ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.Drift(.15) , #  RF ,
+                                     ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQDG) , ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQFG)]
 
-ARC1 = [QFA , DL_25 , Sf , DL_25 , WA , DL_25 , BPM , DL_25] +\
- [QDA , QDA , DL_25 , Sd , DL_25 , WA , DL_25 , BPM , DL_25 ,
-         QFA , QFA , DL_25 , Sf , DL_25 , WA , DL_25 , BPM , DL_25]*7 +\
-  [QDA , QDA , DL_25 , Sd , DL_25 , WA , DL_25 , BPM , DL_25 ,
-         QFA]
+ARC1 = [ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)] +\
+ [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, AQFG) , ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]*7 +\
+  [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, AQFG)]
 
-SS2H1 = [QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , Sd , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25]
+SS2H1 = [ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQDG) , ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQFG) , ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]
 
-SS2H2 = [QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS]
+SS2H2 = [ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQFG) , ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQDG) , ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQFG)]
 
-ARC2 =  [QFA , DL_25 , Sf , DL_25 , WA , DL_25 , BPM , DL_25] +\
- [QDA , QDA , DL_25 , Sd , DL_25 , WA , DL_25 , BPM , DL_25 ,
-         QFA , QFA , DL_25 , Sf , DL_25 , WA , DL_25 , BPM , DL_25]*7 +\
-  [QDA , QDA , DL_25 , Sd , DL_25 , WA , DL_25 , BPM , DL_25 ,
-         QFA]
+ARC2 =  [ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)] +\
+ [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, AQFG) , ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]*7 +\
+  [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, AQFG)]
 
-SS1H1 = [QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , Sd , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS]
+SS1H1 = [ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQDG) , ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQFG) , ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, SSQDG)]
 
-lattice = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
+BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
+Lat = LTC.Lattice(SS1H2,p)
