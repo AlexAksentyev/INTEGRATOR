@@ -99,11 +99,11 @@ class Ensemble:
     fStateNames = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's']
     
     def __init__(self, Particle, StateDict): # StateDict entry is particle ID: list of coordinates
-        self.fStateDict = dict()
+        self.fIniStateDict = dict()
         self.fParticle = Particle
         
         for name, state in StateDict.items():
-            self.fStateDict.update({name : dict(zip(self.fStateNames,state))})
+            self.fIniStateDict.update({name : dict(zip(self.fStateNames,state))})
             
     def __getitem__(self, label):
         return self.fTrajectories[label]
@@ -118,16 +118,17 @@ class Ensemble:
             return Lattice.fDSModel.trajectories[name]
             
     def track(self, Lattice, NTurns, StartID = '0'): #parallel
+    
+        self.fTrajectories = None
         tstp = NTurns * Lattice.getLength()
-        
-        p = MLP.Pool(3)
-        
+                
         arg = list()
         for name,inistate in self.fStateDict.items():
             inistate.update({'start':StartID})
             arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp], 'Lattice':Lattice})
-        
-        val = p.starmap(self.__compute, zip(arg))
-        p.close()
+       
+        with MLP.Pool(3) as p:
+            val = p.starmap(self.__compute, zip(arg))
         
         self.fTrajectories = dict(zip([el.name for el in val], val))
+        
