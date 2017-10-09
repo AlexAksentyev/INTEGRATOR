@@ -94,6 +94,11 @@ class Lattice:
     def getLength(self):
         return self.__fLength
     
+    def listModelNames(self):
+        namelist = list()
+        for model in self.fDSModel.sub_models():
+            namelist += model.name
+    
     def __compute(self, ArgDict): # for parallel code
         tdata = ArgDict['tdata']
         inistate = ArgDict['inistate']
