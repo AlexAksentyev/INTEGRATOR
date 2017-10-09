@@ -14,13 +14,13 @@ class Base:
 class DerivedA(Base):
     fCount = 0
     def __init__(self, name):
-        self.fName = name
+        self.fName = (name,DerivedA.fCount)
         DerivedA.fCount +=1
         
 class DerivedB(Base):
     fCount = 0
     def __init__(self, name):
-        self.fName = name
+        self.fName = (name, DerivedB.fCount)
         DerivedB.fCount +=1
         
 

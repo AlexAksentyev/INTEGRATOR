@@ -102,4 +102,4 @@ BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
-LBNL = LTC.Lattice(BNL,p)
+LBNL = LTC.Lattice(SS1H2,p)
