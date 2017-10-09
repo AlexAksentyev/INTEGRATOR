@@ -12,7 +12,7 @@ class Lattice:
     
     def __init__(self, ElementSeq, RefPart):
         
-        size = len(ElementSeq)
+        self.fCount = len(ElementSeq)
         
         #%% initializer dictionaries
         pardict = {'Mass0':RefPart.fMass0, 'Kin0':RefPart.fKinEn0, 'P0c':RefPart.Pc(RefPart.fKinEn0)}
@@ -64,7 +64,7 @@ class Lattice:
             DSargs.fnspecs.update({'hs':(['x'],'1 + x*kappa'+element.fName)}) # superfluous
             ## events
             _id +=1
-            event_args.update({'name':'passto'+str(_id%size)})
+            event_args.update({'name':'passto'+str(_id%self.fCount)})
             pass_event = DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
             DSargs.events = [pass_event, NaN_event]
             ## DS construction
@@ -82,9 +82,9 @@ class Lattice:
             transdict = {'dK':"self.outin([x,y,ts,px,py,dK],self.RefPart)"} # this is frontkick_n+1(backkick_n(state))
             transdict.update({'s':'0'}) # then reset s for the next element
             epmapping = DST.EvMapping(transdict, model=MI_list[i].model) # transition event state map
-            epmapping.outin = lambda state, part: ModList[(i+1)%size].Element.frontKick(ModList[i%size].Element.rearKick(state,part),part)[5] # dK is state[5]
+            epmapping.outin = lambda state, part: ModList[(i+1)%self.fCount].Element.frontKick(ModList[i%self.fCount].Element.rearKick(state,part),part)[5] # dK is state[5]
             epmapping.RefPart = RefPart
-            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))
+            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, epmapping))]))
         
         modelInfoDict = DST.makeModelInfo(info)
         
