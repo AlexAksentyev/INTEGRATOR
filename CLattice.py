@@ -97,7 +97,9 @@ class Lattice:
     def listModelNames(self):
         namelist = list()
         for model in self.fDSModel.sub_models():
-            namelist += model.name
+            namelist.append(model.name)
+            
+        return namelist
     
     def __compute(self, ArgDict): # for parallel code
         tdata = ArgDict['tdata']
