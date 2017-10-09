@@ -109,26 +109,26 @@ class Ensemble:
         return self.fTrajectories[label]
             
     def __compute(self, ArgDict):
-            Lattice = ArgDict['Lattice']
+            ODEsys = ArgDict['ODEsys']
             tdata = ArgDict['tdata']
             inistate = ArgDict['inistate']
             name = ArgDict['name']
             
-            Lattice.fDSModel.compute(name,ics=inistate,tdata=tdata)
-            return Lattice.fDSModel.trajectories[name]
+            ODEsys.compute(name,ics=inistate,tdata=tdata)
+            return ODEsys.trajectories[name]
             
     def track(self, Lattice, NTurns, StartID = '0'): #parallel
     
         self.fTrajectories = None
         tstp = NTurns * Lattice.getLength()
-                
+            
         arg = list()
-        for name,inistate in self.fStateDict.items():
+        for name,inistate in self.fIniStateDict.items():
             inistate.update({'start':StartID})
-            arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp], 'Lattice':Lattice})
+            arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp], 'ODEsys':Lattice.fDSModel})
        
         with MLP.Pool(3) as p:
-            val = p.starmap(self.__compute, zip(arg))
+            val = p.map(self.__compute, arg)
         
         self.fTrajectories = dict(zip([el.name for el in val], val))
         
