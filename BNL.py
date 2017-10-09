@@ -19,7 +19,7 @@ reload(ENT)
 reload(PCL)
 reload(LTC)
 
-# hardware parameters
+#%% hardware parameters
 Lq = 5
 SSQDG = -.86
 SSQFG = .831
@@ -56,23 +56,20 @@ E = PCL.Ensemble(p, StateDict)
 V = ENT.Wien.computeVoltage(p, R, h)
 B = ENT.Wien.computeBStrength(p,0, R, h)
 
-WA = ENT.Wien(1.808, 9.297, h, V, B)
-
-
-
-#%%
-# lattice definition
-
+#%% define lattice
 SS1H2 = [ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQFG) , ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.Drift(.15) , #  RF ,
                                      ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQDG) , ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQFG)]
 
-ARC1 = [ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)] +\
- [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
-         ENT.MQuad(Lq, AQFG) , ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]*7 +\
-  [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+ARC1 = [ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)] 
+
+for i in range(7):
+    ARC1 += [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, AQFG) , ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]
+
+ARC1 += [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, AQFG)]
 
 SS2H1 = [ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
@@ -84,19 +81,25 @@ SS2H2 = [ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25)
          ENT.MQuad(Lq, SSQDG) , ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQFG)]
 
-ARC2 =  [ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)] +\
- [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
-         ENT.MQuad(Lq, AQFG) , ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]*7 +\
-  [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , WA , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
-         ENT.MQuad(Lq, AQFG)]
+
 
 SS1H1 = [ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQDG) , ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQFG) , ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQDG)]
 
+ARC2 =  [ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)] 
+
+for i in range(7):
+    ARC2 +=[ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+            ENT.MQuad(Lq, AQFG) , ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]
+  
+
+ARC2 += [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, AQFG)]
+
 BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
-Lat = LTC.Lattice(SS1H2,p)
+LBNL = LTC.Lattice(BNL,p)
