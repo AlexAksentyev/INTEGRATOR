@@ -94,7 +94,7 @@ class Lattice:
     def getLength(self):
         return self.__fLength
     
-    def __compute(self, ArgDict):
+    def __compute(self, ArgDict): # for parallel code
         tdata = ArgDict['tdata']
         inistate = ArgDict['inistate']
         name = ArgDict['name']
@@ -124,7 +124,7 @@ class Lattice:
         #%% sequential computation 
         # this works as expected
             
-        for name,inistate in Ensemble.fStateDict.items():
+        for name,inistate in Ensemble.fIniStateDict.items():
             inistate.update({'start':StartID})
             self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
             
