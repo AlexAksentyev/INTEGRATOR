@@ -128,3 +128,5 @@ class Lattice:
             inistate.update({'start':StartID})
             self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
             
+        Ensemble.fTrajectories = self.fDSModel.trajectories
+            
