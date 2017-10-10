@@ -12,8 +12,8 @@ theme_bw()
 
 state = [5e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0]
 StateList = [
-        [5e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-        [0, 1e-3, 0, 0, .7, 0, 0, 0, 1, 0],
+        [1e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 1e-3, 0, 0, 0, 0, 0, 0, 1, 0],
         [0, 0, 0, 1e-4, 0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 1e-4, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 1e-4, 0, 0, 1, 0]
@@ -23,30 +23,23 @@ p = PCL.Particle(state)
 
 #%%
 
-tLat = [ENT.MQuad(5e-2,-.86), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831),
-        ENT.MQuad(5e-2,.831), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.86),
-        ENT.MQuad(5e-2,-.86), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831)]
+tLat = [ENT.MQuad(5e-2,-.86)]#, ENT.Drift(25e-2), ENT.Drift(15e-2),
+#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831),
+#        ENT.MQuad(5e-2,.831), ENT.Drift(25e-2), ENT.Drift(15e-2),
+#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.86),
+#        ENT.MQuad(5e-2,-.86), ENT.Drift(25e-2), ENT.Drift(15e-2),
+#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831)]
 #%%
 
-E = PCL.Particle(StateList[0])
+#E = PCL.Particle(StateList[0])
 
-#E = PCL.Ensemble.from_state(StateList[0])
-E.track(tLat,10)
-
-#df = E[0].getDataFrame() 
-#n = len(df)
-#for i in range(1,E.size()): df=df.append(E[i].getDataFrame())
-#    
-#df['PID'] = NP.repeat(list(range(E.size())), n)
-
+E = PCL.Ensemble.from_state(StateList)
+E.track(tLat,30)
+    
 df = E.getDataFrame()
-df['PID'] = 1
 df = PDS.melt(df, id_vars=['PID','t','H'])
 #%%
 ggplot(df.loc[df['variable'].isin(['x','y','Sx','Sy'])],aes(x='t',y='value'))\
