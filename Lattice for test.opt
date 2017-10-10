@@ -247,10 +247,9 @@ Initial:	BetaX[cm]=874.131 	BetaY[cm]=801.783
 begin lattice. Number of periods=1 
 
 #===============2-d half of 1-th SS================
-QDA2 QDA2 QDA2 QDA2 QDA2 QDA2 QDA2 QDA2 QDA2 QDA2
-#  OD1 OSD OD2  ORB  OD2  BPM  OD1  QFA2
-#QFA2  OD1 OSF OD2  ORB OD2 BPM OD1   QDA2 
-# QDA2   OD1 OSD OD2  ORB  OD2  BPM  OD1  QFA2
+QDA2  OD1 OSD OD2  ORB  OD2  BPM  OD1  QFA2
+QFA2  OD1 OSF OD2  ORB OD2 BPM OD1   QDA2 
+QDA2   OD1 OSD OD2  ORB  OD2  BPM  OD1  QFA2
 
 #===========FIRST ARC==================
 
