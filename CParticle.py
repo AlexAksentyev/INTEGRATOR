@@ -115,6 +115,7 @@ class Ensemble:
             name = ArgDict['name']
             
             ODEsys.compute(name,ics=inistate,tdata=tdata)
+            
             return ODEsys.trajectories[name]
             
     def track(self, Lattice, NTurns, StartID = '0'): #parallel
@@ -126,7 +127,7 @@ class Ensemble:
         for name,inistate in self.fIniStateDict.items():
             inistate.update({'start':StartID})
             arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp], 'ODEsys':Lattice.fDSModel})
-       
+            
         with MLP.Pool(3) as p:
             val = p.map(self.__compute, arg)
         

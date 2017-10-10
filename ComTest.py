@@ -1,4 +1,4 @@
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid
+#from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid
 from importlib import reload
 
 import CParticle as PCL
@@ -12,14 +12,14 @@ reload(ENT)
 reload(PCL)
 reload(LTC)
 
-theme_bw()
+#theme_bw()
 
 p = PCL.Particle()
 
 #%% form beam
 
-xs = NP.linspace(0, 5e-3, 2)
-ys = NP.linspace(0, 5e-3, 3)
+xs = NP.linspace(-5e-3, 5e-3, 2)
+ys = NP.linspace(-5e-3, 5e-3, 2)
 n = len(xs)*len(ys)
 
 StateDict=dict()
@@ -47,14 +47,14 @@ for i in range(3):
 Lat = LTC.Lattice(DIPS, p)
 #%%
 
-E.track(Lat,100,'2')
-Lat.track(E, 100,'2')
+E.track(Lat,10,'2')
+#Lat.track(E, 10,'2')
 
-testpart = 'X2'
+testpart = 'X0'
 pts = E[testpart].sample()
 #%%
-PLT.plot(pts['px'], pts['py'], label='y')
-PLT.plot(pts['x'], pts['Sx'], label='x')
+PLT.plot(pts['t'], pts['x'], label='x')
+PLT.plot(pts['t'], pts['Sy'], label='Sy')
 PLT.legend()
 PLT.xlabel('s')
 PLT.title(testpart)

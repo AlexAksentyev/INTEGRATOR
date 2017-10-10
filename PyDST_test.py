@@ -17,13 +17,22 @@ import math
 reload(PCL)
 reload(ENT)
 
-state = [1e-3, -1e-3, 0, 1e-3, -1e-3, 1e-4, 0, 0, 1, 0, 0, 0]
-names = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's', 'start']
-icdict = dict(zip(names,state))
-
 p = PCL.Particle()
 
+#%% form beam
 
+xs = NP.linspace(-5e-3, 5e-3, 2)
+ys = NP.linspace(-5e-3, 5e-3, 2)
+n = len(xs)*len(ys)
+
+StateDict=dict()
+i=0
+for x in xs:
+    for y in ys:
+        StateDict.update({"X"+str(i): [x,y,0,0,0,0,0,0,1,0,0]})
+        i += 1
+
+E = PCL.Ensemble(p, StateDict)
 
 #%% triple dipole lattice
 lattice = list()
@@ -108,8 +117,10 @@ Hyb = DST.Model.HybridModel(mod_args)
 
 #%%
 testname = 'test1'
-icdict.update({'start':0})
-Hyb.compute(trajname=testname,tdata=[0,35],ics=icdict)
+for name, icdict in E.fIniStateDict.items():
+    icdict.update({'start':0})
+    Hyb.compute(trajname=name,tdata=[0,35],ics=icdict)
+    
 pts = Hyb.sample(testname)
 #%%
 PLT.plot(pts['t'], pts['x'], label='x')
