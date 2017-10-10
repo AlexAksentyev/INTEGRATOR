@@ -176,6 +176,13 @@ class Ensemble:
         
     def size(self):
         return len(self.__fParticle)
+    
+    def getDataFrame(self):
+        df = PDS.DataFrame() 
+        for name, pcl in self.getParticles().items(): 
+            df=df.append(pcl.getDataFrame())
+            df['PID'] = name
+        return df
         
     def __getitem__(self, index):
         return self.__fParticle[index]
