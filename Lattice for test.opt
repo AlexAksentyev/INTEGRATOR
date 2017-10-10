@@ -333,6 +333,6 @@ EndBetaFitBlock
 
 TrajParamBlock
 	X[cm]=0.5 	Teta_X[rad]=0.0
-	Y[cm]=0.0 	Teta_Y[rad]=0.0
+	Y[cm]=0.5 	Teta_Y[rad]=0.0
 	s[cm]=0.0 	DeltaP/P=0.0
 EndTrajParamBlock

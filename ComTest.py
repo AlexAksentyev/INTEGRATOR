@@ -1,4 +1,3 @@
-#from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid
 from importlib import reload
 
 import CParticle as PCL
@@ -47,12 +46,12 @@ tLat = [ENT.MQuad(5e-2,-.86,"QDA2_"), ENT.Drift(25e-2,"OD1_"), ENT.Drift(15e-2,"
 tLat = LTC.Lattice(tLat,p)
 #%%
 
-E.track(tLat,10,'0')
+E.track(tLat,10)
 
 df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
 
 #%%
 varis = ['x','y','Sx','Sy']
-GGP.ggplot(GGP.aes('ts','value',color='PID'),df.loc[df.variable.isin(varis)&df.PID.isin(['X7'])]) + GGP.geom_line() +\
+GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)]) + GGP.geom_line() +\
  GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw()
  
