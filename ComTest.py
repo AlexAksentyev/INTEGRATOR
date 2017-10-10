@@ -8,6 +8,9 @@ import numpy as NP
 
 from matplotlib import pyplot as PLT
 
+import ggplot as GGP
+import pandas as PDS
+
 reload(ENT)
 reload(PCL)
 reload(LTC)
@@ -18,8 +21,8 @@ p = PCL.Particle()
 
 #%% form beam
 
-xs = NP.linspace(-5e-3, 5e-3, 2)
-ys = NP.linspace(-5e-3, 5e-3, 2)
+xs = NP.linspace(-5e-3, 5e-3, 3)
+ys = NP.linspace(-5e-3, 5e-3, 3)
 n = len(xs)*len(ys)
 
 StateDict=dict()
@@ -32,30 +35,23 @@ for x in xs:
 E = PCL.Ensemble(p, StateDict)
 
 #%%
-
-FODO = [ENT.MQuad(5, .86, "QF"), ENT.Drift(2.5,"O") , ENT.MQuad(5, -.831, "QD"), ENT.Drift(2.5,"O")]
-
-B0 = .46
-R = ENT.MDipole.computeRadius(p,B0)
-V = ENT.Wien.computeVoltage(p,R,.05)
-wa = ENT.Wien(1.808,R,.05,V,B0)
-
-DIPS = list()
-for i in range(3):
-    DIPS.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0)))
-
-Lat = LTC.Lattice(DIPS, p)
+tLat = [ENT.MQuad(5e-2,-.86,"QDA2_")]#, ENT.Drift(25e-2,"OD1_"), ENT.Drift(15e-2,"OSD_"),
+#        ENT.Drift(25e-2,"OD2_"), ENT.Drift(220e-2,"ORB_"), ENT.Drift(25e-2,"OD2_"),
+#        ENT.Drift(15e-2,"BPM_"), ENT.Drift(25e-2,"OD1_"), ENT.MQuad(5e-2,.831,"QFA2_"),
+#        ENT.MQuad(5e-2,.831,"QFA2_"), ENT.Drift(25e-2,"OD1_"), ENT.Drift(15e-2,"OSF_"),
+#        ENT.Drift(25e-2,"OD2_"), ENT.Drift(220e-2,"ORB_"), ENT.Drift(25e-2,"OD2_"),
+#        ENT.Drift(15e-2,"BPM_"), ENT.Drift(25e-2,"OD1_"), ENT.MQuad(5e-2,-.86,"QDA2_"),
+#        ENT.MQuad(5e-2,-.86,"QDA2_"), ENT.Drift(25e-2,"OD1_"), ENT.Drift(15e-2,"OSD_"),
+#        ENT.Drift(25e-2,"OD2_"), ENT.Drift(220e-2,"ORB_"), ENT.Drift(25e-2,"OD2_"),
+#        ENT.Drift(15e-2,"BPM_"), ENT.Drift(25e-2,"OD1_"), ENT.MQuad(5e-2,.831,"QFA2_")]
+tLat = LTC.Lattice(tLat,p)
 #%%
 
-E.track(Lat,10,'2')
-#Lat.track(E, 10,'2')
+E.track(tLat,10,'0')
 
-testpart = 'X0'
-pts = E[testpart].sample()
+df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
+
 #%%
-PLT.plot(pts['t'], pts['x'], label='x')
-PLT.plot(pts['t'], pts['Sy'], label='Sy')
-PLT.legend()
-PLT.xlabel('s')
-PLT.title(testpart)
-#PLT.ylabel('y')
+varis = ['x','y']#,'Sx','Sy']
+GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)&df.PID.isin(['X7'])]) + GGP.geom_line() +\
+ GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw()
