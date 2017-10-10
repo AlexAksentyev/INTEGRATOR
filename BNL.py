@@ -7,6 +7,8 @@ Created on Mon Sep 18 16:59:23 2017
 """
 #%%
 from matplotlib import pyplot as PLT
+import ggplot as GGP
+import pandas as PDS
 
 import CParticle as PCL
 import CElement as ENT
@@ -39,8 +41,8 @@ p = PCL.Particle()
 
 #%% form beam
 
-xs = NP.linspace(0, 5e-3, 2)
-ys = NP.linspace(0, 5e-3, 3)
+xs = NP.linspace(-5e-3, 5e-3, 2)
+ys = NP.linspace(-5e-3, 5e-3, 3)
 n = len(xs)*len(ys)
 
 StateDict=dict()
@@ -102,4 +104,15 @@ BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
-LBNL = LTC.Lattice(SS1H2,p)
+#LBNL = LTC.Lattice(SS1H2,p)
+#LWA = LTC.Lattice([ENT.Wien(1.808,9.207,h,V,B)],p)
+LQF = LTC.Lattice([ENT.MQuad(Lq, AQFG)],p)
+
+E.track(LQF,2)
+
+df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
+
+#%%
+varis = ['x','y','Sx','Sy']
+GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)]) + GGP.geom_line() +\
+ GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw()
