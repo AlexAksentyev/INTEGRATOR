@@ -110,11 +110,10 @@ class Ensemble:
             
     def __compute(self, ArgDict):
             ODEsys = ArgDict['ODEsys']
-            tdata = ArgDict['tdata']
             inistate = ArgDict['inistate']
             name = ArgDict['name']
             
-            ODEsys.compute(name,ics=inistate,tdata=tdata)
+            ODEsys.compute(name,ics=inistate)
             
             return ODEsys.trajectories[name]
             
@@ -122,14 +121,16 @@ class Ensemble:
     
         self.fTrajectories = None
         tstp = NTurns * Lattice.getLength()
+        Lattice.fDSModel.tdata = [0,tstp]
             
         arg = list()
         for name,inistate in self.fIniStateDict.items():
             inistate.update({'start':StartID})
-            arg.append({'name':name, 'inistate':inistate,'tdata':[0,tstp], 'ODEsys':Lattice.fDSModel})
+            arg.append({'name':name, 'inistate':inistate, 'ODEsys':Lattice.fDSModel})
             
         with MLP.Pool(3) as p:
             val = p.map(self.__compute, arg)
         
         self.fTrajectories = dict(zip([el.name for el in val], val))
         
+#    def plot(self,)
