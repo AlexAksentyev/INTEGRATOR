@@ -23,13 +23,21 @@ p = PCL.Particle(state)
 
 #%%
 
-
+tLat = [ENT.MQuad(5e-2,-.86), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831),
+        ENT.MQuad(5e-2,.831), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.86),
+        ENT.MQuad(5e-2,-.86), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831)]
 #%%
 
 E = PCL.Particle(StateList[0])
 
 #E = PCL.Ensemble.from_state(StateList[0])
-E.track([ENT.MQuad(5e-2,-.86)],10)
+E.track(tLat,10)
 
 #df = E[0].getDataFrame() 
 #n = len(df)
