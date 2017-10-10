@@ -1,4 +1,3 @@
-from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
 import PyDSTool as DST
@@ -133,4 +132,13 @@ class Ensemble:
         
         self.fTrajectories = dict(zip([el.name for el in val], val))
         
-#    def plot(self,)
+    def getDataFrame(self):
+        rval = PDS.DataFrame()
+        for name, traj in self.fTrajectories.items():
+            pts = traj.sample()
+            pd = PDS.DataFrame(dict(zip(pts.coordnames, pts.coordarray)))
+            pd['s'] = pts.indepvararray
+            pd['PID'] = name
+            rval=rval.append(pd)
+            
+        return rval
