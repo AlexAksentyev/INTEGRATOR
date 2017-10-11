@@ -46,7 +46,7 @@ tLat = [ENT.MQuad(5e-2,-.82,"QDA2_"), ENT.Drift(25e-2,"OD1_"), ENT.Drift(15e-2,"
 tLat = LTC.Lattice(tLat,p)
 #%%
 
-tLat.track(E,5)
+tLat.track(E,1)
 
 df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
 
