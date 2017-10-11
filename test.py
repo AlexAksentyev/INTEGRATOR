@@ -1,4 +1,4 @@
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -14,7 +14,7 @@ state = [5e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0]
 StateList = [
         [1e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0],
         [0, 1e-3, 0, 0, 0, 0, 0, 0, 1, 0],
-        [0, 0, 0, 1e-4, 0, 0, 0, 0, 1, 0],
+        [3e-3, 3e-3, 0, 0, 0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 1e-4, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 1e-4, 0, 0, 1, 0]
         ]
@@ -23,25 +23,23 @@ p = PCL.Particle(state)
 
 #%%
 
-tLat = [ENT.MQuad(5e-2,-.86)]#, ENT.Drift(25e-2), ENT.Drift(15e-2),
-#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831),
-#        ENT.MQuad(5e-2,.831), ENT.Drift(25e-2), ENT.Drift(15e-2),
-#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.86),
-#        ENT.MQuad(5e-2,-.86), ENT.Drift(25e-2), ENT.Drift(15e-2),
-#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.831)]
+tLat = [ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736),
+        ENT.MQuad(5e-2,.736), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82),
+        ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736)]
 #%%
 
-#E = PCL.Particle(StateList[0])
-
 E = PCL.Ensemble.from_state(StateList)
-E.track(tLat,30)
+E.track(tLat,5)
     
 df = E.getDataFrame()
 df = PDS.melt(df, id_vars=['PID','t','H'])
 #%%
-ggplot(df.loc[df['variable'].isin(['x','y','Sx','Sy'])],aes(x='t',y='value'))\
-    + geom_line() + facet_wrap('variable',scales='free')
+print(ggplot(df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([2])],aes(x='H',y='value',color='variable'))
+    + geom_point() + geom_line() + theme_bw())
     
