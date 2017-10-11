@@ -46,14 +46,14 @@ tLat = [ENT.MQuad(5e-2,-.82,"QDA2_"), ENT.Drift(25e-2,"OD1_"), ENT.Drift(15e-2,"
 tLat = LTC.Lattice(tLat,p)
 #%%
 
-E.track(tLat,5)
+tLat.track(E,5)
 
 df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
 
 #%%
 varis = ['x','y']
 PIDs = ["X8"]
-df = df.loc[df.PID.isin(PIDS)&df.variable.isin(varis)]
+df = df.loc[df.PID.isin(PIDs)&df.variable.isin(varis)]
 print(GGP.ggplot(GGP.aes('s','value',color='variable'),df.loc[df.variable.isin(varis)]) + #GGP.geom_line() +
  GGP.geom_point() + GGP.theme_bw())
  
