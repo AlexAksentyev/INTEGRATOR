@@ -28,7 +28,8 @@ class Lattice:
         pardict.update({'offset':10000}) # require Ps**2 > 100**2
         NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(P0c,2)*(pow(px,2) + pow(py,2)) - offset',-1,
                                            event_args,varnames=['dK','px','py'],
-                                           fnspecs=fndict,parnames=['Mass0','P0c','Kin0','offset'])
+                                           fnspecs=fndict,parnames=['Mass0','P0c','Kin0','offset'],
+                                           targetlang='c')
        
         #%% constructing the differential systems for each element
         # terminal element events are defined here
@@ -65,10 +66,14 @@ class Lattice:
             ## events
             _id +=1
             event_args.update({'name':'passto'+str(_id%self.fCount)})
-            pass_event = DST.makeZeroCrossEvent('s-L'+element.fName,1,event_args,varnames=['s'],parnames=list(pardict.keys()))
+            pass_event = DST.makeZeroCrossEvent('s-L'+element.fName,1,
+                                                event_args,
+                                                varnames=['s'],
+                                                parnames=list(pardict.keys()),
+                                                targetlang='c')
             DSargs.events = [pass_event, NaN_event]
             ## DS construction
-            DS = DST.Vode_ODEsystem(DSargs)
+            DS = DST.Dopri_ODEsystem(DSargs)
             DS.Element = element
             DS.Particle = RefPart
             ModList.append(DS)
@@ -112,6 +117,7 @@ class Lattice:
     
     def track(self, Ensemble, NTurns, StartID = '0'):
         tstp = NTurns * self.__fLength
+        self.fDSModel.tdata = [0,tstp]
         
         #%% parallel computation 
         # would be nice to fix it
@@ -133,7 +139,7 @@ class Lattice:
             
         for name,inistate in Ensemble.fIniStateDict.items():
             inistate.update({'start':StartID})
-            self.fDSModel.compute(name,ics=inistate,tdata=[0,tstp])
+            self.fDSModel.compute(name,ics=inistate)
             
         Ensemble.fTrajectories = self.fDSModel.trajectories
             
