@@ -48,7 +48,7 @@ class Particle:
         self.__fState = value[:]
     
     def __RHS(self, state, at, element):
-        x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
+        x,y,t,px,py,dEn,Sx,Sy,Ss,H,s = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -108,7 +108,7 @@ class Particle:
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
         
-        DX = [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp]
+        DX = [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp, 1]
         
         return DX
     
@@ -145,8 +145,9 @@ class Particle:
         Sy = [self.fStateLog[i][7] for i in self.fStateLog]
         Ss = [self.fStateLog[i][8] for i in self.fStateLog]
         H = [self.fStateLog[i][9] for i in self.fStateLog]
+        s = [self.fStateLog[i][10] for i in self.fStateLog]
         
-        return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H})
+        return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H,'s':s})
 
 
 class Ensemble:
