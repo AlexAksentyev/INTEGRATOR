@@ -15,7 +15,8 @@ event_args={'name':'threshold',
             'term':True}
 
 thresh_ev = DST.makeZeroCrossEvent('V-threshval',
-        0, event_args, varnames=['V'],parnames=['threshval'])
+        0, event_args, varnames=['V'],parnames=['threshval'],
+        targetlang='c')
 
 leak_args = DST.args(name='leak')
 leak_args.pars = {'I': 1.3, 'gl': 0.1, 'vl': -67, 'threshval': -65}
@@ -26,7 +27,7 @@ leak_args.algparams = {'init_step': 0.02}
 leak_args.events = thresh_ev
 leak_args.abseps = 1e-7
 
-DS_leak = DST.embed(DST.Generator.Vode_ODEsystem(leak_args),name='leak',tdata=[0,200])
+DS_leak = DST.embed(DST.Generator.Dopri_ODEsystem(leak_args),name='leak',tdata=[0,200])
 
 spike_args = DST.args(name='spike')
 spike_args.tdomain = [0.0, 200]
