@@ -117,21 +117,34 @@ class Particle:
         self.__fState= list(self.__fIniState)
         self.fStateLog = {0:list(self.__fState)}
         
-        # create an event handler
-        eh = EventHandler(self)
+#         #create an event handler
+#        eh = EventHandler(self)
         
-        for n in range(1,ntimes+1):
+        if ntimes > 1:
+            for n in range(1,ntimes+1):
+                for i in range(len(ElementSeq)):
+                    if FWD: element = ElementSeq[i]
+                    else: element = ElementSeq[len(ElementSeq)-1-i]
+                    at = NP.linspace(0, element.fLength, brks)
+                    
+                    element.frontKick(self)
+                    self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
+    #                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
+    #                self.__fState = dat[len(dat)-1]
+                    element.rearKick(self)
+                self.fStateLog.update({n:self.__fState})
+        else:
             for i in range(len(ElementSeq)):
-                if FWD: element = ElementSeq[i]
-                else: element = ElementSeq[len(ElementSeq)-1-i]
-                at = NP.linspace(0, element.fLength, brks)
-                
-                element.frontKick(self)
-                self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
-#                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
-#                self.__fState = dat[len(dat)-1]
-                element.rearKick(self)
-            self.fStateLog.update({n:self.__fState})
+                    if FWD: element = ElementSeq[i]
+                    else: element = ElementSeq[len(ElementSeq)-1-i]
+                    at = NP.linspace(0, element.fLength, brks)
+                    
+                    element.frontKick(self)
+                    self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
+    #                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
+    #                self.__fState = dat[len(dat)-1]
+                    element.rearKick(self)
+                    self.fStateLog.update({i:self.__fState})
             
         
     def getDataFrame(self):
@@ -180,8 +193,9 @@ class Ensemble:
     def getDataFrame(self):
         df = PDS.DataFrame() 
         for name, pcl in self.getParticles().items(): 
-            df=df.append(pcl.getDataFrame())
-            df['PID'] = name
+            pdf = pcl.getDataFrame()
+            pdf['PID'] = name
+            df=df.append(pdf)
         return df
         
     def __getitem__(self, index):
