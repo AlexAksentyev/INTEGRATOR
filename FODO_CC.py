@@ -8,18 +8,14 @@ import numpy as NP
 reload(ENT)
 reload(PCL)
 
-theme_bw()
+xs = NP.linspace(-5e-3,5e-3,3)
+ys = NP.linspace(-5e-3,5e-3,3)
 
-state = [5e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0]
-StateList = [
-        [1e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0,0],
-        [0, 1e-3, 0, 0, 0, 0, 0, 0, 1, 0,0],
-        [5e-3, 5e-3, 0, 0, 0, 0, 0, 0, 1, 0,0],
-        [0, 0, 0, 0, 1e-4, 0, 0, 0, 1, 0,0],
-        [0, 0, 0, 0, 0, 1e-4, 0, 0, 1, 0,0]
-        ]
 
-p = PCL.Particle(state)
+StateList = list()
+for x in xs:
+    for y in ys:
+        StateList.append([x,y]+[0]*6+[1, 0, 0])
 
 #%%
 
@@ -35,11 +31,11 @@ tLat = [ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
 #%%
 
 E = PCL.Ensemble.from_state(StateList)
-E.track(tLat,5)
+E.track(tLat,1)
     
 df = E.getDataFrame()
 df = PDS.melt(df, id_vars=['PID','t','s'])
 #%%
-print(ggplot(df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([2])],aes(x='s',y='value',color='variable'))
+print(ggplot(df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])],aes(x='s',y='value',color='variable'))
     + geom_point() + geom_line() + theme_bw())
     
