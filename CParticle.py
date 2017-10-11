@@ -120,31 +120,18 @@ class Particle:
 #         #create an event handler
 #        eh = EventHandler(self)
         
-        if ntimes > 1:
-            for n in range(1,ntimes+1):
-                for i in range(len(ElementSeq)):
-                    if FWD: element = ElementSeq[i]
-                    else: element = ElementSeq[len(ElementSeq)-1-i]
-                    at = NP.linspace(0, element.fLength, brks)
-                    
-                    element.frontKick(self)
-                    self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
-    #                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
-    #                self.__fState = dat[len(dat)-1]
-                    element.rearKick(self)
-                self.fStateLog.update({n:self.__fState})
-        else:
+        for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
-                    if FWD: element = ElementSeq[i]
-                    else: element = ElementSeq[len(ElementSeq)-1-i]
-                    at = NP.linspace(0, element.fLength, brks)
-                    
-                    element.frontKick(self)
-                    self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
-    #                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
-    #                self.__fState = dat[len(dat)-1]
-                    element.rearKick(self)
-                    self.fStateLog.update({i:self.__fState})
+                if FWD: element = ElementSeq[i]
+                else: element = ElementSeq[len(ElementSeq)-1-i]
+                at = NP.linspace(0, element.fLength, brks)
+                
+                element.frontKick(self)
+                self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
+#                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
+#                self.__fState = dat[len(dat)-1]
+                element.rearKick(self)
+                self.fStateLog.update({(n,i):self.__fState})
             
         
     def getDataFrame(self):
