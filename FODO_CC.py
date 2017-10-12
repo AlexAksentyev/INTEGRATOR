@@ -1,4 +1,4 @@
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -19,23 +19,31 @@ for x in xs:
 
 #%%
 
-tLat = [ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
+tLat = [ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
         ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736),
-        ENT.MQuad(5e-2,.736), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF"),
+        ENT.MQuad(5e-2,.736,"QF"), ENT.Drift(25e-2), ENT.Drift(15e-2),
         ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82),
-        ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82,"QD"),
+        ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
         ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736)]
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF")]
 #%%
 
 E = PCL.Ensemble.from_state(StateList)
 E.track(tLat,1)
     
+
+def pos(data):
+    if data['Element'] == "QF": return 'R'
+    elif data['Element'] == "QD": return 'B'
+    else: return 'Black'
+
 df = E.getDataFrame()
-df = PDS.melt(df, id_vars=['PID','t','s'])
+df['Quad']=df.apply(pos, axis=1)
+df = PDS.melt(df, id_vars=['PID','t','s', 'Turn','Element','Quad'])
 #%%
-print(ggplot(df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])],aes(x='s',y='value',color='variable'))
-    + geom_point() + geom_line() + theme_bw())
+dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
+ggplot(dat,aes(x='s',y='value',color='variable')) + \
+     geom_line() + geom_point(color=dat['Quad']) + theme_bw()
     
