@@ -244,14 +244,16 @@ Initial:	BetaX[cm]=891.552 	BetaY[cm]=851.982
 
 	X[cm]=0.000    	Y[cm]=0.000    	Z[cm]=0.000    	S[cm]=0.000    
 	tetaX[deg]=0        	tetaY[deg]=0        
-begin lattice. Number of periods=10 
+begin lattice. Number of periods=1 
 
 #===============2-d half of 1-th SS================
-QDA2  OD1  ORB  OD2  BPM  OD1  QFA2
-QFA2  OD1 OSF OD2  ORB OD2 BPM OD1   QDA2 
- QDA2   OD1 OSD OD2  ORB  OD2  BPM  OD1  QFA2
+QDA2  
+#OD1  ORB  OD2  BPM  OD1  QFA2
+#QFA2  OD1 OSF OD2  ORB OD2 BPM OD1   QDA2 
+# QDA2   OD1 OSD OD2  ORB  OD2  BPM  OD1  QFA2
 
 #===========FIRST ARC==================
+
 
 
 
@@ -331,7 +333,7 @@ EndBetaFitBlock
 
 
 TrajParamBlock
-	X[cm]=0.3 	Teta_X[rad]=4.46414e-09
-	Y[cm]=0.3 	Teta_Y[rad]=3.63891e-10
+	X[cm]=0.5 	Teta_X[rad]=4.46414e-09
+	Y[cm]=0.5 	Teta_Y[rad]=3.63891e-10
 	s[cm]=0.0 	DeltaP/P=0.0
 EndTrajParamBlock
