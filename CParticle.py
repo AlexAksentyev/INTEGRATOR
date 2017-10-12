@@ -3,6 +3,7 @@ import numpy as NP
 import pandas as PDS
 import PyDSTool as DST
 import pycse as CSE
+import re
 
 class Particle:
         
@@ -115,7 +116,7 @@ class Particle:
     def track(self, ElementSeq, ntimes, FWD = True):
         brks = 101
         self.__fState= list(self.__fIniState)
-        self.fStateLog = {0:list(self.__fState)}
+        self.fStateLog = {(0, 'Inj'):list(self.__fState)}
         
 #         #create an event handler
 #        eh = EventHandler(self)
@@ -131,7 +132,7 @@ class Particle:
 #                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
 #                self.__fState = dat[len(dat)-1]
                 element.rearKick(self)
-                self.fStateLog.update({(n,i):self.__fState})
+                self.fStateLog.update({(n,element.fName):self.__fState})
             
         
     def getDataFrame(self):
@@ -146,8 +147,10 @@ class Particle:
         Ss = [self.fStateLog[i][8] for i in self.fStateLog]
         H = [self.fStateLog[i][9] for i in self.fStateLog]
         s = [self.fStateLog[i][10] for i in self.fStateLog]
+        trn = [x[0] for x in list(self.fStateLog.keys())]
+        el = [re.sub('_.*','',x[1]) for x in list(self.fStateLog.keys())]
         
-        return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H,'s':s})
+        return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H,'s':s,'Element':el, 'Turn':trn})
 
 
 class Ensemble:
