@@ -15,7 +15,7 @@ class Particle:
     fStateLog = dict()
     
     fMass0 = 1876.5592 # deuteron mass in MeV
-    fKinEn0 = 270.005183 # deuteron magic energy
+    fKinEn0 = 270.11275 # deuteron magic energy
     fG = -.142987
     
     fGamma0 = None # reference particle's
