@@ -5,12 +5,10 @@ import collections as CLN
 
 class Element:
     
-    fCurve = None
-    fLength = None
-    
-    def __init__(self, Curve, Length):
+    def __init__(self, Curve, Length, Name = "Element"):
         self.fCurve = Curve
         self.fLength = Length
+        self.fName = Name
     
     def EField(self,arg):
         return (0,0,0)
@@ -28,19 +26,23 @@ class Drift(Element):
     """ drift space
     """
     
-    def __init__(self, Length):
-        Element.__init__(self, 0, Length)
+    fCount = 0
+    
+    def __init__(self, Length, Name = "Drift"):
+        Element.__init__(self, 0, Length, Name+"_"+str(Drift.fCount))
+        Drift.fCount += 1
         
 
 class MQuad(Element):
     """ magnetic quadrupole
     """
     
-    __fGrad = None
+    fCount = 0
     
-    def __init__(self, Length, Grad):
-        Element.__init__(self, 0, Length)
+    def __init__(self, Length, Grad, Name = "MQuad"):
+        Element.__init__(self, 0, Length, Name+"_"+str(MQuad.fCount))
         self.__fGrad = Grad
+        MQuad.fCount += 1
         
     def BField(self, arg):
         x,y = arg[0:2]
@@ -54,11 +56,12 @@ class MDipole(Element):
     and fCurve = 0
     """
     
-    __fBField = None
+    fCount = 0
     
-    def __init__(self, Length, R, BField):
-        Element.__init__(self, 1/R, Length)
+    def __init__(self, Length, R, BField, Name = "MDipole"):
+        Element.__init__(self, 1/R, Length, Name+"_"+str(MDipole.fCount))
         self.setBField(BField)
+        MDipole.fCount += 1
         
     def setBField(self,BField):
         if not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
@@ -81,9 +84,13 @@ class MDipole(Element):
   
 
 class Solenoid(MDipole):
-    def __init__(self, Length, Bs):
-        Element.__init__(self, 0, Length)
+    
+    fCount = 0
+    
+    def __init__(self, Length, Bs, Name = "Solenoid"):
+        Element.__init__(self, 0, Length, Name+"_"+str(Solenoid.fCount))
         self.setBField((0,0,Bs))
+        Solenoid.fCount += 1
         
     @classmethod
     def computeBStrength(cls, *args):
@@ -98,11 +105,12 @@ class MSext(Element):
     """ magnetic sextupole
     """
     
-    __fGrad = None
+    fCount = 0
     
-    def __init__(self, Length, Grad):
-        Element.__init__(self, 0, Length)
+    def __init__(self, Length, Grad, Name = "MSext"):
+        Element.__init__(self, 0, Length, Name+"_"+str(MSext.fCount))
         self.__fGrad = Grad
+        MSext.fCount += 1
         
     def BField(self, arg):
         x,y=arg[0:2]
@@ -113,15 +121,14 @@ class Wien(Element):
     The magnetic field definition is weird
     """
     
-    __fR = None
-    __fVolt = None
-    __fBField = None
+    fCount = 0
     
-    def __init__(self, Length, R, Hgap, Voltage, BField):
-        Element.__init__(self, 1/R, Length)
+    def __init__(self, Length, R, Hgap, Voltage, BField, Name = "Wien?"):
+        Element.__init__(self, 1/R, Length, Name+"_"+str(Wien.fCount))
         self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
         self.__fVolt = Voltage
         self.__fBField = BField
+        Wien.fCount += 1
         
     @staticmethod
     def computeVoltage(particle, R, Hgap):
