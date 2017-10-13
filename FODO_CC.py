@@ -32,7 +32,7 @@ tLat = [ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
 #%%
 
 E = PCL.Ensemble.from_state(StateList)
-E.track(tLat,5)
+E.track(tLat,1)
     
 
 def pos(data):
@@ -48,8 +48,8 @@ dfs = df.loc[df['PID']==8]
 PLT.plot(dfs['s'],dfs['x'],label='x')
 PLT.plot(dfs['s'],dfs['y'],label='y')
 #%%
-dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
-ggplot(dat,aes(x='s',y='value',color='variable')) + \
-     geom_line() + geom_point(color=dat['Quad']) + theme_bw()
-     
+#dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
+#ggplot(dat,aes(x='s',y='value',color='variable')) + \
+#     geom_line() + geom_point(color=dat['Quad']) + theme_bw()
+#     
     
