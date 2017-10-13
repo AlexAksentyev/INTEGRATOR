@@ -1,8 +1,7 @@
 from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
-import PyDSTool as DST
-import pycse as CSE
+#import PyDSTool as DST
 import re
 
 class Particle:
