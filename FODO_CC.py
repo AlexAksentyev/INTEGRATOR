@@ -19,22 +19,23 @@ for x in xs:
 
 #%%
 
-tLat = [ENT.MQuad(5e-2,-.82,"QD")]#, ENT.Drift(25e-2), ENT.Drift(15e-2),
-#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF"),
-#        ENT.MQuad(5e-2,.736,"QF"), ENT.Drift(25e-2), ENT.Drift(15e-2),
-#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82,"QD"),
-#        ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
-#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF")]
+tLat = [ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF"),
+        ENT.MQuad(5e-2,.736,"QF"), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82,"QD"),
+        ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF")]
     
 #tLat = [ENT.MDipole(2,8,.46)]
 #%%
 
 E = PCL.Ensemble.from_state(StateList)
-E.track(tLat,1)
+E.track(tLat,5)
     
+#%%
 
 def pos(data):
     if data['Element'] == "QF": return 'Red'

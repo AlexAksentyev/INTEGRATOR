@@ -46,7 +46,7 @@ class Particle:
     def setState(self, value):
         self.__fState = value[:]
     
-    def __RHS(self, state, at, element):
+    def __RHS(self, state, at, element):        
         x,y,t,px,py,dEn,Sx,Sy,Ss,H,s = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
@@ -80,6 +80,7 @@ class Particle:
         m0 = q*1e6*self.fMass0/clight**2
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
+        
         
         Pxp = (Ex*tp*clight + (yp*Bs-By))*1e-6 + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
         Pyp = (Ey*tp*clight + (Bx-xp*Bs))*1e-6 #Fy*tp * c, in Mev
