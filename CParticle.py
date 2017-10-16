@@ -56,7 +56,6 @@ class Particle:
                      # H' = Pc/Ps hs
         
         dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
-        gammap = dEnp/self.fMass0 # gamma prime
         
         gamma,beta = self.GammaBeta(KinEn)
         q = self.__ezero
@@ -66,17 +65,9 @@ class Particle:
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
         
-        ## I don't understand the following formulas
-        betap = (dEnp*(self.fMass0)**2)/((KinEn+self.fMass0)**2*NP.sqrt(KinEn**2+2*KinEn*self.fMass0))
-        D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
-        
-        # these two are in the original dimensions
-        xpp=((-Hp*D)/(gamma*v))*xp+(clight*Hp/(Pc*1e6))*(Hp*Ex/v+yp*Bs-hs*By)+kappa*hs
-        ypp=((-Hp*D)/(gamma*v))*yp+(clight*Hp/(Pc*1e6))*(Hp*Ey/v+hs*Bx-xp*Bs)
-        
         # these two are in MeVs
-        Pxp = Px*(betap/beta - gammap/gamma)+Pc*xpp/Hp-Px*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
-        Pyp = Py*(betap/beta - gammap/gamma)+Pc*ypp/Hp-Py*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
+        Pxp = (Ex*tp*clight +(yp*Bs - By)) + kappa*Ps
+        Pyp = (Ey*tp*clight + (Bx - xp*Bs))*1e-6
         
         
         Px,Py,Ps = tuple([e*q*1e6/clight for e in (Px,Py,Ps)]) # the original formulas use momenta, not P*c
