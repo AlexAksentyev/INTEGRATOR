@@ -81,8 +81,8 @@ class Particle:
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
         
-        Pxp = (Ex*tp*clight + (yp*Bs-By))*1e-6 + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
-        Pyp = (Ey*tp*clight + (Bx-xp*Bs))*1e-6 #Fy*tp * c, in Mev
+        Pxp = (Ex*tp + (yp*Bs-By))*clight*1e-6 + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
+        Pyp = (Ey*tp + (Bx-xp*Bs))*clight*1e-6 #Fy*tp * c, in Mev
         
         Px,Py,Ps = tuple([e*q*1e6/clight for e in (Px,Py,Ps)]) # the original formulas use momenta, not P*c
         

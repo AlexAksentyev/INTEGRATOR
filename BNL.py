@@ -26,23 +26,23 @@ R = 9.207
 
 #%%
 # particle definition
-state0 = [1e-3, -1e-3, 0, 0, 0, 0, 0, 0, 1, 0]
+state0 = [1e-3, -1e-3, 0, 0, 0, 0, 0, 0, 1, 0, 0]
 p = PCL.Particle(state0)
 
 #%%
 
 # lattice elements
 
-DL_25  = ENT.Drift(.25)
-DL_15 = ENT.Drift(.15)
-DL2_2 = ENT.Drift(2.2)
-BPM = ENT.Drift(15)
+DL_25  = ENT.Drift(25e-2)
+DL_15 = ENT.Drift(15e-2)
+DL2_2 = ENT.Drift(220e-2)
+BPM = ENT.Drift(15e-2)
 
-QDS = ENT.MQuad(Lq, -.86)
-QFS = ENT.MQuad(Lq, .831)
+QDS = ENT.MQuad(Lq, -8.6)
+QFS = ENT.MQuad(Lq, 8.31)
 
-QDA = ENT.MQuad(Lq, -1.023)
-QFA = ENT.MQuad(Lq, 1.364)
+QDA = ENT.MQuad(Lq, -10.23)
+QFA = ENT.MQuad(Lq, 13.64)
 
 Sf = ENT.MSext(Ls, GSFP)
 Sd = ENT.MSext(Ls, GSDP)
@@ -91,3 +91,4 @@ lattice = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
+p.track(SS2H1,1)
