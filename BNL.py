@@ -93,7 +93,7 @@ BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
-p.track(SS2H1,1)
+p.track(SS1H1+SS1H2,1)
 
 #%%
 def pos(data):
@@ -104,7 +104,7 @@ def pos(data):
     
 df = p.getDataFrame()
 df['Quad']=df.apply(pos, axis=1)
-df = PDS.melt(df, id_vars=['PID','t','s', 'Turn','Element','Quad'])
-dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
+df = PDS.melt(df, id_vars=['t','s', 'Turn','Element','Quad'])
+dat = df.loc[df['variable'].isin(['x','y'])]
 print(ggplot(dat,aes(x='s',y='value',color='variable')) + 
      geom_line() + geom_point(color=dat['Quad']) + theme_bw())
