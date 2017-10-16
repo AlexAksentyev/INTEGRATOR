@@ -81,7 +81,6 @@ class Particle:
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
         
-        
         Pxp = (Ex*tp*clight + (yp*Bs-By))*1e-6 + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
         Pyp = (Ey*tp*clight + (Bx-xp*Bs))*1e-6 #Fy*tp * c, in Mev
         
@@ -124,13 +123,14 @@ class Particle:
             
         
     def getDataFrame(self):
-        P0c = self.Pc(self.fKinEn0)
+        W0 = self.fKinEn0
+        P0c = self.Pc(W0)
         x = [self.fStateLog[i][0] for i in self.fStateLog]
         y = [self.fStateLog[i][1] for i in self.fStateLog]
         t = [self.fStateLog[i][2] for i in self.fStateLog]
         px = [self.fStateLog[i][3]*P0c for i in self.fStateLog]
         py = [self.fStateLog[i][4]*P0c for i in self.fStateLog]
-        dW = [self.fStateLog[i][5] for i in self.fStateLog]
+        dW = [self.fStateLog[i][5]*W0 for i in self.fStateLog]
         Sx = [self.fStateLog[i][6] for i in self.fStateLog]
         Sy = [self.fStateLog[i][7] for i in self.fStateLog]
         Ss = [self.fStateLog[i][8] for i in self.fStateLog]
