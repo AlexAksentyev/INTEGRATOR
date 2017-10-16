@@ -139,12 +139,22 @@ class Particle:
         return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H,'s':s,'Element':el, 'Turn':trn})
 
 class Ensemble:
+    """ Ensemble of particles; handles tracking of multiple particles. 
+    Create a bunch of worker nodes and call particle.track for the particles
+    """
+    __fParticle = dict() # dictionary of particle pointers
     
-    fStateNames = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's']
+    def __init__(self, ParticleList):
+        self.addParticles(ParticleList)
+        
+    @classmethod
+    def from_state(cls, StateList):
+        pcls = [Particle(state) for state in StateList]
+        return cls(pcls)
     
-    def __init__(self, Particle, StateDict): # StateDict entry is particle ID: list of coordinates
-        self.fStateDict = dict()
-        self.fParticle = Particle
+    def addParticles(self, ParticleList):
+        names = [e for e in range(len(ParticleList))]
+        self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
         
     def getParticles(self):
         return self.__fParticle

@@ -49,7 +49,7 @@ def pos(data):
 df = E.getDataFrame()
 df['Quad']=df.apply(pos, axis=1)
 df = PDS.melt(df, id_vars=['PID','t','s', 'Turn','Element','Quad'])
-dat = df.loc[df['variable'].isin(['Sx','Sy'])&df['PID'].isin([8])]
+dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
 print(ggplot(dat,aes(x='s',y='value',color='variable')) + 
      geom_line() + geom_point(color=dat['Quad']) + theme_bw())
     
