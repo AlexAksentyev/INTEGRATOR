@@ -111,11 +111,11 @@ class Particle:
                 else: element = ElementSeq[len(ElementSeq)-1-i]
                 at = NP.linspace(0, element.fLength, brks)
                 
-                element.frontKick(self)
+                self.__fState = element.frontKick(self.__fState, particle=self)
                 self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
 #                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
 #                self.__fState = dat[len(dat)-1]
-                element.rearKick(self)
+                self.__fState = element.rearKick(self.__fState, particle=self)
                 self.fStateLog.update({(n,element.fName):self.__fState})
             
         
