@@ -1,19 +1,29 @@
 from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
-import PyDSTool as DST
+import re
 
 class Particle:
         
     __ezero = 1.602176462e-19 # Coulomb
     __clight = 2.99792458e8 # m/s
-              
-    def __init__(self, Mass0MeV=1876.5592, KinEn0MeV=270.005183, G = -.142987):
-        """Deuteron parameters by default
-        """
-        self.fMass0 = Mass0MeV
-        self.fKinEn0 = KinEn0MeV
-        self.fG = G
+    
+    __fIniState = None
+    __fState = None 
+    fStateLog = dict()
+    
+    fMass0 = 1876.5592 # deuteron mass in MeV
+    fKinEn0 = 270.11275 # deuteron magic energy
+    fG = -.142987
+    
+    fGamma0 = None # reference particle's
+    fBeta0 = None  # gamma, beta
+    
+    def __init__(self, State0):
+            
+        self.__fIniState = list(State0)
+        self.__fState = list(State0)
+        self.fGamma0, self.fBeta0 = self.GammaBeta(self.fKinEn0)
         
         
     def CLIGHT(self):
@@ -30,8 +40,11 @@ class Particle:
     def Pc(self, KNRG):
         return NP.sqrt((self.fMass0 + KNRG)**2 - self.fMass0**2)
     
-    def RHS(self, state, element): 
-        x,y,t,px,py,dEn,Sx,Sy,Ss,H = state # px, py are normalized to P0c for consistency with the other vars, i think
+    def setState(self, value):
+        self.__fState = value[:]
+    
+    def __RHS(self, state, at, element):        
+        x,y,t,px,py,dEn,Sx,Sy,Ss,H,s = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -56,7 +69,6 @@ class Particle:
                      # H' = Pc/Ps hs
         
         dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
-        gammap = dEnp/self.fMass0 # gamma prime
         
         gamma,beta = self.GammaBeta(KinEn)
         q = self.__ezero
@@ -66,18 +78,8 @@ class Particle:
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
         
-        ## I don't understand the following formulas
-        betap = (dEnp*(self.fMass0)**2)/((KinEn+self.fMass0)**2*NP.sqrt(KinEn**2+2*KinEn*self.fMass0))
-        D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
-        
-        # these two are in the original dimensions
-        xpp=((-Hp*D)/(gamma*v))*xp+(clight*Hp/(Pc*1e6))*(Hp*Ex/v+yp*Bs-hs*By)+kappa*hs
-        ypp=((-Hp*D)/(gamma*v))*yp+(clight*Hp/(Pc*1e6))*(Hp*Ey/v+hs*Bx-xp*Bs)
-        
-        # these two are in MeVs
-        Pxp = Px*(betap/beta - gammap/gamma)+Pc*xpp/Hp-Px*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
-        Pyp = Py*(betap/beta - gammap/gamma)+Pc*ypp/Hp-Py*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
-        
+        Pxp = (Ex*tp + (yp*Bs-By))*clight*1e-6 + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
+        Pyp = (Ey*tp + (Bx-xp*Bs))*clight*1e-6 #Fy*tp * c, in Mev
         
         Px,Py,Ps = tuple([e*q*1e6/clight for e in (Px,Py,Ps)]) # the original formulas use momenta, not P*c
         
@@ -90,9 +92,52 @@ class Particle:
         Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - (Px * Ey - Py * Ex) * Sy) + (sp1*By+sp2*Py)*Ss-(sp1*Bs+sp2*Ps)*Sy
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
+
+        DX = [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp, 1]
         
-        return [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp]
+        return DX
     
+    def track(self, ElementSeq, ntimes, FWD = True):
+        brks = 101
+        self.__fState= list(self.__fIniState)
+        self.fStateLog = {(0, 'Inj'):list(self.__fState)}
+        
+#         #create an event handler
+#        eh = EventHandler(self)
+        
+        for n in range(1,ntimes+1):
+            for i in range(len(ElementSeq)):
+                if FWD: element = ElementSeq[i]
+                else: element = ElementSeq[len(ElementSeq)-1-i]
+                at = NP.linspace(0, element.fLength, brks)
+                
+                element.frontKick(self)
+                self.__fState=odeint(self.__RHS, self.__fState, at, args=(element,))[brks-1]
+#                dat = eh.integrate(self.__RHS, self.__fState, at, arguments=(element,))
+#                self.__fState = dat[len(dat)-1]
+                element.rearKick(self)
+                self.fStateLog.update({(n,element.fName):self.__fState})
+            
+        
+    def getDataFrame(self):
+        W0 = self.fKinEn0
+        P0c = self.Pc(W0)
+        x = [self.fStateLog[i][0] for i in self.fStateLog]
+        y = [self.fStateLog[i][1] for i in self.fStateLog]
+        t = [self.fStateLog[i][2] for i in self.fStateLog]
+        px = [self.fStateLog[i][3]*P0c for i in self.fStateLog]
+        py = [self.fStateLog[i][4]*P0c for i in self.fStateLog]
+        dW = [self.fStateLog[i][5]*W0 for i in self.fStateLog]
+        Sx = [self.fStateLog[i][6] for i in self.fStateLog]
+        Sy = [self.fStateLog[i][7] for i in self.fStateLog]
+        Ss = [self.fStateLog[i][8] for i in self.fStateLog]
+        H = [self.fStateLog[i][9] for i in self.fStateLog]
+        s = [self.fStateLog[i][10] for i in self.fStateLog]
+        trn = [x[0] for x in list(self.fStateLog.keys())]
+        el = [re.sub('_.*','',x[1]) for x in list(self.fStateLog.keys())]
+        
+        return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H,'s':s,'Element':el, 'Turn':trn})
+
 class Ensemble:
     
     fStateNames = ['x','y','ts','px','py','dK','Sx','Sy','Ss','H', 's']
@@ -101,5 +146,59 @@ class Ensemble:
         self.fStateDict = dict()
         self.fParticle = Particle
         
-        for name, state in StateDict.items():
-            self.fStateDict.update({name : dict(zip(self.fStateNames,state))})
+    def getParticles(self):
+        return self.__fParticle
+        
+    def track(self, ElementSeq, ntimes, FWD = True):
+        for pcl in self.__fParticle.values():
+            pcl.track(ElementSeq, ntimes, FWD)
+        
+    def size(self):
+        return len(self.__fParticle)
+    
+    def getDataFrame(self):
+        df = PDS.DataFrame() 
+        for name, pcl in self.getParticles().items(): 
+            pdf = pcl.getDataFrame()
+            pdf['PID'] = name
+            df=df.append(pdf)
+        return df
+        
+    def __getitem__(self, index):
+        return self.__fParticle[index]
+    
+    
+class EventHandler:
+    """This will contain methods to analyze the ODE integration results 
+    to decide if to continue integration, or to terminate
+    """
+    
+    __fparticle = None
+    
+    def __init__(self, particle):
+        self.__fparticle = particle
+    
+    def stop(self, state):
+        KinEn = self.__fparticle.fKinEn0*(1+state[5]) # dEn = (En - En0) / En0
+        
+        Pc = self.__fparticle.Pc(KinEn) # momentum in MeVs
+        P0c = self.__fparticle.Pc(self.__fparticle.fKinEn0)
+        Px = P0c*state[3]
+        Py = P0c*state[4]
+        return NP.any(NP.isnan([Pc,Px,Py]))
+    
+    def integrate(self, RHS, state, at, arguments = None):
+        nout = len(at)
+        fstate = [state,]
+        i=0
+        okay = True
+        while okay&(i<nout-1):
+            f = odeint(RHS, fstate[i], [at[i],at[i+1]], args=arguments)
+            i += 1
+            if self.stop(f[1]):
+                okay = False
+                print(i-1)
+            else:
+                fstate.append(f[1])
+                
+        return NP.array(fstate)

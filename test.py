@@ -1,6 +1,5 @@
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid
-from importlib import reload
-
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point
+import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
 import CLattice as LTC
@@ -14,40 +13,36 @@ reload(LTC)
 
 theme_bw()
 
-p = PCL.Particle()
+state = [5e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+StateList = [
+        [1e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0,0],
+        [0, 1e-3, 0, 0, 0, 0, 0, 0, 1, 0,0],
+        [3e-3, 3e-3, 0, 0, 0, 0, 0, 0, 1, 0,0],
+        [0, 0, 0, 0, 1e-4, 0, 0, 0, 1, 0,0],
+        [0, 0, 0, 0, 0, 1e-4, 0, 0, 1, 0,0]
+        ]
 
-StateDict = {'X0':[0,0,0,0,0,0,0,0,1,0,0],
-             'X1':[1e-3,0,0,0,0,0,0,0,1,0,0],
-             'X2':[0,1e-3,0,0,0,0,0,0,1,0,0],
-             'X3':[0,0,0,1e-3,0,0,0,0,1,0,0],
-             'X4':[0,0,0,0,1e-3,0,0,0,1,0,0]}
-
-E = PCL.Ensemble(p, StateDict)
+p = PCL.Particle(state)
 
 #%%
 
-FODO = [ENT.MQuad(5, .86, "QF1"), ENT.Drift(2.5,"O1") , ENT.MQuad(5, -.831, "QD1"), ENT.Drift(2.5,"O2")]
-
-B0 = .46
-R = ENT.MDipole.computeRadius(p,B0)
-V = ENT.Wien.computeVoltage(p,R,.05)
-wa = ENT.Wien(1.808,R,.05,V,B0)
-
-DIPS = list()
-for i in range(3):
-    DIPS.append(ENT.MDipole(1.8,7.55,(.46/100,.46,0), 'Dipole_'+str(i)))
-
-Lat = LTC.Lattice(FODO, p)
+tLat = [ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736),
+        ENT.MQuad(5e-2,.736), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82),
+        ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
+        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736)]
 #%%
 
-Lat.track(E, 100)
-
-testpart = 'X4'
-pts = Lat.fDSModel.sample(testpart)
+E = PCL.Ensemble.from_state(StateList)
+E.track(tLat,5)
+    
+df = E.getDataFrame()
+df = PDS.melt(df, id_vars=['PID','t','s'])
 #%%
-PLT.plot(pts['t'], pts['y'], label='y')
-PLT.plot(pts['t'], pts['x'], label='x')
-PLT.legend()
-PLT.xlabel('s')
-PLT.title(testpart)
-#PLT.ylabel('y')
+print(ggplot(df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([2])],aes(x='s',y='value',color='variable'))
+    + geom_point() + geom_line() + theme_bw())
+    
