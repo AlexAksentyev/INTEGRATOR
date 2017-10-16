@@ -6,7 +6,7 @@ Created on Mon Sep 18 16:59:23 2017
 @author: alexa
 """
 #%%
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, geom_point
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -18,7 +18,7 @@ reload(ENT)
 theme_bw()
 
 # hardware parameters
-Lq = 5
+Lq = .05
 SSQDG = -8.6
 SSQFG = 8.31
 AQDG = -10.23
@@ -94,3 +94,17 @@ BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 #%%
 # work code
 p.track(SS2H1,1)
+
+#%%
+def pos(data):
+    if data['Element'] == "QF": return 'Red'
+    elif data['Element'] == "QD": return 'Blue'
+    else: return 'Black'
+    
+    
+df = p.getDataFrame()
+df['Quad']=df.apply(pos, axis=1)
+df = PDS.melt(df, id_vars=['PID','t','s', 'Turn','Element','Quad'])
+dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
+print(ggplot(dat,aes(x='s',y='value',color='variable')) + 
+     geom_line() + geom_point(color=dat['Quad']) + theme_bw())
