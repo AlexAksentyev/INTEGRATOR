@@ -55,7 +55,7 @@ class Particle:
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
         
         Ex,Ey,Es = element.EField(state)
-        Bx,By,Bs = element.BField(state)
+        Bx,By,Bs = element.BField(state, self)
         
         kappa = element.fCurve
         hs = 1 + kappa*x # look here http://www.iaea.org/inis/collection/NCLCollectionStore/_Public/23/011/23011647.pdf
