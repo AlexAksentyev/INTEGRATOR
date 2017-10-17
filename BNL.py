@@ -18,7 +18,7 @@ reload(ENT)
 theme_bw()
 
 # hardware parameters
-Lq = .05
+Lq = 5
 SSQDG = -8.6
 SSQFG = 8.31
 AQDG = -10.23
@@ -39,9 +39,8 @@ p = PCL.Particle(state0)
 #%%
 # lattice elements
 
-
 V = ENT.Wien.computeVoltage(p, R, h)
-B = ENT.Wien.computeBStrength(p,0, R, h)
+B = ENT.Wien.computeBStrength(p, R, h)
 
 WA = ENT.Wien(1.808, 9.297, h, V, B)
 
@@ -93,12 +92,12 @@ BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
-p.track(SS1H1+SS1H2,1)
+p.track(SS1H2,1)
 
 #%%
 def pos(data):
-    if data['Element'] == "QF": return 'Red'
-    elif data['Element'] == "QD": return 'Blue'
+    if data['Element'] == "MQuad": return 'Red'
+    elif data['Element'] == "Wien?": return 'Blue'
     else: return 'Black'
     
     
