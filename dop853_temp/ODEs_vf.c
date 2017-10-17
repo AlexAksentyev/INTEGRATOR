@@ -57,6 +57,7 @@ double Es(double __x__, double __y__, double __px__, double __py__, double __dK_
 double Ex(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
 double Ey(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
 double Fx(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double Fy(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
 double KinEn(double __dK__, double *p_, double *wk_, double *xv_);
 double Lbeta(double __dK__, double *p_, double *wk_, double *xv_);
 double Lgamma(double __dK__, double *p_, double *wk_, double *xv_);
@@ -72,7 +73,13 @@ double __rhs_if(int cond_, double e1_, double e2_, double *p_, double *wk_, doub
 double getbound(char *name, int which_bd, double *p_, double *wk_, double *xv_);
 double globalindepvar(double t, double *p_, double *wk_, double *xv_);
 double initcond(char *varname, double *p_, double *wk_, double *xv_);
-double prime(double __x__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double pxprime(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double tprime(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double vs(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double vx(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double vy(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double xprime(double __x__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
+double yprime(double __x__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_);
 int getindex(char *name, double *p_, double *wk_, double *xv_);
 int heav(double x_, double *p_, double *wk_, double *xv_);
 
@@ -92,13 +99,15 @@ int N_EXTINPUTS = 0;
 
 void vfieldfunc(unsigned n_, unsigned np_, double t, double *Y_, double *p_, double *f_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_){
 /* reused term definitions */
-double xp = prime(x,px,py,dK, p_, wk_, xv_);
+double pxp = pxprime(x,y,px,py,dK, p_, wk_, xv_);
+double xp = xprime(x,px,py,dK, p_, wk_, xv_);
+double yp = yprime(x,px,py,dK, p_, wk_, xv_);
 
 f_[0] = sin(t);
-f_[1] = sin(xp);
+f_[1] = pxp;
 f_[2] = 0;
 f_[3] = xp;
-f_[4] = 0;
+f_[4] = yp;
 
 }
 
@@ -140,7 +149,7 @@ return 0 ;
 double Ex(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
 
 
-return 0 ;
+return 1e6 ;
 
 }
 
@@ -156,7 +165,15 @@ return 0 ;
 double Fx(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
 
 
-return q*(Ex(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_));
+return q*(Ex(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)+vy(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)*Bs(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)-By(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)*vs(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_));
+
+}
+
+
+double Fy(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+
+
+return q*(Ey(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)+vs(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)*Bx(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)-Bs(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)*vx(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_));
 
 }
 
@@ -196,10 +213,7 @@ return sqrt(pow(Mass0+KinEn(__dK__, p_, wk_, xv_),2)-pow(Mass0,2));
 double Ps(double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
 
 
-/* reused term definitions */
-double vP0c = Pc(KinEn0, p_, wk_, xv_);
-
-return pow(Pc(__dK__, p_, wk_, xv_),2)-pow(vP0c,2)*(pow(__px__,2)+pow(__py__,2));
+return pow(Pc(__dK__, p_, wk_, xv_),2)-pow(Pc(0, p_, wk_, xv_),2)*(pow(__px__,2)+pow(__py__,2));
 
 }
 
@@ -278,10 +292,58 @@ double initcond(char *varname, double *p_, double *wk_, double *xv_) {
 }
 
 
-double prime(double __x__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+double pxprime(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+
+
+return Fx(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)*tprime(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_)+Curve*Ps(__px__,__py__,__dK__, p_, wk_, xv_);
+
+}
+
+
+double tprime(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+
+
+return (1+Curve*__x__)/(clight*Lbeta(__dK__, p_, wk_, xv_))*Pc(__dK__, p_, wk_, xv_)/Ps(__px__,__py__,__dK__, p_, wk_, xv_);
+
+}
+
+
+double vs(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+
+
+return 1/tprime(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_);
+
+}
+
+
+double vx(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+
+
+return xprime(__x__,__px__,__py__,__dK__, p_, wk_, xv_)/tprime(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_);
+
+}
+
+
+double vy(double __x__, double __y__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+
+
+return yprime(__x__,__px__,__py__,__dK__, p_, wk_, xv_)/tprime(__x__,__y__,__px__,__py__,__dK__, p_, wk_, xv_);
+
+}
+
+
+double xprime(double __x__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
 
 
 return (1+Curve*__x__)*Pc(0, p_, wk_, xv_)*__px__/Ps(__px__,__py__,__dK__, p_, wk_, xv_);
+
+}
+
+
+double yprime(double __x__, double __px__, double __py__, double __dK__, double *p_, double *wk_, double *xv_) {
+
+
+return (1+Curve*__x__)*Pc(0, p_, wk_, xv_)*__py__/Ps(__px__,__py__,__dK__, p_, wk_, xv_);
 
 }
 
