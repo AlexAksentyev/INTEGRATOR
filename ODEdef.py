@@ -48,11 +48,17 @@ class Particle:
 
 class Element:
     
-    fArgList = ['x','y','ts','px','py','dK','H','s','Sx','Sy','Ss']
+    fArgList = ['x','y','ts','px','py','dK','H','s','Sx','Sy','Ss','start']
     
     fArgStr = None
     
-    def __init__(self, Curve, Length):
+    fCount = 0
+    
+    def __init__(self, Curve, Length, Name = "Element"): 
+        self.fName = Name+"_"+str(Element.fCount)
+        
+        Element.fCount += 1
+        
         self.pardict = {'Curve':Curve, 'Length':Length}
         
         self.fndict = { # defines the element EM field
@@ -60,7 +66,7 @@ class Element:
                 'Ey':(self.fArgList, '0'),
                 'Es':(self.fArgList, '0'),
                 'Bx':(self.fArgList, '0'),
-                'By':(self.fArgList, '.46'),
+                'By':(self.fArgList, '0'),
                 'Bs':(self.fArgList, '0')
                 }
         
@@ -75,13 +81,68 @@ class Lattice:
 # give a list of elements and a particle
 
     def __init__(self, ElSeq, RefPart):
-        DSList=list()
+        
+        size = len(ElSeq)
+        self.pardict = dict()
+        
+        #%% global event definitions
+        event_args = {'name':'NaN_event','eventtol':1e-4,'eventdelay':0,'term':True, 'active':True, 'precise':True}
+        
+        ## the NaN error handling event definition
+        self.pardict.update({'offset':10000}) # require Ps**2 > 100**2
+#        NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
+#                                           event_args,varnames=['dK','px','py'],
+#                                           fnspecs=RefPart.fndict,parnames=['Mass0','P0c','Kin0','offset'])
+        
+        
+        DS_list=list()
+        MI_list = list()
+        _id=0
+        self.__fLength = 0 #lattice length
         for e in ElSeq:
-            DSList.append(self.__setup_element(e,RefPart))
+            DSargs = self.__setup_element(e,RefPart)
             
-        self.fMods = DSList
+            ##
+            self.pardict.update({'L'+e.fName:e.pardict['Length']}) # log in the element position along the optical axis
+            self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
+            
+            ## model selection
+            DSargs.update({'xdomain':{'start':_id}}) #can't select the initial model w/o this
+            DSargs.xtype={'start':DST.int} # ensure integer type
+            DSargs.varspecs.update({'start': '0'}) 
+            
+             ## events
+            _id +=1
+            event_args.update({'name':'passto'+str(_id%size)})
+            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang='c')
+            DSargs.events = [pass_event]
+            
+            DS = DST.Generator.Dopri_ODEsystem(DSargs)
+            DS.Particle = RefPart
+            DS.Element = e
+            DS_list.append(DS)
+            DS = DST.embed(DS,name=e.fName)
+            MI_list.append(DST.intModelInterface(DS))
+            
+        self.fMods = DS_list
+        
+        ## construction of the hybrid model
+        all_names = [e.fName for e in ElSeq]
+        info = list()
+        for i in range(len(MI_list)):
+            transdict = {'dK':"self.outin([x,y,ts,px,py,dK],self.RefPart)"} # this is frontkick_n+1(backkick_n(state))
+            transdict.update({'s':'0'}) # then reset s for the next element
+            epmapping = DST.EvMapping(transdict, model=MI_list[i].model) # transition event state map
+            epmapping.outin = lambda state, part: DS_list[(i+1)%size].Element.frontKick(DS_list[i%size].Element.rearKick(state,part),part)[5] # dK is state[5]
+            epmapping.RefPart = RefPart
+            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))
+        
+        modelInfoDict = DST.makeModelInfo(info)
+        
+        mod_args = {'name':'lattice','modelInfo':modelInfoDict}
+        self.fDSModel = DST.Model.HybridModel(mod_args)
     
-    def __setup_element(self, Element, RefPart):
+    def __setup_element(self, Element,RefPart):
 
         ## definitions
         arg = Element.fArgStr
@@ -143,7 +204,8 @@ class Lattice:
                 'Sx' : 'v6_Sxp',
                 'Sy' : 'v6_Syp',
                 'Ss' : 'v6_Ssp',
-                's'  : '1'
+                's'  : '1',
+                'start':'0'
                 }
         
         DSargs = DST.args(name='ODEs')       
@@ -153,9 +215,9 @@ class Lattice:
         
         DSargs.varspecs = RHS  
         
-        DSargs.tdata=[0,DSargs.pars['Length']]        
+#        DSargs.tdata=[0,DSargs.pars['Length']]        
         
-        return DST.Generator.Dopri_ODEsystem(DSargs)
+        return DSargs
 
 
 #%%
@@ -166,7 +228,7 @@ if __name__ == '__main__':
     e1 = Element(0,5)
     e2 = Element(0,5e-2)
     
-    state = [1e-3,0,0,1e-4,0,0,0,0,0,0,1]
+    state = [1e-3,0,0,1e-4,0,0,0,0,0,0,1,0]
     names = e1.fArgList
     icdict = dict(zip(names,state))
 #%%    
