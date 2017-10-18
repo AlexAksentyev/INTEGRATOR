@@ -48,7 +48,7 @@ class Particle:
 
 class Element:
     
-    fArgList = ['x','y','ts','px','py','dK','H','s','Sx','Sy','Ss','start']
+    fArgList = ['x','y','ts','px','py','dK','H','s','start','Sx','Sy','Ss']
     
     fArgStr = None
     
@@ -66,7 +66,7 @@ class Element:
                 'Ey':(self.fArgList, '0'),
                 'Es':(self.fArgList, '0'),
                 'Bx':(self.fArgList, '0'),
-                'By':(self.fArgList, '0'),
+                'By':(self.fArgList, '.46'),
                 'Bs':(self.fArgList, '0')
                 }
         
@@ -74,6 +74,12 @@ class Element:
         for e in self.fArgList: arg = arg+','+e
         arg = '('+arg[1:len(arg)]+')'
         self.fArgStr = arg # argument string '(x,y,...)' for RHS definition
+        
+    def frontKick(self, state, particle):
+        return list(state)
+    
+    def rearKick(self, state, particle):
+        return list(state)
         
 
 class Lattice:
@@ -93,7 +99,7 @@ class Lattice:
 #        NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
 #                                           event_args,varnames=['dK','px','py'],
 #                                           fnspecs=RefPart.fndict,parnames=['Mass0','P0c','Kin0','offset'])
-        
+
         
         DS_list=list()
         MI_list = list()
@@ -214,6 +220,7 @@ class Lattice:
         DSargs.reuseterms=reuse
         
         DSargs.varspecs = RHS  
+#        DSargs.algparams={}
         
 #        DSargs.tdata=[0,DSargs.pars['Length']]        
         
@@ -226,21 +233,22 @@ if __name__ == '__main__':
     
     p = Particle()
     e1 = Element(0,5)
-    e2 = Element(0,5e-2)
+    e2 = Element(0,2.5)
     
-    state = [1e-3,0,0,1e-4,0,0,0,0,0,0,1,0]
+    state = [0,0,0,
+             0,0,0,
+             0,0,0,
+             0,0,1]
     names = e1.fArgList
     icdict = dict(zip(names,state))
 #%%    
 
-Lat = Lattice([e1,e2],p)
-
-#%%    
-
-m0=Lat.fMods[0]
+Lat = Lattice([e1],p)
     
-traj=m0.compute('test','b',ics=icdict)
+Lat.fDSModel.compute('test',ics=icdict,tdata=[0,100])
 
-pts = traj.sample()
-PLT.plot(pts['s'],pts['Sx'])
-PLT.title('Sx')
+#%%
+pts = Lat.fDSModel.sample('test')
+PLT.plot(pts['t'],pts['x'],label='x')
+PLT.plot(pts['t'],pts['Sx'],label='Sx')
+PLT.legend()

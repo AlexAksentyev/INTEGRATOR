@@ -52,17 +52,19 @@ double signum(double x)
 #define px	Y_[5]
 #define py	Y_[6]
 #define s	Y_[7]
-#define ts	Y_[8]
-#define x	Y_[9]
-#define y	Y_[10]
+#define start	Y_[8]
+#define ts	Y_[9]
+#define x	Y_[10]
+#define y	Y_[11]
 
+double passto0(unsigned n_, double t, double *Y_, double *p_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_);
 
-double Bs(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
-double Bx(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
-double By(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
-double Es(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
-double Ex(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
-double Ey(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
+double Bs(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
+double Bx(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
+double By(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
+double Es(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
+double Ex(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
+double Ey(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
 double KinEn(double __dK__, double *p_, double *wk_, double *xv_);
 double Lbeta(double __dK__, double *p_, double *wk_, double *xv_);
 double Lgamma(double __dK__, double *p_, double *wk_, double *xv_);
@@ -80,9 +82,10 @@ double initcond(char *varname, double *p_, double *wk_, double *xv_);
 int getindex(char *name, double *p_, double *wk_, double *xv_);
 int heav(double x_, double *p_, double *wk_, double *xv_);
 
-int N_EVENTS = 0;
+int N_EVENTS = 1;
 void assignEvents(EvFunType *events){
- 
+ events[0] = &passto0;
+
 }
 
 void auxvars(unsigned, unsigned, double, double*, double*, double*, unsigned, double*, unsigned, double*);
@@ -96,12 +99,12 @@ int N_EXTINPUTS = 0;
 
 void vfieldfunc(unsigned n_, unsigned np_, double t, double *Y_, double *p_, double *f_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_){
 /* reused term definitions */
-double v0_Bs = Bs(x,y,ts,px,py,dK,H,s,Sx,Sy,Ss, p_, wk_, xv_);
-double v0_Bx = Bx(x,y,ts,px,py,dK,H,s,Sx,Sy,Ss, p_, wk_, xv_);
-double v0_By = By(x,y,ts,px,py,dK,H,s,Sx,Sy,Ss, p_, wk_, xv_);
-double v0_Es = Es(x,y,ts,px,py,dK,H,s,Sx,Sy,Ss, p_, wk_, xv_);
-double v0_Ex = Ex(x,y,ts,px,py,dK,H,s,Sx,Sy,Ss, p_, wk_, xv_);
-double v0_Ey = Ey(x,y,ts,px,py,dK,H,s,Sx,Sy,Ss, p_, wk_, xv_);
+double v0_Bs = Bs(x,y,ts,px,py,dK,H,s,start,Sx,Sy,Ss, p_, wk_, xv_);
+double v0_Bx = Bx(x,y,ts,px,py,dK,H,s,start,Sx,Sy,Ss, p_, wk_, xv_);
+double v0_By = By(x,y,ts,px,py,dK,H,s,start,Sx,Sy,Ss, p_, wk_, xv_);
+double v0_Es = Es(x,y,ts,px,py,dK,H,s,start,Sx,Sy,Ss, p_, wk_, xv_);
+double v0_Ex = Ex(x,y,ts,px,py,dK,H,s,start,Sx,Sy,Ss, p_, wk_, xv_);
+double v0_Ey = Ey(x,y,ts,px,py,dK,H,s,start,Sx,Sy,Ss, p_, wk_, xv_);
 double v0_Lbeta = Lbeta(dK, p_, wk_, xv_);
 double v0_Lgamma = Lgamma(dK, p_, wk_, xv_);
 double v0_P0c = Pc(0, p_, wk_, xv_);
@@ -133,16 +136,17 @@ f_[4] = (v0_Ex*v0_hs*v1_Px/v2_Ps+v0_Ey*v0_hs*v1_Py/v2_Ps+v0_Es)*1e-6/KinEn0;
 f_[5] = (q*(v0_Ex+v2_Vy*v0_Bs-v0_By*v3_Vs)*v4_Tp+Curve*v2_Ps)/v0_P0c;
 f_[6] = (q*(v0_Ey+v3_Vs*v0_Bx-v0_Bs*v2_Vx)*v4_Tp)/v0_P0c;
 f_[7] = 1;
-f_[8] = v4_Tp;
-f_[9] = v3_Xp;
-f_[10] = v3_Yp;
+f_[8] = 0;
+f_[9] = v4_Tp;
+f_[10] = v3_Xp;
+f_[11] = v3_Yp;
 
 }
 
 
 
 
-double Bs(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
+double Bs(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
 return 0 ;
@@ -150,7 +154,7 @@ return 0 ;
 }
 
 
-double Bx(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
+double Bx(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
 return 0 ;
@@ -158,7 +162,7 @@ return 0 ;
 }
 
 
-double By(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
+double By(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
 return .46 ;
@@ -166,7 +170,7 @@ return .46 ;
 }
 
 
-double Es(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
+double Es(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
 return 0 ;
@@ -174,7 +178,7 @@ return 0 ;
 }
 
 
-double Ex(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
+double Ex(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
 return 0 ;
@@ -182,7 +186,7 @@ return 0 ;
 }
 
 
-double Ey(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
+double Ey(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
 return 0 ;
@@ -295,12 +299,14 @@ double initcond(char *varname, double *p_, double *wk_, double *xv_) {
 	return gICs[6];
   else if (strcmp(varname, "s")==0)
 	return gICs[7];
-  else if (strcmp(varname, "ts")==0)
+  else if (strcmp(varname, "start")==0)
 	return gICs[8];
-  else if (strcmp(varname, "x")==0)
+  else if (strcmp(varname, "ts")==0)
 	return gICs[9];
-  else if (strcmp(varname, "y")==0)
+  else if (strcmp(varname, "x")==0)
 	return gICs[10];
+  else if (strcmp(varname, "y")==0)
+	return gICs[11];
   else {
 	fprintf(stderr, "Invalid variable name %s for initcond call\n", varname);
 	return 0.0/0.0;
@@ -326,28 +332,30 @@ int getindex(char *name, double *p_, double *wk_, double *xv_) {
 	return 6;
   else if (strcmp(name, "s")==0)
 	return 7;
-  else if (strcmp(name, "ts")==0)
+  else if (strcmp(name, "start")==0)
 	return 8;
-  else if (strcmp(name, "x")==0)
+  else if (strcmp(name, "ts")==0)
 	return 9;
-  else if (strcmp(name, "y")==0)
+  else if (strcmp(name, "x")==0)
 	return 10;
-  else if (strcmp(name, "Curve")==0)
+  else if (strcmp(name, "y")==0)
 	return 11;
-  else if (strcmp(name, "G")==0)
+  else if (strcmp(name, "Curve")==0)
 	return 12;
-  else if (strcmp(name, "KinEn0")==0)
+  else if (strcmp(name, "G")==0)
 	return 13;
-  else if (strcmp(name, "Length")==0)
+  else if (strcmp(name, "KinEn0")==0)
 	return 14;
-  else if (strcmp(name, "Mass0")==0)
+  else if (strcmp(name, "Length")==0)
 	return 15;
-  else if (strcmp(name, "clight")==0)
+  else if (strcmp(name, "Mass0")==0)
 	return 16;
-  else if (strcmp(name, "m0")==0)
+  else if (strcmp(name, "clight")==0)
 	return 17;
-  else if (strcmp(name, "q")==0)
+  else if (strcmp(name, "m0")==0)
 	return 18;
+  else if (strcmp(name, "q")==0)
+	return 19;
   else {
 	fprintf(stderr, "Invalid name %s for getindex call\n", name);
 	return 0.0/0.0;
@@ -362,6 +370,10 @@ int heav(double x_, double *p_, double *wk_, double *xv_) {
 void auxvars(unsigned n_, unsigned np_, double t, double *Y_, double *p_, double *f_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_){
 
 
+}
+
+double passto0(unsigned n_, double t, double *Y_, double *p_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_) {
+return  s-2.5; 
 }
 
 
