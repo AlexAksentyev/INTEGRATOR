@@ -84,9 +84,9 @@ class Particle:
         Px,Py,Ps = tuple([e*q*1e6/clight for e in (Px,Py,Ps)]) # the original formulas use momenta, not P*c
         
         t5 = tp
-        t6 =  t5* (q / (gamma * m0 * self.fMass0)) * (self.fG + 1/(1 + gamma))
+        t6 =  t5* (q / (gamma * (m0 * clight)**2 )) * (self.fG + 1/(1 + gamma))
         sp1 = t5*(-q / (gamma*m0))*(1 + self.fG * gamma)
-        sp2 = t5*( q / (gamma*m0**2 * self.fMass0)) * (self.fG/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
+        sp2 = t5*( q / (gamma*m0**3 * clight**2)) * (self.fG/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
         
         # this is probably from TBMT
         Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - (Px * Ey - Py * Ex) * Sy) + (sp1*By+sp2*Py)*Ss-(sp1*Bs+sp2*Ps)*Sy
