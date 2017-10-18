@@ -48,7 +48,7 @@ class Particle:
 
 class Element:
     
-    fArgList = ['x','y', 'px', 'py', 'dK']
+    fArgList = ['x','y','ts','px','py','dK','H','s','Sx','Sy','Ss']
     
     fArgStr = None
     
@@ -56,7 +56,7 @@ class Element:
         self.pardict = {'Curve':Curve, 'Length':Length}
         
         self.fndict = { # defines the element EM field
-                'Ex':(self.fArgList, '20'),
+                'Ex':(self.fArgList, '0'),
                 'Ey':(self.fArgList, '0'),
                 'Es':(self.fArgList, '0'),
                 'Bx':(self.fArgList, '0'),
@@ -153,11 +153,12 @@ class Lattice:
         
         DSargs.varspecs = RHS  
         
-        DSargs.tdata=[0,10]
+        DSargs.tdata=[0,DSargs.pars['Length']]        
         
-        return DST.Generator.Radau_ODEsystem(DSargs)
+        return DST.Generator.Dopri_ODEsystem(DSargs)
 
 
+#%%
 
 if __name__ == '__main__':
     
@@ -165,8 +166,8 @@ if __name__ == '__main__':
     e1 = Element(0,5)
     e2 = Element(0,5e-2)
     
-    state = [1e-3,0,0,0,0,0,0,0,0,0,1]
-    names = ['x','y','ts','px','py','dK','H','s','Sx','Sy','Ss']
+    state = [1e-3,0,0,1e-4,0,0,0,0,0,0,1]
+    names = e1.fArgList
     icdict = dict(zip(names,state))
 #%%    
 
@@ -176,7 +177,8 @@ Lat = Lattice([e1,e2],p)
 
 m0=Lat.fMods[0]
     
-traj=m0.compute('test',ics=icdict)
+traj=m0.compute('test','b',ics=icdict)
 
 pts = traj.sample()
-PLT.plot(pts['t'],pts['Sx'])
+PLT.plot(pts['s'],pts['Sx'])
+PLT.title('Sx')
