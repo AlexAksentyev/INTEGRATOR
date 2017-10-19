@@ -7,6 +7,7 @@ Created on Thu Oct  5 09:19:48 2017
 """
 import PyDSTool as DST
 import pathos.multiprocessing as MLP
+from utilFunc import phi
 
 class Lattice:
     
@@ -75,11 +76,10 @@ class Lattice:
         mod_args = {'name':'lattice','modelInfo':modelInfoDict}
         self.fDSModel = DST.Model.HybridModel(mod_args)
     
-    def __setup_element(self, Element,RefPart):
+    def __setup_element(self, Element, RefPart):
 
         ## definitions
         arg = Element.fArgStr
-#        larg = Element.fArgList
         defs = RefPart.defs
         
         # fields
