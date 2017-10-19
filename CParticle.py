@@ -36,6 +36,9 @@ class Ensemble:
     def __init__(self, StateDict):
         self.fIniStateDict = {key:value for key,value in StateDict.items()}
         
+    def __getitem__(self, index):
+        return list(self.fIniStateDict.items())[index]
+        
     def getDataFrame(self):
             rval = PDS.DataFrame()
             for name, traj in self.fTrajectories.items():
