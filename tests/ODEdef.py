@@ -14,6 +14,7 @@ those DS-args combined, and put into a hybrid model of the lattice.
 import PyDSTool as DST
 from matplotlib import pyplot as PLT
 import re
+import numpy as NP
 
 class Particle:
     
@@ -66,7 +67,7 @@ class Element:
                 'Ey':(self.fArgList, '0'),
                 'Es':(self.fArgList, '0'),
                 'Bx':(self.fArgList, '0'),
-                'By':(self.fArgList, '.46'),
+                'By':(self.fArgList, str(.46)+'+0*x'), # checking more complex field definitions
                 'Bs':(self.fArgList, '0')
                 }
         
@@ -252,3 +253,7 @@ pts = Lat.fDSModel.sample('test')
 PLT.plot(pts['t'],pts['x'],label='x')
 PLT.plot(pts['t'],pts['Sx'],label='Sx')
 PLT.legend()
+
+#%%
+x = DST.Var('x')
+f = DST.Fun(10*x,[x],'tf')
