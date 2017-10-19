@@ -37,6 +37,15 @@ class Ensemble:
         self.fIniStateDict = {key:value for key,value in StateDict.items()}
         
     def getDataFrame(self):
+            rval = PDS.DataFrame()
+            for name, traj in self.fTrajectories.items():
+                pts = traj.sample()
+                pd = PDS.DataFrame(dict(zip(pts.coordnames, pts.coordarray)))
+                pd['s'] = pts.indepvararray
+                pd['PID'] = name
+                rval=rval.append(pd)
+                
+            return rval
         
         
         
