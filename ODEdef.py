@@ -191,7 +191,7 @@ class Lattice:
         Ssp = '(-1)*Curve * Sx + v5_t6 * ((v1_Py * v0_Es - v2_Ps * v0_Ey) * Sy - (v2_Ps * v0_Ex - v1_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v1_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v1_Py)*Sx'
         
         ## 
-        reuse = p.reuse
+        reuse = RefPart.reuse
         reuse.update({
                     '(1+Curve*x)':'v0_hs',
                     sExA:'v0_Ex', sEyA:'v0_Ey', sEsA:'v0_Es',

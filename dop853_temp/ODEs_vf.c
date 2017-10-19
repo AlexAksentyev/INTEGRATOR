@@ -39,11 +39,11 @@ double signum(double x)
 #define Curve	p_[0]
 #define G	p_[1]
 #define KinEn0	p_[2]
-#define LElement_2	p_[3]
+#define LElement_0	p_[3]
 #define Length	p_[4]
 #define Mass0	p_[5]
 #define clight	p_[6]
-#define kappaElement_2	p_[7]
+#define kappaElement_0	p_[7]
 #define m0	p_[8]
 #define offset	p_[9]
 #define q	p_[10]
@@ -351,7 +351,7 @@ int getindex(char *name, double *p_, double *wk_, double *xv_) {
 	return 13;
   else if (strcmp(name, "KinEn0")==0)
 	return 14;
-  else if (strcmp(name, "LElement_2")==0)
+  else if (strcmp(name, "LElement_0")==0)
 	return 15;
   else if (strcmp(name, "Length")==0)
 	return 16;
@@ -359,7 +359,7 @@ int getindex(char *name, double *p_, double *wk_, double *xv_) {
 	return 17;
   else if (strcmp(name, "clight")==0)
 	return 18;
-  else if (strcmp(name, "kappaElement_2")==0)
+  else if (strcmp(name, "kappaElement_0")==0)
 	return 19;
   else if (strcmp(name, "m0")==0)
 	return 20;
