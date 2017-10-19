@@ -45,25 +45,26 @@ for x in xs:
 E = PCL.Ensemble(StateDict)
 
 #%%
-#tLat = [ENT.MQuad(5e-2,-8.6,"QDA2"), ENT.Drift(25e-2,"OD1"), ENT.Drift(15e-2,"OSD"),
+#tLat = [ENT.MQuad(5e-2,-8.6,"QDA2"), ENT.Drift(25e-2,"OD1")]#, ENT.Drift(15e-2,"OSD")]#,
 #        ENT.Drift(25e-2,"OD2"), ENT.Drift(220e-2,"ORB"), ENT.Drift(25e-2,"OD2"),
-#        ENT.Drift(15e-2,"BPM"), ENT.Drift(25e-2,"OD1"), ENT.MQuad(5e-2,.831,"QFA2"),
-#        ENT.MQuad(5e-2,.831,"QFA2"), ENT.Drift(25e-2,"OD1"), ENT.Drift(15e-2,"OSF"),
+#        ENT.Drift(15e-2,"BPM"), ENT.Drift(25e-2,"OD1"), ENT.MQuad(5e-2,8.31,"QFA2"),
+#        ENT.MQuad(5e-2,8.31,"QFA2"), ENT.Drift(25e-2,"OD1"), ENT.Drift(15e-2,"OSF"),
 #        ENT.Drift(25e-2,"OD2"), ENT.Drift(220e-2,"ORB"), ENT.Drift(25e-2,"OD2"),
-#        ENT.Drift(15e-2,"BPM"), ENT.Drift(25e-2,"OD1"), ENT.MQuad(5e-2,-.86,"QDA2"),
-#        ENT.MQuad(5e-2,-.86,"QDA2"), ENT.Drift(25e-2,"OD1"), ENT.Drift(15e-2,"OSD"),
+#        ENT.Drift(15e-2,"BPM"), ENT.Drift(25e-2,"OD1"), ENT.MQuad(5e-2,-8.6,"QDA2"),
+#        ENT.MQuad(5e-2,-8.6,"QDA2"), ENT.Drift(25e-2,"OD1"), ENT.Drift(15e-2,"OSD"),
 #        ENT.Drift(25e-2,"OD2"), ENT.Drift(220e-2,"ORB"), ENT.Drift(25e-2,"OD2"),
-#        ENT.Drift(15e-2,"BPM"), ENT.Drift(25e-2,"OD1"), ENT.MQuad(5e-2,.831,"QFA2")]
-tLat = [ENT.MDipole(1,750,.46),ENT.MDipole(1,7.5,.46),ENT.MDipole(1,7.5,.46)]
+#        ENT.Drift(15e-2,"BPM"), ENT.Drift(25e-2,"OD1"), ENT.MQuad(5e-2,8.31,"QFA2")]
+tLat = [ENT.MDipole(1,750,.46),ENT.MQuad(5e-2,-8.6,"QFA2")]
+#tLat=[ENT.MQuad(5e-2,-8.6,"QDA2"), ENT.MQuad(5e-2,-8.6,"QFA2")]#, ENT.MQuad(5e-2,8.31,"QFA2")]#,ENT.MQuad(5e-2,8.31,"QFA2"), ENT.MQuad(5e-2,-8.6,"QDA2")]
 tLat = LTC.Lattice(tLat,p)
 #%%
 
-tLat.track(E,10)
+tLat.track(E,15)
 
 df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
 
 #%%
 varis = ['x','y','Sx','Sy']
-GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)]) + GGP.geom_line() +\
- GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw()
+print(GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)]) + GGP.geom_line() +
+ GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw())
  

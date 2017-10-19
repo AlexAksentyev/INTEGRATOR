@@ -160,7 +160,7 @@ return 0 ;
 double Bx(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
-return 0 ;
+return -8.6*(-__y__);
 
 }
 
@@ -168,7 +168,7 @@ return 0 ;
 double By(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
-return 0.46 ;
+return -8.6*(-__x__);
 
 }
 
@@ -382,7 +382,7 @@ return  pow(Pc(dK, p_, wk_, xv_),2)-pow(Pc(0, p_, wk_, xv_),2)*(pow(px,2)+pow(py
 }
 
 double passto0(unsigned n_, double t, double *Y_, double *p_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_) {
-return  s-1; 
+return  s-0.05; 
 }
 
 
