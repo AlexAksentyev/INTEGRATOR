@@ -6,7 +6,7 @@ Created on Thu Oct  5 09:19:48 2017
 @author: alexa
 """
 import PyDSTool as DST
-import pathos.multiprocessing as MLP
+#import pathos.multiprocessing as MLP
 from utilFunc import phi
 
 class Lattice:
@@ -78,6 +78,9 @@ class Lattice:
     
     def __setup_element(self, Element, RefPart):
 
+        sadd = lambda a,b: phi('+',a,b)
+        smult = lambda a,b: phi('*',a,b)
+        
         ## definitions
         arg = Element.fArgStr
         defs = RefPart.defs
@@ -91,12 +94,14 @@ class Lattice:
         sBsA = 'Bs'+arg
         
         # v cross B
-        sVxBx = defs['Vy']+'*'+sBsA+'-'+sByA+'*'+defs['Vs']
-        sVxBy = defs['Vs']+'*'+sBxA+'-'+sBsA+'*'+defs['Vx']
+        det = lambda a,b,c,d: phi('-',smult(a,b),smult(c,d))
+        sVxBx = det(defs['Vy'],sBsA,sByA,defs['Vs'])
+        sVxBy = det(defs['Vs'],sBxA,sBsA,defs['Vx'])
         
         # Lorentz forces
-        sFxA = 'q*('+sExA+'+'+sVxBx+')'
-        sFyA = 'q*('+sEyA+'+'+sVxBy+')'
+        
+        sFxA = 'q*'+ sadd(sExA,sVxBx)
+        sFyA = 'q*'+ sadd(sEyA,sVxBy)
         
         # spin-related
         t6 =  'v4_Tp* (q / (v0_Lgamma * m0 * m0* clight * clight)) * (G + 1/(1 + v0_Lgamma))'
@@ -131,9 +136,9 @@ class Lattice:
                 'y'  : 'v3_Yp',  
                 'H'  : 'v3_Hp',
                 'ts' : 'v4_Tp',
-                'px' : '('+sFxA+'*v4_Tp'+ '+ Curve*v2_Ps)/v0_P0c',
-                'py' : '('+sFyA+'*v4_Tp)/v0_P0c',
-                'dK' : '('+sExA+'*'+sXpA+'+'+sEyA+'*'+sYpA+'+'+sEsA+')*1e-6/KinEn0',
+                'px' : sadd(smult(sFxA,'v4_Tp'), 'Curve*v2_Ps')+'/v0_P0c',
+                'py' : smult(sFyA,'v4_Tp')+'/v0_P0c',
+                'dK' : sadd(smult(sExA,sXpA), smult(sEyA,sYpA), sEsA) + '*1e-6/KinEn0',
                 'Sx' : 'v6_Sxp',
                 'Sy' : 'v6_Syp',
                 'Ss' : 'v6_Ssp',
