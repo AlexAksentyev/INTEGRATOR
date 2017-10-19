@@ -31,18 +31,18 @@ state0 = dict(zip(names,state0))
 
 #%% form beam
 
-#xs = NP.linspace(-5e-3, 5e-3, 3)
-#ys = NP.linspace(-5e-3, 5e-3, 3)
-#n = len(xs)*len(ys)
-#
-#StateDict=dict()
-#i=0
-#for x in xs:
-#    for y in ys:
-#        StateDict.update({"X"+str(i): [x,y,0,0,0,0,0,0,0,0,1]})
-#        i += 1
-#
-#E = PCL.Ensemble(p, StateDict)
+xs = NP.linspace(-5e-3, 5e-3, 3)
+ys = NP.linspace(-5e-3, 5e-3, 3)
+n = len(xs)*len(ys)
+
+StateDict=dict()
+i=0
+for x in xs:
+    for y in ys:
+        StateDict.update({"X"+str(i): dict(zip(ENT.Element.fArgList,[x,y,0,0,0,0,0,0,0,0,0,1]))})
+        i += 1
+
+E = PCL.Ensemble(StateDict)
 
 #%%
 #tLat = [ENT.MQuad(5e-2,-8.6,"QDA2"), ENT.Drift(25e-2,"OD1"), ENT.Drift(15e-2,"OSD"),
@@ -58,17 +58,9 @@ tLat = [ENT.MDipole(1,7.5,.46),ENT.MDipole(1,7.5,.46),ENT.MDipole(1,7.5,.46)]
 tLat = LTC.Lattice(tLat,p)
 tLat.fDSModel.tdata=[0,45]
 #%%
-tLat.fDSModel.compute('test',ics=state0)
-pts = tLat.fDSModel.sample('test')
-#%%
-#PLT.plot(pts['t'],pts['x'], label='x')
-PLT.plot(pts['t'],pts['y'], label='y')
-PLT.plot(pts['t'],pts['Sx'], label='Sx')
-PLT.legend()
-#%%
 
-#E.track(tLat,10)
-#
+E.track(tLat,10)
+
 #df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
 #
 ##%%

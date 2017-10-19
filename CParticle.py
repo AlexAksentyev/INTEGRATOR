@@ -1,4 +1,5 @@
 import re
+import pandas as PDS
 
 class Particle:
     
@@ -30,5 +31,12 @@ class Particle:
             self.defs.update({re.sub('.*_','',value):key})
             
             
-#    def track(Lattice, ntimes, FWD=True):
+class Ensemble:
+    
+    def __init__(self, StateDict):
+        self.fIniStateDict = {key:value for key,value in StateDict.items()}
+        
+    def getDataFrame(self):
+        
+        
         
