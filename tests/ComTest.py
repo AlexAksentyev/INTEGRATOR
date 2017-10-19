@@ -54,17 +54,16 @@ E = PCL.Ensemble(StateDict)
 #        ENT.MQuad(5e-2,-.86,"QDA2"), ENT.Drift(25e-2,"OD1"), ENT.Drift(15e-2,"OSD"),
 #        ENT.Drift(25e-2,"OD2"), ENT.Drift(220e-2,"ORB"), ENT.Drift(25e-2,"OD2"),
 #        ENT.Drift(15e-2,"BPM"), ENT.Drift(25e-2,"OD1"), ENT.MQuad(5e-2,.831,"QFA2")]
-tLat = [ENT.MDipole(1,7.5,.46),ENT.MDipole(1,7.5,.46),ENT.MDipole(1,7.5,.46)]
+tLat = [ENT.MDipole(1,750,.46),ENT.MDipole(1,7.5,.46),ENT.MDipole(1,7.5,.46)]
 tLat = LTC.Lattice(tLat,p)
-tLat.fDSModel.tdata=[0,45]
 #%%
 
-E.track(tLat,10)
+tLat.track(E,10)
 
-#df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
-#
-##%%
-#varis = ['x','y','Sx','Sy']
-#GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)]) + GGP.geom_line() +\
-# GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw()
+df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
+
+#%%
+varis = ['x','y','Sx','Sy']
+GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)]) + GGP.geom_line() +\
+ GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw()
  
