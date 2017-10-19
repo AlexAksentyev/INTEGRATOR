@@ -1,20 +1,38 @@
 import numpy as NP
 import collections as CLN
+from utilFunc import phi
 
 
 
 class Element:
     
+    fArgList = ['x','y','ts','px','py','dK','H','s','start','Sx','Sy','Ss']
+    
+    fArgStr = None
+    
     def __init__(self, Curve, Length, Name = "Element"):
-        self.fCurve = Curve
-        self.fLength = Length
         self.fName = Name
-    
-    def EField(self,arg):
-        return (0,0,0)
-    
-    def BField(self,arg, particle=None):
-        return (0,0,0)
+        
+        self.pardict = {'Curve':Curve, 'Length':Length}
+        
+        self.fndict = { # defines the element EM field
+                'Ex':(self.fArgList, '0'),
+                'Ey':(self.fArgList, '0'),
+                'Es':(self.fArgList, '0'),
+                'Bx':(self.fArgList, '0'),
+                'By':(self.fArgList, '0'),
+                'Bs':(self.fArgList, '0')
+                }
+        
+        self.fArgStr = phi(',',*self.fArgList) # argument string '(x,y,...)' for RHS definition
+        
+    def __setField(self, FldDict): # field definitions given in the form name:definition, w/o signature
+        inFldDict = {key:(self.fArgList, value) for key, value in FldDict.items()}
+        self.fndict.update(inFldDict)
+        
+    def getField(self, fulldef = False):
+        if fulldef: return self.fndict
+        else: return {key:value[1] for key,value in self.fndict.items()}
 
     def frontKick(self, state, particle):
         return list(state)
@@ -39,24 +57,21 @@ class MQuad(Element):
 
     def __init__(self, Length, Grad, Name = "MQuad"):
         Element.__init__(self, 0, Length, Name+"_"+str(MQuad.fCount))
-        self.__fGrad = Grad
+        self.setGrad(Grad)   
         MQuad.fCount += 1
         
     def setGrad(self, value):
+        self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
         self.__fGrad = value
         
     def getGrad(self):
         return self.__fGrad
         
-    def BField(self, arg, particle=None):
-        x,y = arg[0:2]
-        return (-self.__fGrad*y, -self.__fGrad*x,0)
-        
 
 class MDipole(Element):
     """ bending magnetic dipole (horizontally bending);
     define _BField as a tuple;
-    could also be used as a solenoid, if _BField = (0,0,Bz)
+    could also be used as a solenoid, if _BField = (0,0,Bs)
     and fCurve = 0
     """
     
@@ -68,11 +83,13 @@ class MDipole(Element):
         MDipole.fCount += 1
         
     def setBField(self,BField):
-        if not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
-        self.__fBField = BField[:]
-        
+        if not isinstance(BField, CLN.Sequence): self.__fBField = (0,BField,0) # by default B = By
+        else: self.__fBField = BField[:]
+        BField = dict(zip(['Bx','By','Bs'],[str(b) for b in self.__fBField]))
+        self._Element__setField(BField)
+
     def getBField(self):
-        return self.__fBField[:]
+        return self.__fBField
     
     @classmethod    
     def computeBStrength(cls,particle, R):
@@ -81,10 +98,6 @@ class MDipole(Element):
     @classmethod
     def computeRadius(cls,particle, BField): 
         return particle.Pc(particle.fKinEn0)*1e6/(BField*particle.CLIGHT())
-        
-        
-    def BField(self, arg, particle=None):
-        return self.__fBField
   
 
 class Solenoid(MDipole):
@@ -113,12 +126,15 @@ class MSext(Element):
     
     def __init__(self, Length, Grad, Name = "MSext"):
         Element.__init__(self, 0, Length, Name+"_"+str(MSext.fCount))
-        self.__fGrad = Grad
+        self.setGrad(Grad)
         MSext.fCount += 1
         
-    def BField(self, arg, particle=None):
-        x,y=arg[0:2]
-        return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
+    def setGrad(self, value):
+        self._Element__setField({'Bx':str(value)+'*(x*y)','By':str(value)+'*(x*x - y*y)','Bs':'0'})
+        self.__fGrad = value
+        
+    def getGrad(self):
+        return self.__fGrad
         
 class Wien(Element):
     """ wien filter ?!?! 
@@ -127,47 +143,58 @@ class Wien(Element):
     
     fCount = 0
     
-    def __init__(self, Length, R, Hgap, Voltage, BField, Name = "Wien?"):
+    def __init__(self, Length, R, Hgap, RefPart, BField=None, EField=None, Name = "Wien?"):
         Element.__init__(self, 1/R, Length, Name+"_"+str(Wien.fCount))
+        self.pardict.update(RefPart.pardict)
+        
         self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
-        self.__fVolt = Voltage
-        self.__fBField = BField
+        
+        self.setEField(EField)
+        self.setBField(BField)
+        
         Wien.fCount += 1
         
-    @classmethod
-    def computeVoltage(cls, particle, R, Hgap):
-        gamma,beta = particle.GammaBeta(particle.fKinEn0)
-        R = [R, R-Hgap, R**2/(R-Hgap)]
-        E0 = - particle.Pc(particle.fKinEn0)*beta/R[0] * 1e6
-        return (E0 * R[0] * NP.log(R[2] / R[1])) / (-2)
+    def __GammaBeta(self):
+        Mass0 = self.pardict['Mass0']
+        K0 = self.pardict['KinEn0']
+        gamma = K0 / Mass0 + 1
+        beta = NP.sqrt(gamma**2-1)/gamma
+        return (gamma, beta)
     
-    @classmethod
-    def computeBStrength(cls, particle, R, Hgap): # no idea about the end-formula here
-        gamma,beta = particle.GammaBeta(particle.fKinEn0)
-        R = [R, R-Hgap, R**2/(R-Hgap)]
-        E0 = - particle.Pc(particle.fKinEn0)*beta/R[0] * 1e6
-#       qm = particle.EZERO()/particle.fMass0
-#       k = 1.18 * qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
-        v = beta*particle.CLIGHT()
-        B0 = -E0/v # this yields .46 for the deuteron at 270 MeV, as expected 
-#        k = k*1.18
-#        return 0.018935*(-B0)*(-1/R[0] + k*B0*v)*x
-        return B0
+    def __Pc(self, KNRG):
+        return NP.sqrt((self.pardict['Mass0'] + KNRG)**2 - self.pardict['Mass0']**2)
+    
+    def setEField(self, EField=None):
+        R = self.__fR
+        if EField is None:
+            P0c = self.__Pc(self.pardict['KinEn0'])
+            gamma, beta = self.__GammaBeta()
+            EField = - P0c*beta/R[0] * 1e6
         
-    def EField(self, arg):
-        x = arg[0]
-        Ex = -2*self.__fVolt/(NP.log(self.__fR[2]/self.__fR[1])*(self.__fR[0]+x))
-        return (Ex, 0, 0)
-    
-    def BField(self, arg, particle):
-        x = arg[0]
-        gamma,beta = particle.GammaBeta(particle.fKinEn0)
-        qm = particle.EZERO()/particle.fMass0
+        self.__fEField = (EField,0,0)
+        self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
+        self._Element__setField({'Ex':str(EField)})
+        
+    def setBField(self, BField=None):        
+        e0 = self.pardict['q']
+        m0 = self.pardict['m0']
+        clight = self.pardict['clight']
+        qm = e0/(m0*clight**2)
+        
+        gamma, beta = self.__GammaBeta()
         k = 1.18 * qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
-        B0 = self.__fBField
-        v=beta*particle.CLIGHT()
-        B = 0.018935*(-B0)*(-1/self.__fR[0] + k*B0*v)*x
-        return (0, B, 0)
+        v = beta*clight
+        
+        if BField is None:
+            if self.__fEField is None: self.setEField()
+            BField = -self.__fEField[0]/v
+            
+        h = 1/self.__fR[0]
+        
+        B = phi('*', 0.018935,-BField,phi('+',-h, phi('*',k,BField,v)), 'x')
+        B = B[1:len(B)-1]
+        
+        self._Element__setField({'By':B})
     
     def frontKick(self, state, particle):
         x=state[0]
