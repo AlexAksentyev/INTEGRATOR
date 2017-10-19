@@ -6,8 +6,7 @@ Created on Mon Sep 18 16:59:23 2017
 @author: alexa
 """
 #%%
-from matplotlib import pyplot as PLT
-import ggplot as GGP
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, geom_point
 import pandas as PDS
 
 import CParticle as PCL
@@ -17,16 +16,17 @@ import numpy as NP
 
 from importlib import reload
 
-reload(ENT)
 reload(PCL)
-reload(LTC)
+reload(ENT)
+
+theme_bw()
 
 #%% hardware parameters
 Lq = 5
-SSQDG = -.86
-SSQFG = .831
-AQDG = -1.023
-AQFG = 1.364
+SSQDG = -8.6
+SSQFG = 8.31
+AQDG = -10.23
+AQFG = 13.64
 
 Ls = .15
 GSFP = 0 
@@ -37,28 +37,28 @@ R = 9.207
 
 #%%
 # particle definition
-p = PCL.Particle()
-
-#%% form beam
-
-xs = NP.linspace(-5e-3, 5e-3, 2)
-ys = NP.linspace(-5e-3, 5e-3, 3)
-n = len(xs)*len(ys)
-
-StateDict=dict()
-i=0
-for x in xs:
-    for y in ys:
-        StateDict.update({"X"+str(i): [x,y,0,0,0,0,0,0,1,0,0]})
-        i += 1
-
-E = PCL.Ensemble(p, StateDict)
+state0 = [1e-3, -1e-3, 0, 0, 0, 0, 0, 0, 1, 0, 0]
+p = PCL.Particle(state0)
 
 #%%
-V = ENT.Wien.computeVoltage(p, R, h)
-B = ENT.Wien.computeBStrength(p,0, R, h)
+# lattice elements
 
-#%% define lattice
+V = ENT.Wien.computeVoltage(p, R, h)
+B = ENT.Wien.computeBStrength(p, R, h)
+
+for i in range(7):
+    ARC2 +=[ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+            ENT.MQuad(Lq, AQFG) , ENT.MQuad(Lq, AQFG) , ENT.Drift(.25) , ENT.MSext(Ls, GSFP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25)]
+  
+
+ARC2 += [ENT.MQuad(Lq, AQDG) , ENT.MQuad(Lq, AQDG) , ENT.Drift(.25) , ENT.MSext(Ls, GSDP) , ENT.Drift(.25) , ENT.Wien(1.808, 9.297, h, V, B) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
+         ENT.MQuad(Lq, AQFG)]
+
+BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
+
+#%%
+# lattice definition
+
 SS1H2 = [ENT.MQuad(Lq, SSQDG) , ENT.Drift(.25) , ENT.Drift(.15) , ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
          ENT.MQuad(Lq, SSQFG) , ENT.MQuad(Lq, SSQFG) , ENT.Drift(.25) , ENT.Drift(.15) , #  RF ,
                                      ENT.Drift(.25) , ENT.Drift(2.2) , ENT.Drift(.25) , ENT.Drift(15) , ENT.Drift(.25) ,
@@ -104,15 +104,18 @@ BNL = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 # work code
-#LBNL = LTC.Lattice(SS1H2,p)
-#LWA = LTC.Lattice([ENT.Wien(1.808,9.207,h,V,B)],p)
-LQF = LTC.Lattice([ENT.MQuad(Lq, AQFG)],p)
-
-E.track(LQF,2)
-
-df = PDS.melt(E.getDataFrame(), id_vars=['PID','s','ts'])
+p.track(SS1H2,1)
 
 #%%
-varis = ['x','y','Sx','Sy']
-GGP.ggplot(GGP.aes('s','value',color='PID'),df.loc[df.variable.isin(varis)]) + GGP.geom_line() +\
- GGP.facet_wrap('variable',scales='free_y')+ GGP.theme_bw()
+def pos(data):
+    if data['Element'] == "MQuad": return 'Red'
+    elif data['Element'] == "Wien?": return 'Blue'
+    else: return 'Black'
+    
+    
+df = p.getDataFrame()
+df['Quad']=df.apply(pos, axis=1)
+df = PDS.melt(df, id_vars=['t','s', 'Turn','Element','Quad'])
+dat = df.loc[df['variable'].isin(['x','y'])]
+print(ggplot(dat,aes(x='s',y='value',color='variable')) + 
+     geom_line() + geom_point(color=dat['Quad']) + theme_bw())
