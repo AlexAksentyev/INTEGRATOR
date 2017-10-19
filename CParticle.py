@@ -28,3 +28,7 @@ class Particle:
         ell = list(self.reuse.items())
         for key,value in ell:
             self.defs.update({re.sub('.*_','',value):key})
+            
+            
+#    def track(Lattice, ntimes, FWD=True):
+        

@@ -39,14 +39,12 @@ double signum(double x)
 #define Curve	p_[0]
 #define G	p_[1]
 #define KinEn0	p_[2]
-#define LElement_0	p_[3]
-#define Length	p_[4]
-#define Mass0	p_[5]
-#define clight	p_[6]
-#define kappaElement_0	p_[7]
-#define m0	p_[8]
-#define offset	p_[9]
-#define q	p_[10]
+#define Length	p_[3]
+#define Mass0	p_[4]
+#define clight	p_[5]
+#define m0	p_[6]
+#define offset	p_[7]
+#define q	p_[8]
 #define H	Y_[0]
 #define Ss	Y_[1]
 #define Sx	Y_[2]
@@ -137,9 +135,9 @@ f_[0] = v3_Hp;
 f_[1] = v6_Ssp;
 f_[2] = v6_Sxp;
 f_[3] = v6_Syp;
-f_[4] = (v0_Ex*v0_hs*v1_Px/v2_Ps+v0_Ey*v0_hs*v1_Py/v2_Ps+v0_Es)*1e-6/KinEn0;
-f_[5] = (q*(v0_Ex+v2_Vy*v0_Bs-v0_By*v3_Vs)*v4_Tp+Curve*v2_Ps)/v0_P0c;
-f_[6] = (q*(v0_Ey+v3_Vs*v0_Bx-v0_Bs*v2_Vx)*v4_Tp)/v0_P0c;
+f_[4] = ((v0_Ex*v0_hs*v1_Px/v2_Ps)+(v0_Ey*v0_hs*v1_Py/v2_Ps)+v0_Es)*1e-6/KinEn0;
+f_[5] = ((q*(v0_Ex+((v2_Vy*v0_Bs)-(v0_By*v3_Vs)))*v4_Tp)+Curve*v2_Ps)/v0_P0c;
+f_[6] = (q*(v0_Ey+((v3_Vs*v0_Bx)-(v0_Bs*v2_Vx)))*v4_Tp)/v0_P0c;
 f_[7] = 1;
 f_[8] = 0;
 f_[9] = v4_Tp;
@@ -170,7 +168,7 @@ return 0 ;
 double By(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_) {
 
 
-return 0.46+0*__x__ ;
+return 0.46 ;
 
 }
 
@@ -351,22 +349,18 @@ int getindex(char *name, double *p_, double *wk_, double *xv_) {
 	return 13;
   else if (strcmp(name, "KinEn0")==0)
 	return 14;
-  else if (strcmp(name, "LElement_0")==0)
-	return 15;
   else if (strcmp(name, "Length")==0)
-	return 16;
+	return 15;
   else if (strcmp(name, "Mass0")==0)
-	return 17;
+	return 16;
   else if (strcmp(name, "clight")==0)
-	return 18;
-  else if (strcmp(name, "kappaElement_0")==0)
-	return 19;
+	return 17;
   else if (strcmp(name, "m0")==0)
-	return 20;
+	return 18;
   else if (strcmp(name, "offset")==0)
-	return 21;
+	return 19;
   else if (strcmp(name, "q")==0)
-	return 22;
+	return 20;
   else {
 	fprintf(stderr, "Invalid name %s for getindex call\n", name);
 	return 0.0/0.0;

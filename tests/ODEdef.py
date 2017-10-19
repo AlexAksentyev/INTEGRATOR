@@ -11,6 +11,8 @@ those DS-args combined, and put into a hybrid model of the lattice.
 
 """
 
+import CElement as ENT
+
 import PyDSTool as DST
 from matplotlib import pyplot as PLT
 import re
@@ -109,8 +111,8 @@ class Lattice:
         self.__fLength = 0 #lattice length
         for e in ElSeq:
             self.__fLength += e.pardict['Length']
-            self.pardict.update({'L'+e.fName:e.pardict['Length']}) # log in the element position along the optical axis
-            self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
+#            self.pardict.update({'L'+e.fName:e.pardict['Length']}) # log in the element position along the optical axis
+#            self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
             
             ## RHS for DS 
             DSargs = self.__setup_element(e,RefPart)
@@ -233,8 +235,10 @@ class Lattice:
 if __name__ == '__main__':
     
     p = Particle()
-    e1 = Element(0,5)
-    e2 = Element(0,2.5)
+#    e1 = Element(1/7.5,1)
+#    e2 = Element(1/7.5,1)
+    e1=ENT.MDipole(1,750,.46)
+    e2=ENT.MDipole(1,750,.46)
     
     state = [0,0,0,
              1e-3,0,0,
@@ -244,7 +248,7 @@ if __name__ == '__main__':
     icdict = dict(zip(names,state))
 #%%    
 
-Lat = Lattice([e1],p)
+Lat = Lattice([e1,e2],p)
     
 Lat.fDSModel.compute('test',ics=icdict,tdata=[0,100])
 
