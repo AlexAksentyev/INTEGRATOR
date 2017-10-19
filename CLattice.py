@@ -33,8 +33,8 @@ class Lattice:
         self.__fLength = 0 #lattice length
         for e in ElSeq:
             self.__fLength += e.pardict['Length']
-            self.pardict.update({'L'+e.fName:e.pardict['Length']}) # log in the element position along the optical axis
-            self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
+#            self.pardict.update({'L'+e.fName:e.pardict['Length']}) # log in the element position along the optical axis
+#            self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
             
             ## RHS for DS 
             DSargs = self.__setup_element(e,RefPart)
@@ -78,8 +78,8 @@ class Lattice:
     
     def __setup_element(self, Element, RefPart):
 
-        sadd = lambda a,b: phi('+',a,b)
-        smult = lambda a,b: phi('*',a,b)
+        sadd = lambda *w: phi('+',*w)
+        smult = lambda *w: phi('*',*w)
         
         ## definitions
         arg = Element.fArgStr
