@@ -39,11 +39,14 @@ double signum(double x)
 #define Curve	p_[0]
 #define G	p_[1]
 #define KinEn0	p_[2]
-#define Length	p_[3]
-#define Mass0	p_[4]
-#define clight	p_[5]
-#define m0	p_[6]
-#define q	p_[7]
+#define LElement_2	p_[3]
+#define Length	p_[4]
+#define Mass0	p_[5]
+#define clight	p_[6]
+#define kappaElement_2	p_[7]
+#define m0	p_[8]
+#define offset	p_[9]
+#define q	p_[10]
 #define H	Y_[0]
 #define Ss	Y_[1]
 #define Sx	Y_[2]
@@ -57,6 +60,7 @@ double signum(double x)
 #define x	Y_[10]
 #define y	Y_[11]
 
+double NaN_event(unsigned n_, double t, double *Y_, double *p_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_);
 double passto0(unsigned n_, double t, double *Y_, double *p_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_);
 
 double Bs(double __x__, double __y__, double __ts__, double __px__, double __py__, double __dK__, double __H__, double __s__, double __start__, double __Sx__, double __Sy__, double __Ss__, double *p_, double *wk_, double *xv_);
@@ -82,9 +86,10 @@ double initcond(char *varname, double *p_, double *wk_, double *xv_);
 int getindex(char *name, double *p_, double *wk_, double *xv_);
 int heav(double x_, double *p_, double *wk_, double *xv_);
 
-int N_EVENTS = 1;
+int N_EVENTS = 2;
 void assignEvents(EvFunType *events){
- events[0] = &passto0;
+ events[0] = &NaN_event;
+events[1] = &passto0;
 
 }
 
@@ -346,16 +351,22 @@ int getindex(char *name, double *p_, double *wk_, double *xv_) {
 	return 13;
   else if (strcmp(name, "KinEn0")==0)
 	return 14;
-  else if (strcmp(name, "Length")==0)
+  else if (strcmp(name, "LElement_2")==0)
 	return 15;
-  else if (strcmp(name, "Mass0")==0)
+  else if (strcmp(name, "Length")==0)
 	return 16;
-  else if (strcmp(name, "clight")==0)
+  else if (strcmp(name, "Mass0")==0)
 	return 17;
-  else if (strcmp(name, "m0")==0)
+  else if (strcmp(name, "clight")==0)
 	return 18;
-  else if (strcmp(name, "q")==0)
+  else if (strcmp(name, "kappaElement_2")==0)
 	return 19;
+  else if (strcmp(name, "m0")==0)
+	return 20;
+  else if (strcmp(name, "offset")==0)
+	return 21;
+  else if (strcmp(name, "q")==0)
+	return 22;
   else {
 	fprintf(stderr, "Invalid name %s for getindex call\n", name);
 	return 0.0/0.0;
@@ -370,6 +381,10 @@ int heav(double x_, double *p_, double *wk_, double *xv_) {
 void auxvars(unsigned n_, unsigned np_, double t, double *Y_, double *p_, double *f_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_){
 
 
+}
+
+double NaN_event(unsigned n_, double t, double *Y_, double *p_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_) {
+return  pow(Pc(dK, p_, wk_, xv_),2)-pow(Pc(0, p_, wk_, xv_),2)*(pow(px,2)+pow(py,2))-offset; 
 }
 
 double passto0(unsigned n_, double t, double *Y_, double *p_, unsigned wkn_, double *wk_, unsigned xvn_, double *xv_) {

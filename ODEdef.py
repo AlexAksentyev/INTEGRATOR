@@ -88,7 +88,7 @@ class Lattice:
 
     def __init__(self, ElSeq, RefPart):
         
-        size = len(ElSeq)
+        self.fCount = len(ElSeq)
         self.pardict = dict()
         
         #%% global event definitions
@@ -96,21 +96,23 @@ class Lattice:
         
         ## the NaN error handling event definition
         self.pardict.update({'offset':10000}) # require Ps**2 > 100**2
-#        NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
-#                                           event_args,varnames=['dK','px','py'],
-#                                           fnspecs=RefPart.fndict,parnames=['Mass0','P0c','Kin0','offset'])
+        NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
+                                           event_args,varnames=['dK','px','py'], targetlang='c',
+                                           fnspecs=RefPart.fndict,parnames=['Mass0','KinEn0','offset'])
 
         
+        #%% constructing a DS for each element
         DS_list=list()
         MI_list = list()
         _id=0
         self.__fLength = 0 #lattice length
         for e in ElSeq:
-            DSargs = self.__setup_element(e,RefPart)
-            
-            ##
+            self.__fLength += e.pardict['Length']
             self.pardict.update({'L'+e.fName:e.pardict['Length']}) # log in the element position along the optical axis
             self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
+            
+            ## RHS for DS 
+            DSargs = self.__setup_element(e,RefPart)
             
             ## model selection
             DSargs.update({'xdomain':{'start':_id}}) #can't select the initial model w/o this
@@ -119,10 +121,11 @@ class Lattice:
             
              ## events
             _id +=1
-            event_args.update({'name':'passto'+str(_id%size)})
+            event_args.update({'name':'passto'+str(_id%self.fCount)})
             pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang='c')
-            DSargs.events = [pass_event]
+            DSargs.events = [pass_event, NaN_event]
             
+            DSargs.pars.update(self.pardict)
             DS = DST.Generator.Dopri_ODEsystem(DSargs)
             DS.Particle = RefPart
             DS.Element = e
@@ -132,16 +135,16 @@ class Lattice:
             
         self.fMods = DS_list
         
-        ## construction of the hybrid model
+        #%% construction of the hybrid model
         all_names = [e.fName for e in ElSeq]
         info = list()
         for i in range(len(MI_list)):
             transdict = {'dK':"self.outin([x,y,ts,px,py,dK],self.RefPart)"} # this is frontkick_n+1(backkick_n(state))
             transdict.update({'s':'0'}) # then reset s for the next element
             epmapping = DST.EvMapping(transdict, model=MI_list[i].model) # transition event state map
-            epmapping.outin = lambda state, part: DS_list[(i+1)%size].Element.frontKick(DS_list[i%size].Element.rearKick(state,part),part)[5] # dK is state[5]
+            epmapping.outin = lambda state, part: DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick(state,part),part)[5] # dK is state[5]
             epmapping.RefPart = RefPart
-            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%size),(MI_list[(i+1)%size].model.name, epmapping))]))
+            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, epmapping))]))
         
         modelInfoDict = DST.makeModelInfo(info)
         
@@ -219,10 +222,7 @@ class Lattice:
         DSargs.fnspecs = {**RefPart.fndict, **Element.fndict}
         DSargs.reuseterms=reuse
         
-        DSargs.varspecs = RHS  
-#        DSargs.algparams={}
-        
-#        DSargs.tdata=[0,DSargs.pars['Length']]        
+        DSargs.varspecs = RHS      
         
         return DSargs
 
@@ -236,7 +236,7 @@ if __name__ == '__main__':
     e2 = Element(0,2.5)
     
     state = [0,0,0,
-             0,0,0,
+             1e-3,0,0,
              0,0,0,
              0,0,1]
     names = e1.fArgList
