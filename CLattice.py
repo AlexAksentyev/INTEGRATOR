@@ -22,7 +22,7 @@ class Lattice:
         ## the NaN error handling event definition
         self.pardict.update({'offset':10000}) # require Ps**2 > 100**2
         NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
-                                           event_args,varnames=['dK','px','py'], targetlang='c',
+                                           event_args,varnames=['dK','px','py'], targetlang='python',
                                            fnspecs=RefPart.fndict,parnames=['Mass0','KinEn0','offset'])
 
         
@@ -47,11 +47,11 @@ class Lattice:
              ## events
             _id +=1
             event_args.update({'name':'passto'+str(_id%self.fCount)})
-            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang='c')
+            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang='python')
             DSargs.events = [pass_event, NaN_event]
             
             DSargs.pars.update(self.pardict)
-            DS = DST.Generator.Dopri_ODEsystem(DSargs)
+            DS = DST.Generator.Vode_ODEsystem(DSargs)
             DS.Particle = RefPart
             DS.Element = e
             DS_list.append(DS)
@@ -146,7 +146,7 @@ class Lattice:
                 'start':'0'
                 }
         
-        DSargs = DST.args(name='ODEs')       
+        DSargs = DST.args(name=Element.fName)       
         DSargs.pars = {**RefPart.pardict, **Element.pardict}
         DSargs.fnspecs = {**RefPart.fndict, **Element.fndict}
         DSargs.reuseterms=reuse
