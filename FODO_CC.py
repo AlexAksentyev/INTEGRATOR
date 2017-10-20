@@ -7,6 +7,11 @@ import numpy as NP
 from matplotlib import pyplot as PLT
 import CLattice as LTC
 
+from subprocess import call
+
+call('rm -r dop853_temp/', shell=True)
+
+
 reload(ENT)
 reload(PCL)
 
@@ -34,12 +39,13 @@ tLat = [ENT.MQuad(5e-2,-8.2,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
         ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
         ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,7.36,"QF")]
     
-#tLat = [ENT.MDipole(2,8,.46)]
+#tLat = [ENT.MDipole(5e-2,8,.46), ENT.MDipole(5e-2,8,-.46)]
 
 tLat = LTC.Lattice(tLat, PCL.Particle())
-#%%
 StateList = form_state_list(3,3)
 E = PCL.Ensemble.from_state(StateList)
+#%%
+
 tLat.track(E,10)
     
 #%%
@@ -50,50 +56,50 @@ def pos(data):
     else: return 'Black'
 
 df = E.getDataFrame()
-df['Quad']=df.apply(pos, axis=1)
-df = PDS.melt(df, id_vars=['PID','t','s', 'Turn','Element','Quad'])
-dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
+#df['Quad']=df.apply(pos, axis=1)
+df = PDS.melt(df, id_vars=['PID','s'])#, 'Turn','Element','Quad'])
+dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin(['X2'])]
 print(ggplot(dat,aes(x='s',y='value',color='variable')) + 
-     geom_line() + geom_point(color=dat['Quad']) + theme_bw())
+     geom_line()  + theme_bw())
     
 
 #%%
 # fields 
-QD = ENT.MQuad(5e-2,-8.2,"QD")
-QF = ENT.MQuad(5e-2,7.36,"QF")
-
-QList = [QD, QF]
-
-StateList = form_state_list(5,5)
-
-fldDF = PDS.DataFrame()
-i=0
-v = E[0].GammaBeta(E[0].fKinEn0)[1]
-clight = E[0].CLIGHT()
-for q in QList:
-    for state in StateList:
-        x,y = state[0:2]
-        Px,Py,dW = state[3:6]
-        Pc = E[0].Pc(dW+E[0].fKinEn0)
-        Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
-        vx = v*Px/Pc
-        vy = v*Py/Pc
-        vs = v*Ps/Pc
-        Bx,By,Bs = q.BField(state)
-        Fx = (vy*Bs-By*vs)*clight
-        Fy = (vs*Bx-vx*Bs)*clight
-        Fs = (vx*By-Bx*vy)*clight
-        d = {'Quad':q.fName,'x':x,'y':y,'Bx':Bx,'By':By,'Bs':Bs,'Vx':vx,'Vy':vy,'Vs':vs,'Fx':Fx, 'Fy': Fy, 'Fs':Fs,'Px':Px,'Py':Py,'Pc':Pc}
-        fldDF = fldDF.append(PDS.DataFrame(data=d,index=[i]))
-        i += 1
-        
-#%%
-names = NP.unique(fldDF['Quad'])
-fldDF1 = fldDF[fldDF['Quad']==names[0]]
-PLT.subplot(211)
-PLT.quiver(fldDF1['x'], fldDF1['y'],fldDF1['Fx'],fldDF1['Fy'])
-PLT.title(names[0])
-fldDF1 = fldDF[fldDF['Quad']==names[1]]
-PLT.subplot(212)
-PLT.quiver(fldDF1['x'], fldDF1['y'],fldDF1['Fx'],fldDF1['Fy'])
-PLT.title(names[1])
+#QD = ENT.MQuad(5e-2,-8.2,"QD")
+#QF = ENT.MQuad(5e-2,7.36,"QF")
+#
+#QList = [QD, QF]
+#
+#StateList = form_state_list(5,5)
+#
+#fldDF = PDS.DataFrame()
+#i=0
+#v = E[0].GammaBeta(E[0].fKinEn0)[1]
+#clight = E[0].CLIGHT()
+#for q in QList:
+#    for state in StateList:
+#        x,y = state[0:2]
+#        Px,Py,dW = state[3:6]
+#        Pc = E[0].Pc(dW+E[0].fKinEn0)
+#        Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
+#        vx = v*Px/Pc
+#        vy = v*Py/Pc
+#        vs = v*Ps/Pc
+#        Bx,By,Bs = q.BField(state)
+#        Fx = (vy*Bs-By*vs)*clight
+#        Fy = (vs*Bx-vx*Bs)*clight
+#        Fs = (vx*By-Bx*vy)*clight
+#        d = {'Quad':q.fName,'x':x,'y':y,'Bx':Bx,'By':By,'Bs':Bs,'Vx':vx,'Vy':vy,'Vs':vs,'Fx':Fx, 'Fy': Fy, 'Fs':Fs,'Px':Px,'Py':Py,'Pc':Pc}
+#        fldDF = fldDF.append(PDS.DataFrame(data=d,index=[i]))
+#        i += 1
+#        
+##%%
+#names = NP.unique(fldDF['Quad'])
+#fldDF1 = fldDF[fldDF['Quad']==names[0]]
+#PLT.subplot(211)
+#PLT.quiver(fldDF1['x'], fldDF1['y'],fldDF1['Fx'],fldDF1['Fy'])
+#PLT.title(names[0])
+#fldDF1 = fldDF[fldDF['Quad']==names[1]]
+#PLT.subplot(212)
+#PLT.quiver(fldDF1['x'], fldDF1['y'],fldDF1['Fx'],fldDF1['Fy'])
+#PLT.title(names[1])
