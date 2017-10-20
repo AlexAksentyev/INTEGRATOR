@@ -9,9 +9,13 @@ import PyDSTool as DST
 #import pathos.multiprocessing as MLP
 from utilFunc import phi
 
+from subprocess import call
+
 class Lattice:
     
     def __init__(self, ElSeq, RefPart):
+        
+        call('rm -r dop853_temp/', shell=True)
         
         self.fCount = len(ElSeq)
         self.pardict = dict()
@@ -22,7 +26,7 @@ class Lattice:
         ## the NaN error handling event definition
         self.pardict.update({'offset':10000}) # require Ps**2 > 100**2
         NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
-                                           event_args,varnames=['dK','px','py'], targetlang='c',
+                                           event_args,varnames=['dK','px','py'], targetlang='python',
                                            fnspecs=RefPart.fndict,parnames=['Mass0','KinEn0','offset'])
 
         
@@ -47,11 +51,11 @@ class Lattice:
              ## events
             _id +=1
             event_args.update({'name':'passto'+str(_id%self.fCount)})
-            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang='c')
+            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang='python')
             DSargs.events = [pass_event, NaN_event]
             
             DSargs.pars.update(self.pardict)
-            DS = DST.Generator.Dopri_ODEsystem(DSargs)
+            DS = DST.Generator.Vode_ODEsystem(DSargs)
             DS.Particle = RefPart
             DS.Element = e
             DS_list.append(DS)
@@ -100,8 +104,8 @@ class Lattice:
         
         # Lorentz forces
         
-        sFxA = 'q*'+ sadd(sExA,sVxBx)
-        sFyA = 'q*'+ sadd(sEyA,sVxBy)
+        sFxA = '1e-6*clight*'+ sadd(sExA,sVxBx)
+        sFyA = '1e-6*clight*'+ sadd(sEyA,sVxBy)
         
         # spin-related
         t6 =  'v4_Tp* (q / (v0_Lgamma * m0 * m0* clight * clight)) * (G + 1/(1 + v0_Lgamma))'
