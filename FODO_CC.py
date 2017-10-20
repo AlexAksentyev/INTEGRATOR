@@ -5,6 +5,7 @@ import CElement as ENT
 from importlib import reload
 import numpy as NP
 from matplotlib import pyplot as PLT
+import CLattice as LTC
 
 reload(ENT)
 reload(PCL)
@@ -17,7 +18,7 @@ def form_state_list(Nx,Ny):
     StateList = list()
     for x in xs:
         for y in ys:
-            StateList.append([x,y]+[0]*6+[1, 0, 0])
+            StateList.append([x,y]+[0]*7+[0, 0, 1])
     
     return StateList
 
@@ -34,10 +35,12 @@ tLat = [ENT.MQuad(5e-2,-8.2,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
         ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,7.36,"QF")]
     
 #tLat = [ENT.MDipole(2,8,.46)]
+
+tLat = LTC.Lattice(tLat, PCL.Particle())
 #%%
 StateList = form_state_list(3,3)
 E = PCL.Ensemble.from_state(StateList)
-E.track(tLat,10)
+tLat.track(E,10)
     
 #%%
 

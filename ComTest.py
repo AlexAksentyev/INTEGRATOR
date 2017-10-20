@@ -1,5 +1,5 @@
-import sys
-sys.path.append('/home/alexa/REPOS/INTEGRATOR/')
+#import sys
+#sys.path.append('/home/alexa/REPOS/INTEGRATOR/')
 
 from importlib import reload
 
