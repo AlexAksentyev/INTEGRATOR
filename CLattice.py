@@ -19,7 +19,7 @@ class Lattice:
         if Gen == 'DOPRI': tlang = 'c'
         else: tlang = 'python'
         
-        call('rm -r dop853_temp/', shell=True)
+        call('find ./dop853_temp/ -type f -exec rm {} + ', shell=True)
         
         self.fCount = len(ElSeq)
         self.pardict = dict()
