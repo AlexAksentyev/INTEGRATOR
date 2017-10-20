@@ -36,6 +36,7 @@ class Ensemble:
     
     def __init__(self, StateDict):
         self.fIniStateDict = {key:value for key,value in StateDict.items()}
+        self.fCount = len(self.fIniStateDict)
         
     @classmethod
     def from_state(cls, StateList):
@@ -63,6 +64,12 @@ class Ensemble:
         
     def set(self, name, **pdict):
         self.fIniStateDict[name].update(pdict)
+        
+    def rename(self, oldname, newname):
+        self.fIniStateDict[newname] = self.fIniStateDict.pop(oldname)
+        
+    def listNames(self):
+        return list(self.fIniStateDict.keys())
         
         
         
