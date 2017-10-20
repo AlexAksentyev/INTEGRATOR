@@ -45,7 +45,7 @@ class Lattice:
 #            self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
             
             ## RHS for DS 
-            DSargs = self.__setup_element(e,RefPart)
+            DSargs = Lattice.setup_element(e,RefPart)
             
             ## model selection
             DSargs.update({'xdomain':{'start':_id}}) #can't select the initial model w/o this
@@ -85,7 +85,8 @@ class Lattice:
         mod_args = {'name':'lattice','modelInfo':modelInfoDict}
         self.fDSModel = DST.Model.HybridModel(mod_args)
     
-    def __setup_element(self, Element, RefPart):
+    @classmethod
+    def setup_element(cls, Element, RefPart):
 
         sadd = lambda *w: phi('+',*w)
         smult = lambda *w: phi('*',*w)
