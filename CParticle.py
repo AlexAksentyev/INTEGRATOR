@@ -46,6 +46,9 @@ class Ensemble:
         
     def __getitem__(self, index):
         return list(self.fIniStateDict.items())[index]
+    
+    def __repr__(self):
+        return str(self.fIniStateDict)
         
     def getDataFrame(self):
             rval = PDS.DataFrame()

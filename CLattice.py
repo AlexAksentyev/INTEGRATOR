@@ -13,7 +13,11 @@ from subprocess import call
 
 class Lattice:
     
-    def __init__(self, ElSeq, RefPart):
+    def __init__(self, ElSeq, RefPart, Gen='dopri'):
+        
+        Gen = Gen.upper()
+        if Gen == 'DOPRI': tlang = 'c'
+        else: tlang = 'python'
         
         call('rm -r dop853_temp/', shell=True)
         
@@ -26,7 +30,7 @@ class Lattice:
         ## the NaN error handling event definition
         self.pardict.update({'offset':10000}) # require Ps**2 > 100**2
         NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
-                                           event_args,varnames=['dK','px','py'], targetlang='python',
+                                           event_args,varnames=['dK','px','py'], targetlang=tlang,
                                            fnspecs=RefPart.fndict,parnames=['Mass0','KinEn0','offset'])
 
         
@@ -51,11 +55,12 @@ class Lattice:
              ## events
             _id +=1
             event_args.update({'name':'passto'+str(_id%self.fCount)})
-            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang='python')
+            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang=tlang)
             DSargs.events = [pass_event, NaN_event]
             
             DSargs.pars.update(self.pardict)
-            DS = DST.Generator.Vode_ODEsystem(DSargs)
+            if Gen == 'DOPRI': DS = DST.Generator.Dopri_ODEsystem(DSargs)
+            else: DS = DST.Generator.Vode_ODEsystem(DSargs)
             DS.Particle = RefPart
             DS.Element = e
             DS_list.append(DS)
@@ -87,7 +92,7 @@ class Lattice:
         
         ## definitions
         arg = Element.fArgStr
-        defs = RefPart.defs
+#        defs = RefPart.defs
         
         # fields
         sExA = 'Ex'+arg
@@ -99,13 +104,8 @@ class Lattice:
         
         # v cross B
         det = lambda a,b,c,d: phi('-',smult(a,b),smult(c,d))
-        sVxBx = det(defs['Vy'],sBsA,sByA,defs['Vs'])
-        sVxBy = det(defs['Vs'],sBxA,sBsA,defs['Vx'])
-        
-        # Lorentz forces
-        
-        sFxA = '1e-6*clight*'+ sadd(sExA,sVxBx)
-        sFyA = '1e-6*clight*'+ sadd(sEyA,sVxBy)
+#        sVxBx = det(defs['Vy'],sBsA,sByA,defs['Vs'])
+#        sVxBy = det(defs['Vs'],sBxA,sBsA,defs['Vx'])
         
         # spin-related
         t6 =  'v4_Tp* (q / (v0_Lgamma * m0 * m0* clight * clight)) * (G + 1/(1 + v0_Lgamma))'
@@ -117,6 +117,9 @@ class Lattice:
         sYpA = 'v0_hs*v0_P0c*py/v2_Ps'    
         sHpA = 'v0_hs*v0_Pc/v2_Ps'
         sTpA = 'v3_Hp/v1_V'    
+        
+        sFxATp = '1e-6*clight*'+ sadd(smult(sExA,sTpA), det(sYpA,sBsA,'1',sByA)) 
+        sFyATp = '1e-6*clight*'+ sadd(smult(sEyA,sTpA), det('1',sBxA,sXpA,sBsA)) 
         
         # these are probably from TBMT
         Sxp =      'Curve * Ss + v5_t6 * ((v2_Ps * v0_Ex - v1_Px * v0_Es) * Ss - (v1_Px * v0_Ey - v1_Py * v0_Ex) * Sy) + (v5_sp1*v0_By+v5_sp2*v1_Py)*Ss-(v5_sp1*v0_Bs+v5_sp2*v2_Ps)*Sy'
@@ -140,8 +143,8 @@ class Lattice:
                 'y'  : 'v3_Yp',  
                 'H'  : 'v3_Hp',
                 'ts' : 'v4_Tp',
-                'px' : sadd(smult(sFxA,'v4_Tp'), 'Curve*v2_Ps')+'/v0_P0c',
-                'py' : smult(sFyA,'v4_Tp')+'/v0_P0c',
+                'px' : sadd(sFxATp, 'Curve*v2_Ps')+'/v0_P0c',
+                'py' : sFyATp+'/v0_P0c',
                 'dK' : sadd(smult(sExA,sXpA), smult(sEyA,sYpA), sEsA) + '*1e-6/KinEn0',
                 'Sx' : 'v6_Sxp',
                 'Sy' : 'v6_Syp',
