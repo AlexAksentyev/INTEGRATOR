@@ -18,3 +18,6 @@ def phi(operation,*w):
         s += e+operation
     s = s[0:len(s)-1] + ')'
     return s
+
+sadd = lambda *w: phi('+',*w)
+smult = lambda *w: phi('*',*w)
