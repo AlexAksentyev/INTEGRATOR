@@ -61,5 +61,8 @@ class Ensemble:
                 
             return rval
         
+    def set(self, name, **pdict):
+        self.fIniStateDict[name].update(pdict)
+        
         
         
