@@ -26,6 +26,9 @@ class Element:
         
         self.fArgStr = phi(',',*self.fArgList) # argument string '(x,y,...)' for RHS definition
         
+    def __repr__(self):
+        return str(self.getField())
+        
     def __setField(self, FldDict): # field definitions given in the form name:definition, w/o signature
         inFldDict = {key:(self.fArgList, value) for key, value in FldDict.items()}
         self.fndict.update(inFldDict)
