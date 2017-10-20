@@ -16,10 +16,11 @@ class Lattice:
     def __init__(self, ElSeq, RefPart, Gen='dopri'):
         
         Gen = Gen.upper()
-        if Gen == 'DOPRI': tlang = 'c'
-        else: tlang = 'python'
+        if Gen == 'VODE': tlang = 'python'
+        else: tlang = 'c'
         
-        call('find ./dop853_temp/ -type f -exec rm {} + ', shell=True)
+        call('find ./dop853_temp/ -type f -exec rm {} + ', shell=True) # clear compiled code
+        call('find ./radau5_temp/ -type f -exec rm {} + ', shell=True)
         
         self.fCount = len(ElSeq)
         self.pardict = dict()
@@ -60,6 +61,7 @@ class Lattice:
             
             DSargs.pars.update(self.pardict)
             if Gen == 'DOPRI': DS = DST.Generator.Dopri_ODEsystem(DSargs)
+            elif Gen == 'RADAU': DS = DST.Generator.Radau_ODEsystem(DSargs)
             else: DS = DST.Generator.Vode_ODEsystem(DSargs)
             DS.Particle = RefPart
             DS.Element = e
