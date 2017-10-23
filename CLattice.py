@@ -113,7 +113,7 @@ class Lattice:
         # spin-related
         t6 =  'v4_Tp* (q / (v0_Lgamma * m0 * m0* clight * clight)) * (G + 1/(1 + v0_Lgamma))'
         sp1 = 'v4_Tp*(-q / (v0_Lgamma*m0))*(1 + G * v0_Lgamma)'
-        sp2 = 'v4_Tp*( q / (v0_Lgamma* m0*m0*m0*clight*clight)) * (G/(1 + v0_Lgamma))*(v1_Px*v0_Bx+v1_Py*v0_By+v2_Ps*v0_Bs)'
+        sp2 = 'v4_Tp*( q / (v0_Lgamma* m0*m0*m0*clight*clight)) * (G/(1 + v0_Lgamma))*(v2_Px*v0_Bx+v2_Py*v0_By+v3_Ps*v0_Bs)'
         
         ## derivative definitions
         sXpA = 'v0_hs*v0_P0c*px/v2_Ps'
@@ -125,9 +125,9 @@ class Lattice:
         sFyATp = '1e-6*clight*'+ sadd(smult(sEyA,sTpA), det('1',sBxA,sXpA,sBsA)) 
         
         # these are probably from TBMT
-        Sxp =      'Curve * Ss + v5_t6 * ((v2_Ps * v0_Ex - v1_Px * v0_Es) * Ss - (v1_Px * v0_Ey - v1_Py * v0_Ex) * Sy) + (v5_sp1*v0_By+v5_sp2*v1_Py)*Ss-(v5_sp1*v0_Bs+v5_sp2*v2_Ps)*Sy'
-        Syp =                   'v5_t6 * ((v1_Px * v0_Ey - v1_Py * v0_Ex) * Sx - (v1_Py * v0_Es - v2_Ps * v0_Ey) * Ss) + (v5_sp1*v0_Bs+v5_sp2*v2_Ps)*Sx-(v5_sp1*v0_Bx+v5_sp2*v1_Px)*Ss'
-        Ssp = '(-1)*Curve * Sx + v5_t6 * ((v1_Py * v0_Es - v2_Ps * v0_Ey) * Sy - (v2_Ps * v0_Ex - v1_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v1_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v1_Py)*Sx'
+        Sxp =      'Curve * Ss + v5_t6 * ((v3_Ps * v0_Ex - v2_Px * v0_Es) * Ss - (v2_Px * v0_Ey - v2_Py * v0_Ex) * Sy) + (v5_sp1*v0_By+v5_sp2*v2_Py)*Ss-(v5_sp1*v0_Bs+v5_sp2*v3_Ps)*Sy'
+        Syp =                   'v5_t6 * ((v2_Px * v0_Ey - v2_Py * v0_Ex) * Sx - (v2_Py * v0_Es - v3_Ps * v0_Ey) * Ss) + (v5_sp1*v0_Bs+v5_sp2*v3_Ps)*Sx-(v5_sp1*v0_Bx+v5_sp2*v2_Px)*Ss'
+        Ssp = '(-1)*Curve * Sx + v5_t6 * ((v2_Py * v0_Es - v3_Ps * v0_Ey) * Sy - (v3_Ps * v0_Ex - v2_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v2_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v2_Py)*Sx'
         
         ## 
         reuse = RefPart.reuse

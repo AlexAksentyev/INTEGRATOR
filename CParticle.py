@@ -1,13 +1,15 @@
 import re
 import pandas as PDS
 import CElement as ENT
+import PyDSTool as DST
 
 class Particle:
     
     def __init__(self,Mass0 = 1876.5592, KinEn0 = 270.11275, G = -.142987):
-        q = 1.602176462e-19
         clight = 2.99792458e8
-        self.pardict = {'Mass0':Mass0, 'KinEn0':KinEn0, 'G':G,
+        q = 1.602176462e-19
+
+        self.pardict = {'Mass0': Mass0, 'KinEn0': KinEn0, 'G':G,
                         'q':q, 'clight':clight,
                         'm0': q*1e6*Mass0/clight**2}
         
@@ -20,10 +22,11 @@ class Particle:
         self.reuse = {'Pc(0)':'v0_P0c','Pc(dK)':'v0_Pc', 
                       'Lbeta(dK)':'v0_Lbeta', 'Lgamma(dK)':'v0_Lgamma', 'KinEn(dK)':'v0_KinEn',
                       'v0_Lbeta*clight':'v1_V',
-                      'v0_P0c*px':'v1_Px', 'v0_P0c*py':'v1_Py',
+                      'v0_P0c*px':'v1_Px', 'v0_P0c*py':'v1_Py', 
+                      'q*1e6/clight*v1_Px' : 'v2_Px', 'q*1e6/clight*v1_Py': 'v2_Py',
                       'sqrt(pow(v0_Pc,2)- pow(v1_Px,2) - pow(v1_Py,2))':'v2_Ps',
                       'v1_V*v1_Px/v0_Pc':'v2_Vx', 'v1_V*v1_Py/v0_Pc':'v2_Vy',
-                      'v1_V*v2_Ps/v0_Pc':'v3_Vs'
+                      'v1_V*v2_Ps/v0_Pc':'v3_Vs', 'q*1e6/clight*v2_Ps' : 'v3_Ps'
                     }
         
         self.defs = dict()
