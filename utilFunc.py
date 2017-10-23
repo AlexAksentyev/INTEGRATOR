@@ -21,3 +21,5 @@ def phi(operation,*w):
 
 sadd = lambda *w: phi('+',*w)
 smult = lambda *w: phi('*',*w)
+ssub = lambda *w: phi('-',*w)
+sdiv = lambda *w: phi('/',*w)
