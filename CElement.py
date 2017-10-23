@@ -37,6 +37,9 @@ class Element:
         if fulldef: return self.fndict
         else: return {key:value[1] for key,value in self.fndict.items()}
 
+    def getGeometry(self):
+        return self.pardict
+
     def frontKick(self, state, particle):
         return list(state)
     
@@ -66,6 +69,7 @@ class MQuad(Element):
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
         self.__fGrad = value
+        self.pardict.update({'Grad':value})
         
     def getGrad(self):
         return self.__fGrad
@@ -82,6 +86,7 @@ class MDipole(Element):
     
     def __init__(self, Length, R, BField, Name = "MDipole"):
         Element.__init__(self, 1/R, Length, Name+"_"+str(MDipole.fCount))
+        self.pardict.update({'R':R})
         self.setBField(BField)
         MDipole.fCount += 1
         
@@ -135,6 +140,7 @@ class MSext(Element):
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(x*y)','By':str(value)+'*(x*x - y*y)','Bs':'0'})
         self.__fGrad = value
+        self.pardict.update({'Grad':value})
         
     def getGrad(self):
         return self.__fGrad
@@ -148,9 +154,11 @@ class Wien(Element):
     
     def __init__(self, Length, R, Hgap, RefPart, BField=None, EField=None, Name = "Wien?"):
         Element.__init__(self, 1/R, Length, Name+"_"+str(Wien.fCount))
+        self.pardict.update({'Hgap':Hgap})
         self.pardict.update(RefPart.pardict)
         
         self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
+        self.__fHgap = Hgap
         
         self.setEField(EField)
         self.setBField(BField)
@@ -168,15 +176,20 @@ class Wien(Element):
         return NP.sqrt((self.pardict['Mass0'] + KNRG)**2 - self.pardict['Mass0']**2)
     
     def setEField(self, EField=None):
-        R = self.__fR
+        P0c = self.__Pc(self.pardict['KinEn0'])
+        gamma, beta = self.__GammaBeta()
         if EField is None:
-            P0c = self.__Pc(self.pardict['KinEn0'])
-            gamma, beta = self.__GammaBeta()
+            R = self.__fR
             EField = - P0c*beta/R[0] * 1e6
+        else:
+            R = - P0c*beta/EField * 1e6
+            self.__fR = [R, R - self.__fHgap, R**2/(R-self.__fHgap)]
+            R = self.__fR
         
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
         self._Element__setField({'Ex':str(EField)})
+        self.pardict.update({'R':R})
         
     def setBField(self, BField=None):        
         e0 = self.pardict['q']
