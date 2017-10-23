@@ -7,7 +7,7 @@ Created on Thu Oct  5 09:19:48 2017
 """
 import PyDSTool as DST
 #import pathos.multiprocessing as MLP
-from utilFunc import phi
+from utilFunc import phi, sadd, smult
 
 from subprocess import call
 
@@ -90,8 +90,8 @@ class Lattice:
     @classmethod
     def setup_element(cls, Element, RefPart):
 
-        sadd = lambda *w: phi('+',*w)
-        smult = lambda *w: phi('*',*w)
+#        sadd = lambda *w: phi('+',*w)
+#        smult = lambda *w: phi('*',*w)
         
         ## definitions
         arg = Element.fArgStr
