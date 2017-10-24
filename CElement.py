@@ -53,14 +53,18 @@ class Element:
 class HasCounter:
     fCount = 0
     
-    def __init__(self, Curve, Length, Name):
-        Element.__init__(self, Curve, Length, Name+"_"+str(self.__class__.fCount))
+    __fSep = "_"
+    
+    def __init__(self):
+        if 'fName' not in self.__dict__.keys():
+            self.fName = 'NoName'    
+        self.fName += self.__fSep+str(self.__class__.fCount)
         self.__class__.fCount += 1
 
     def copy(self, Name = None):
         self.__class__.fCount += 1
         res = copy.deepcopy(self)
-        if Name is None: res.fName = re.sub('_.*','_'+str(res.__class__.fCount-1),res.fName)
+        if Name is None: res.fName = re.sub(self.__fSep+'.*',self.__fSep+str(res.__class__.fCount-1),res.fName)
         else: res.fName = Name
         return res
 
@@ -69,14 +73,16 @@ class Drift(Element, HasCounter):
     """
     
     def __init__(self, Length, Name = "Drift"):
-        HasCounter.__init__(self, 0, Length, Name)
+        Element.__init__(self, 0, Length, Name)
+        HasCounter.__init__(self)
 
 class MQuad(Element, HasCounter):
     """ magnetic quadrupole
     """
 
     def __init__(self, Length, Grad, Name = "MQuad"):
-        HasCounter.__init__(self, 0, Length, Name)
+        Element.__init__(self, 0, Length, Name)
+        HasCounter.__init__(self)
         self.setGrad(Grad)   
         
     def setGrad(self, value):
@@ -96,7 +102,8 @@ class MDipole(Element, HasCounter):
     """
     
     def __init__(self, Length, R, BField, Name = "MDipole"):
-        HasCounter.__init__(self, 1/R, Length, Name)
+        Element.__init__(self, 1/R, Length, Name)
+        HasCounter.__init__(self)
         self.fPardict.update({'R':R})
         self.setBField(BField)
         
@@ -121,7 +128,8 @@ class MDipole(Element, HasCounter):
 class Solenoid(MDipole, HasCounter):
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
-        HasCounter.__init__(self, 0, Length, Name)
+        Element.__init__(self, 0, Length, Name)
+        HasCounter.__init__(self)
         self.setBField((0,0,Bs))
         
     @classmethod
@@ -138,7 +146,8 @@ class MSext(Element, HasCounter):
     """
     
     def __init__(self, Length, Grad, Name = "MSext"):
-        HasCounter.__init__(self, 0, Length, Name)
+        Element.__init__(self, 0, Length, Name)
+        HasCounter.__init__(self)
         self.setGrad(Grad)
         
     def setGrad(self, value):
@@ -165,7 +174,8 @@ class Wien(Element, HasCounter):
             
         self.__fHgap = Hgap
         
-        HasCounter.__init__(self, Crv, Length, Name)
+        Element.__init__(self, Crv, Length, Name)
+        HasCounter.__init__(self)
         self.fPardict.update({'Hgap':Hgap})
         self.fPardict.update(RefPart.fPardict)
         
