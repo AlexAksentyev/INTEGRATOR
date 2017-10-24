@@ -49,6 +49,10 @@ class Element:
     
 class HasCounter:
     fCount = 0
+    
+    def __init__(self, Curve, Length, Name):
+        Element.__init__(self, Curve, Length, Name+"_"+str(self.__class__.fCount))
+        self.__class__.fCount += 1
 
     def copy(self, Name = None):
         self.__class__.fCount += 1
@@ -60,22 +64,17 @@ class HasCounter:
 class Drift(Element, HasCounter):
     """ drift space
     """
-#    fCount = 0 # counts the number of existing drifts
     
     def __init__(self, Length, Name = "Drift"):
-        Element.__init__(self, 0, Length, Name+"_"+str(Drift.fCount))
-        Drift.fCount += 1
+        HasCounter.__init__(self, 0, Length, Name)
 
 class MQuad(Element, HasCounter):
     """ magnetic quadrupole
     """
-    
-#    fCount = 0 # counts the # of existing mquads
 
     def __init__(self, Length, Grad, Name = "MQuad"):
-        Element.__init__(self, 0, Length, Name+"_"+str(MQuad.fCount))
+        HasCounter.__init__(self, 0, Length, Name)
         self.setGrad(Grad)   
-        MQuad.fCount += 1
         
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
@@ -93,13 +92,10 @@ class MDipole(Element, HasCounter):
     and fCurve = 0
     """
     
-#    fCount = 0
-    
     def __init__(self, Length, R, BField, Name = "MDipole"):
-        Element.__init__(self, 1/R, Length, Name+"_"+str(MDipole.fCount))
+        HasCounter.__init__(self, 1/R, Length, Name)
         self.fPardict.update({'R':R})
         self.setBField(BField)
-        MDipole.fCount += 1
         
     def setBField(self,BField):
         if not isinstance(BField, CLN.Sequence): self.__fBField = (0,BField,0) # by default B = By
@@ -121,12 +117,9 @@ class MDipole(Element, HasCounter):
 
 class Solenoid(MDipole, HasCounter):
     
-#    fCount = 0
-    
     def __init__(self, Length, Bs, Name = "Solenoid"):
-        Element.__init__(self, 0, Length, Name+"_"+str(Solenoid.fCount))
+        HasCounter.__init__(self, 0, Length, Name)
         self.setBField((0,0,Bs))
-        Solenoid.fCount += 1
         
     @classmethod
     def computeBStrength(cls, *args):
@@ -141,12 +134,9 @@ class MSext(Element, HasCounter):
     """ magnetic sextupole
     """
     
-#    fCount = 0
-    
     def __init__(self, Length, Grad, Name = "MSext"):
-        Element.__init__(self, 0, Length, Name+"_"+str(MSext.fCount))
+        HasCounter.__init__(self, 0, Length, Name)
         self.setGrad(Grad)
-        MSext.fCount += 1
         
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(x*y)','By':str(value)+'*(x*x - y*y)','Bs':'0'})
@@ -161,8 +151,6 @@ class Wien(Element, HasCounter):
     The magnetic field definition is weird
     """
     
-#    fCount = 0
-    
     def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R = None, Name = "Wien?"):
         
         assert any([e is not None for e in [EField, R]]), "Either the E-field, or Radius must be defined"
@@ -174,14 +162,12 @@ class Wien(Element, HasCounter):
             
         self.__fHgap = Hgap
         
-        Element.__init__(self, Crv, Length, Name+"_"+str(Wien.fCount))
+        HasCounter.__init__(self, Crv, Length, Name)
         self.fPardict.update({'Hgap':Hgap})
         self.fPardict.update(RefPart.fPardict)
         
         self.setEField(EField)
         self.setBField(BField)
-        
-        Wien.fCount += 1
         
     def __GammaBeta(self):
         Mass0 = self.fPardict['Mass0']
