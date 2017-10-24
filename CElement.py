@@ -1,15 +1,13 @@
 import numpy as NP
 import collections as CLN
 from utilFunc import phi
-#import PyDSTool as DST
+import copy
+import re
 
 
 class Element:
     
     fArgList = ['x','y','ts','px','py','dK','H','s','start','Sx','Sy','Ss']
-    
-#    x = DST.Var('x')
-#    y = DST.Var('y')
     
     fArgStr = None
     
@@ -48,21 +46,31 @@ class Element:
     
     def rearKick(self, state, particle):
         return list(state)
+    
+class HasCounter:
+    fCount = 0
 
-class Drift(Element):
+    def copy(self, Name = None):
+        self.__class__.fCount += 1
+        res = copy.deepcopy(self)
+        if Name is None: res.fName = re.sub('_.*','_'+str(res.__class__.fCount-1),res.fName)
+        else: res.fName = Name
+        return res
+
+class Drift(Element, HasCounter):
     """ drift space
     """
-    fCount = 0 # counts the number of existing drifts
+#    fCount = 0 # counts the number of existing drifts
     
     def __init__(self, Length, Name = "Drift"):
         Element.__init__(self, 0, Length, Name+"_"+str(Drift.fCount))
         Drift.fCount += 1
 
-class MQuad(Element):
+class MQuad(Element, HasCounter):
     """ magnetic quadrupole
     """
     
-    fCount = 0 # counts the # of existing mquads
+#    fCount = 0 # counts the # of existing mquads
 
     def __init__(self, Length, Grad, Name = "MQuad"):
         Element.__init__(self, 0, Length, Name+"_"+str(MQuad.fCount))
@@ -70,7 +78,6 @@ class MQuad(Element):
         MQuad.fCount += 1
         
     def setGrad(self, value):
-#        self._Element__setField({'Bx':DST.Var(-value*self.y,'Bx'),'By':DST.Var(-value*self.x,'By')})
         self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
         self.__fGrad = value
         self.fPardict.update({'Grad':value})
@@ -79,14 +86,14 @@ class MQuad(Element):
         return self.__fGrad
         
 
-class MDipole(Element):
+class MDipole(Element, HasCounter):
     """ bending magnetic dipole (horizontally bending);
     define _BField as a tuple;
     could also be used as a solenoid, if _BField = (0,0,Bs)
     and fCurve = 0
     """
     
-    fCount = 0
+#    fCount = 0
     
     def __init__(self, Length, R, BField, Name = "MDipole"):
         Element.__init__(self, 1/R, Length, Name+"_"+str(MDipole.fCount))
@@ -112,9 +119,9 @@ class MDipole(Element):
         return particle.Pc(particle.fKinEn0)*1e6/(BField*particle.CLIGHT())
   
 
-class Solenoid(MDipole):
+class Solenoid(MDipole, HasCounter):
     
-    fCount = 0
+#    fCount = 0
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
         Element.__init__(self, 0, Length, Name+"_"+str(Solenoid.fCount))
@@ -130,11 +137,11 @@ class Solenoid(MDipole):
         print('Infinite radius = zero curvature')
         
 
-class MSext(Element):
+class MSext(Element, HasCounter):
     """ magnetic sextupole
     """
     
-    fCount = 0
+#    fCount = 0
     
     def __init__(self, Length, Grad, Name = "MSext"):
         Element.__init__(self, 0, Length, Name+"_"+str(MSext.fCount))
@@ -149,20 +156,27 @@ class MSext(Element):
     def getGrad(self):
         return self.__fGrad
         
-class Wien(Element):
+class Wien(Element, HasCounter):
     """ wien filter ?!?! 
     The magnetic field definition is weird
     """
     
-    fCount = 0
+#    fCount = 0
     
-    def __init__(self, Length, R, Hgap, RefPart, BField=None, EField=None, Name = "Wien?"):
-        Element.__init__(self, 1/R, Length, Name+"_"+str(Wien.fCount))
+    def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R = None, Name = "Wien?"):
+        
+        assert any([e is not None for e in [EField, R]]), "Either the E-field, or Radius must be defined"
+        
+        if R is None: Crv = None
+        else: 
+            Crv = 1/R
+            self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
+            
+        self.__fHgap = Hgap
+        
+        Element.__init__(self, Crv, Length, Name+"_"+str(Wien.fCount))
         self.fPardict.update({'Hgap':Hgap})
         self.fPardict.update(RefPart.fPardict)
-        
-        self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
-        self.__fHgap = Hgap
         
         self.setEField(EField)
         self.setBField(BField)
@@ -193,7 +207,7 @@ class Wien(Element):
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
         self._Element__setField({'Ex':str(EField)})
-        self.fPardict.update({'R':R})
+        self.fPardict.update({'R':R, 'Curve':1/R[0]})
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
