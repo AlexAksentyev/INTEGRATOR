@@ -1,14 +1,15 @@
 import numpy as NP
 import collections as CLN
 from utilFunc import phi
-import PyDSTool as DST
+#import PyDSTool as DST
 
 
 class Element:
     
     fArgList = ['x','y','ts','px','py','dK','H','s','start','Sx','Sy','Ss']
     
-    
+#    x = DST.Var('x')
+#    y = DST.Var('y')
     
     fArgStr = None
     
@@ -69,6 +70,7 @@ class MQuad(Element):
         MQuad.fCount += 1
         
     def setGrad(self, value):
+#        self._Element__setField({'Bx':DST.Var(-value*self.y,'Bx'),'By':DST.Var(-value*self.x,'By')})
         self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
         self.__fGrad = value
         self.fPardict.update({'Grad':value})

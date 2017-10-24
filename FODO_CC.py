@@ -26,7 +26,7 @@ tLat = [ENT.MQuad(5e-2,-8.2,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
         ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
         ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,7.36,"QF")]
 
-tLat = LTC.Lattice(tLat, PCL.Particle(),'dopri')
+tLat = LTC.Lattice(tLat, PCL.Particle(),'vode')
 StateList = form_state_list((5e-3,1e-3),(5e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 #%%
