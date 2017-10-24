@@ -193,7 +193,7 @@ class Wien(Element, HasCounter):
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
         self._Element__setField({'Ex':str(EField)})
-        self.fPardict.update({'R':R, 'Curve':1/R[0]})
+        self.fPardict.update({'R':R[0], 'Curve':1/R[0]})
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
@@ -223,8 +223,9 @@ class Wien(Element, HasCounter):
         R1 = self.__fR[1]
         R2 = self.__fR[2]
         V = self.__fVolt
+        KinEn0 = particle.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
-        Xk[5] -= u*1e-6/particle.fKinEn0
+        Xk[5] -= u*1e-6/KinEn0
         return Xk
         
     def rearKick(self, state, particle):
@@ -234,6 +235,7 @@ class Wien(Element, HasCounter):
         R1 = self.__fR[1]
         R2 = self.__fR[2]
         V = self.__fVolt
+        KinEn0 = particle.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
-        Xk[5] += u*1e-6/particle.fKinEn0
+        Xk[5] += u*1e-6/KinEn0
         return Xk
