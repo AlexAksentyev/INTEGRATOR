@@ -14,6 +14,7 @@ from importlib import reload
 import numpy as NP
 from matplotlib import pyplot as PLT
 import CLattice as LTC
+from utilFunc import *
 
 
 reload(ENT)
@@ -34,20 +35,39 @@ Lw = 361.55403e-2
 B = .082439761
 E = -120e5
 
-WA = ENT.Wien(Lw,1,5e-2,PCL.Particle(),B,E,Name="R3")
-#WA.setBField(B)
-#WA.setEField(E)
+
+QFA2 = ENT.MQuad(Lq, QFG, "QFA2")
+QDA2 = ENT.MQuad(Lq, QDG, "QDA2")
+
+OD1 = ENT.Drift(25e-2, "OD1")
+OD2 = ENT.Drift(25e-2, "OD2")
+BPM = ENT.Drift(15e-2, "BPM")
+
+SFP = ENT.MSext(Ls,SFPG,"SFP")
+SDP = ENT.MSext(Ls,SDPG,"SDP")
+SFN = ENT.MSext(Ls,SFNG,"SFN")
+SDN = ENT.MSext(Ls,SDNG,"SDN")
+
+R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
 #%%
 
-tLat = [ENT.MQuad(Lq, SSQFG, "QF"), ENT.Drift(25e-2, "OD"), ENT.MSext(Ls,SFPG,"SFP"), ENT.Drift(25e-2)]
+tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
+        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
+        ]
 
-tLat = LTC.Lattice(tLat, PCL.Particle(),'dopri')
-StateList = form_state_list((5e-3,1e-3),(5e-3,1e-3),1,1)
+tLat = LTC.Lattice([QFA2, OD1, SFP, OD2, R3], PCL.Particle(),'vode')
+StateList = form_state_list((0e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 #%%
 
-tLat.track(E,10)
+tLat.track(E,1)
     
 #%%
 
