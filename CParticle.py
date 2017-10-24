@@ -1,7 +1,30 @@
 import re
 import pandas as PDS
 import CElement as ENT
-import PyDSTool as DST
+import copy
+
+class DB:
+    def __init__(self):
+          self._id2name_map = {}
+          self._name2id_map = {}
+    
+    def add(self, ind, name):
+      self._name2id_map[name] = ind
+      self._id2name_map[ind] = name
+      
+    def map(self, namelist, indlist):
+        self._name2id_map.update(dict(zip(namelist,indlist)))
+        self._id2name_map.update(dict(zip(indlist,namelist)))
+
+    def by_name(self, name):
+        ind = self._name2id_map[name]
+        assert self._id2name_map[ind] == name
+        return ind
+    
+    def by_index(self, ind):
+        name = self._id2name_map[ind]
+        assert self._name2id_map[name] == ind
+        return name
 
 class Particle:
     
@@ -37,22 +60,42 @@ class Particle:
             
 class Ensemble:
     
-    def __init__(self, StateDict):
-        self.fIniStateDict = {key:value for key,value in StateDict.items()}
+    def __init__(self, StateDict, Name = "X"):
+        self.fName = Name
+        self.fIniStateDict = {Name+key:value for key,value in StateDict.items()}
         self.fCount = len(self.fIniStateDict)
+        self.__fDB = DB()
+        self.__fDB.map(self.fIniStateDict.keys(),list(range(self.fCount)))
         
     @classmethod
-    def from_state(cls, StateList):
-        names = ['X'+str(i) for i in range(len(StateList))]
+    def from_state(cls, StateList, Name = "X"):
+        names = [str(i) for i in range(len(StateList))]
         StateList = [dict(zip(ENT.Element.fArgList,e)) for e in StateList] # name state vars
         d = dict(zip(names,StateList)) # name initial conditions
-        return cls(d)
+        return cls(d, Name)
+    
+    def __add__(self, other):
+        res = copy.deepcopy(self)
+        for name,state in other.fIniStateDict.items():
+            if name in res.fIniStateDict: name += "_1"
+            res.fIniStateDict.update({name:state})
+            res.__fDB.add(res.fCount-1,name)
+            res.fCount += 1
+        return res
         
-    def __getitem__(self, index):
-        return list(self.fIniStateDict.items())[index]
+    def __getitem__(self, pid):
+        if type(pid) is int: name,index = self.__fDB.by_index(pid), pid
+        else: name,index = pid,self.__fDB.by_name(pid)
+            
+        res = {key:value for key,value in self.fIniStateDict[name].items()}
+        cols = list(res.keys())
+        res.update({'Name':name})
+        cols = ['Name']+cols
+        return PDS.DataFrame(res,index=[index])[cols]
     
     def __repr__(self):
-        return str(self.fIniStateDict)
+        pd = PDS.DataFrame(self.fIniStateDict).T
+        return str(pd)
         
     def getDataFrame(self):
             rval = PDS.DataFrame()
