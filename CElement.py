@@ -29,6 +29,9 @@ class Element:
         
     def __repr__(self):
         return str(self.getField())
+    
+    def setField(self, **kwargs):
+        self.__setField(dict(**kwargs))
         
     def __setField(self, FldDict): # field definitions given in the form name:definition, w/o signature
         inFldDict = {key:(self.fArgList, value) for key, value in FldDict.items()}
@@ -39,7 +42,7 @@ class Element:
         else: return {key:value[1] for key,value in self.fFndict.items()}
 
     def getGeometry(self):
-        return self.fPardict
+        return {key:self.fPardict[key] for key in ('Curve','R','Length','Hgap')}
 
     def frontKick(self, state, particle):
         return list(state)
