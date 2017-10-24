@@ -23,16 +23,16 @@ class Lattice:
         call('find ./radau5_temp/ -type f -exec rm {} + ', shell=True)
         
         self.fCount = len(ElSeq)
-        self.pardict = dict()
+        self.fPardict = dict()
         
         #%% global event definitions
         event_args = {'name':'NaN_event','eventtol':1e-4,'eventdelay':0,'term':True, 'active':True, 'precise':True}
         
         ## the NaN error handling event definition
-        self.pardict.update({'offset':10000}) # require Ps**2 > 100**2
+        self.fPardict.update({'offset':10000}) # require Ps**2 > 100**2
         NaN_event = DST.makeZeroCrossEvent('pow(Pc(dK),2)-pow(Pc(0),2)*(pow(px,2) + pow(py,2)) - offset',-1,
                                            event_args,varnames=['dK','px','py'], targetlang=tlang,
-                                           fnspecs=RefPart.fndict,parnames=['Mass0','KinEn0','offset'])
+                                           fnspecs=RefPart.fFndict,parnames=['Mass0','KinEn0','offset'])
 
         
         #%% constructing a DS for each element
@@ -41,9 +41,9 @@ class Lattice:
         _id=0
         self.__fLength = 0 #lattice length
         for e in ElSeq:
-            self.__fLength += e.pardict['Length']
-#            self.pardict.update({'L'+e.fName:e.pardict['Length']}) # log in the element position along the optical axis
-#            self.pardict.update({'kappa'+e.fName:e.pardict['Curve']}) # and its curvature
+            self.__fLength += e.fPardict['Length']
+#            self.fPardict.update({'L'+e.fName:e.fPardict['Length']}) # log in the element position along the optical axis
+#            self.fPardict.update({'kappa'+e.fName:e.fPardict['Curve']}) # and its curvature
             
             ## RHS for DS 
             DSargs = Lattice.setup_element(e,RefPart)
@@ -56,10 +56,10 @@ class Lattice:
              ## events
             _id +=1
             event_args.update({'name':'passto'+str(_id%self.fCount)})
-            pass_event = DST.makeZeroCrossEvent('s-'+str(e.pardict['Length']),1,event_args,varnames=['s'],parnames=list(self.pardict.keys()),targetlang=tlang)
+            pass_event = DST.makeZeroCrossEvent('s-'+str(e.fPardict['Length']),1,event_args,varnames=['s'],parnames=list(self.fPardict.keys()),targetlang=tlang)
             DSargs.events = [pass_event, NaN_event]
             
-            DSargs.pars.update(self.pardict)
+            DSargs.pars.update(self.fPardict)
             if Gen == 'DOPRI': DS = DST.Generator.Dopri_ODEsystem(DSargs)
             elif Gen == 'RADAU': DS = DST.Generator.Radau_ODEsystem(DSargs)
             else: DS = DST.Generator.Vode_ODEsystem(DSargs)
@@ -89,13 +89,9 @@ class Lattice:
     
     @classmethod
     def setup_element(cls, Element, RefPart):
-
-#        sadd = lambda *w: phi('+',*w)
-#        smult = lambda *w: phi('*',*w)
         
         ## definitions
         arg = Element.fArgStr
-#        defs = RefPart.defs
         
         # fields
         sExA = 'Ex'+arg
@@ -104,12 +100,7 @@ class Lattice:
         sBxA = 'Bx'+arg
         sByA = 'By'+arg
         sBsA = 'Bs'+arg
-        
-        # v cross B
-        det = lambda a,b,c,d: phi('-',smult(a,b),smult(c,d))
-#        sVxBx = det(defs['Vy'],sBsA,sByA,defs['Vs'])
-#        sVxBy = det(defs['Vs'],sBxA,sBsA,defs['Vx'])
-        
+
         # spin-related
         t6 =  'v4_Tp* (q / (v0_Lgamma * m0 * m0* clight * clight)) * (G + 1/(1 + v0_Lgamma))'
         sp1 = 'v4_Tp*(-q / (v0_Lgamma*m0))*(1 + G * v0_Lgamma)'
@@ -121,6 +112,7 @@ class Lattice:
         sHpA = 'v0_hs*v0_Pc/v2_Ps'
         sTpA = 'v3_Hp/v1_V'    
         
+        det = lambda a,b,c,d: phi('-',smult(a,b),smult(c,d))
         sFxATp = '1e-6*clight*'+ sadd(smult(sExA,sTpA), det(sYpA,sBsA,'1',sByA)) 
         sFyATp = '1e-6*clight*'+ sadd(smult(sEyA,sTpA), det('1',sBxA,sXpA,sBsA)) 
         
@@ -130,7 +122,7 @@ class Lattice:
         Ssp = '(-1)*Curve * Sx + v5_t6 * ((v2_Py * v0_Es - v3_Ps * v0_Ey) * Sy - (v3_Ps * v0_Ex - v2_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v2_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v2_Py)*Sx'
         
         ## 
-        reuse = RefPart.reuse
+        reuse = RefPart.fReuse
         reuse.update({
                     '(1+Curve*x)':'v0_hs',
                     sExA:'v0_Ex', sEyA:'v0_Ey', sEsA:'v0_Es',
@@ -157,8 +149,8 @@ class Lattice:
                 }
         
         DSargs = DST.args(name=Element.fName)       
-        DSargs.pars = {**RefPart.pardict, **Element.pardict}
-        DSargs.fnspecs = {**RefPart.fndict, **Element.fndict}
+        DSargs.pars = {**RefPart.fPardict, **Element.fPardict}
+        DSargs.fnspecs = {**RefPart.fFndict, **Element.fFndict}
         DSargs.reuseterms=reuse
         
         DSargs.varspecs = RHS      

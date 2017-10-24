@@ -1,21 +1,23 @@
 import numpy as NP
 import collections as CLN
 from utilFunc import phi
-
+import PyDSTool as DST
 
 
 class Element:
     
     fArgList = ['x','y','ts','px','py','dK','H','s','start','Sx','Sy','Ss']
     
+    
+    
     fArgStr = None
     
     def __init__(self, Curve, Length, Name = "Element"):
         self.fName = Name
         
-        self.pardict = {'Curve':Curve, 'Length':Length}
+        self.fPardict = {'Curve':Curve, 'Length':Length}
         
-        self.fndict = { # defines the element EM field
+        self.fFndict = { # defines the element EM field
                 'Ex':(self.fArgList, '0'),
                 'Ey':(self.fArgList, '0'),
                 'Es':(self.fArgList, '0'),
@@ -31,14 +33,14 @@ class Element:
         
     def __setField(self, FldDict): # field definitions given in the form name:definition, w/o signature
         inFldDict = {key:(self.fArgList, value) for key, value in FldDict.items()}
-        self.fndict.update(inFldDict)
+        self.fFndict.update(inFldDict)
         
     def getField(self, fulldef = False):
-        if fulldef: return self.fndict
-        else: return {key:value[1] for key,value in self.fndict.items()}
+        if fulldef: return self.fFndict
+        else: return {key:value[1] for key,value in self.fFndict.items()}
 
     def getGeometry(self):
-        return self.pardict
+        return self.fPardict
 
     def frontKick(self, state, particle):
         return list(state)
@@ -69,7 +71,7 @@ class MQuad(Element):
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
         self.__fGrad = value
-        self.pardict.update({'Grad':value})
+        self.fPardict.update({'Grad':value})
         
     def getGrad(self):
         return self.__fGrad
@@ -86,7 +88,7 @@ class MDipole(Element):
     
     def __init__(self, Length, R, BField, Name = "MDipole"):
         Element.__init__(self, 1/R, Length, Name+"_"+str(MDipole.fCount))
-        self.pardict.update({'R':R})
+        self.fPardict.update({'R':R})
         self.setBField(BField)
         MDipole.fCount += 1
         
@@ -140,7 +142,7 @@ class MSext(Element):
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(x*y)','By':str(value)+'*(x*x - y*y)','Bs':'0'})
         self.__fGrad = value
-        self.pardict.update({'Grad':value})
+        self.fPardict.update({'Grad':value})
         
     def getGrad(self):
         return self.__fGrad
@@ -154,8 +156,8 @@ class Wien(Element):
     
     def __init__(self, Length, R, Hgap, RefPart, BField=None, EField=None, Name = "Wien?"):
         Element.__init__(self, 1/R, Length, Name+"_"+str(Wien.fCount))
-        self.pardict.update({'Hgap':Hgap})
-        self.pardict.update(RefPart.pardict)
+        self.fPardict.update({'Hgap':Hgap})
+        self.fPardict.update(RefPart.fPardict)
         
         self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
         self.__fHgap = Hgap
@@ -166,17 +168,17 @@ class Wien(Element):
         Wien.fCount += 1
         
     def __GammaBeta(self):
-        Mass0 = self.pardict['Mass0']
-        K0 = self.pardict['KinEn0']
+        Mass0 = self.fPardict['Mass0']
+        K0 = self.fPardict['KinEn0']
         gamma = K0 / Mass0 + 1
         beta = NP.sqrt(gamma**2-1)/gamma
         return (gamma, beta)
     
     def __Pc(self, KNRG):
-        return NP.sqrt((self.pardict['Mass0'] + KNRG)**2 - self.pardict['Mass0']**2)
+        return NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2)
     
     def setEField(self, EField=None):
-        P0c = self.__Pc(self.pardict['KinEn0'])
+        P0c = self.__Pc(self.fPardict['KinEn0'])
         gamma, beta = self.__GammaBeta()
         if EField is None:
             R = self.__fR
@@ -189,12 +191,12 @@ class Wien(Element):
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
         self._Element__setField({'Ex':str(EField)})
-        self.pardict.update({'R':R})
+        self.fPardict.update({'R':R})
         
     def setBField(self, BField=None):        
-        e0 = self.pardict['q']
-        m0 = self.pardict['m0']
-        clight = self.pardict['clight']
+        e0 = self.fPardict['q']
+        m0 = self.fPardict['m0']
+        clight = self.fPardict['clight']
         qm = e0/(m0*clight**2)
         
         gamma, beta = self.__GammaBeta()
