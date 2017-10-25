@@ -13,6 +13,7 @@ from utilFunc import phi, sadd, smult
 
 from subprocess import call
 import re
+import copy
 
 class Lattice:
     
@@ -102,7 +103,7 @@ class Lattice:
         all_names = [e.fName for e in ElSeq]
         info = list()
         for i in range(len(MI_list)):
-            transdict = {'dK':"self.outin([x,y,ts,px,py,dK],self.RefPart)"} # this is frontkick_n+1(backkick_n(state))
+            transdict = {'dK':"self.outin([x,y,ts,px,py,dK])"} # this is frontkick_n+1(backkick_n(state))
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
             ## from Options
             try: tmap = passed_tmaps[i]
@@ -110,7 +111,7 @@ class Lattice:
             else: transdict.update(tmap)
             ##
             epmapping = DST.EvMapping(transdict, model=MI_list[i].model) # transition event state map
-            epmapping.outin = lambda state, part: DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick(state,part),part)[5] # dK is state[5]
+            epmapping.outin = lambda state: DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick(state))[5] # dK is state[5]
             epmapping.RefPart = RefPart
             info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, epmapping))]))
         
@@ -248,8 +249,12 @@ class Lattice:
         #%% sequential computation 
         # this works as expected
             
-        for name,inistate in Ensemble.fIniStateDict.items():
-            inistate.update({'start':StartID, 'at':StartID})
+        IniStateDictCopy = copy.deepcopy(Ensemble.fIniStateDict)
+        for name,inistate in IniStateDictCopy.items():
+            names = list(inistate.keys())
+            linistate = [inistate[e] for e in names]
+            dK = self.fMods[0].Element.frontKick(linistate)[5]
+            inistate.update({'start':StartID, 'at':StartID, 'dK':dK})
             self.fDSModel.compute(name,ics=inistate)
             
         Ensemble.fTrajectories = self.fDSModel.trajectories

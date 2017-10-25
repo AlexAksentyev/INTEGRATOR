@@ -46,10 +46,10 @@ class Element:
     def getGeometry(self):
         return self.fGeomdict
 
-    def frontKick(self, state, particle):
+    def frontKick(self, state):
         return list(state)
     
-    def rearKick(self, state, particle):
+    def rearKick(self, state):
         return list(state)
     
 class HasCounter:
@@ -232,26 +232,26 @@ class Wien(Element, HasCounter):
         
         self._Element__setField({'By':B})
     
-    def frontKick(self, state, particle):
+    def frontKick(self, state):
         x=state[0]
         Xk = list(state)
         R = self.__fR[0]
         R1 = self.__fR[1]
         R2 = self.__fR[2]
         V = self.__fVolt
-        KinEn0 = particle.fPardict['KinEn0']
+        KinEn0 = self.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk[5] -= u*1e-6/KinEn0
         return Xk
         
-    def rearKick(self, state, particle):
+    def rearKick(self, state):
         x=state[0]
         Xk = list(state)
         R = self.__fR[0]
         R1 = self.__fR[1]
         R2 = self.__fR[2]
         V = self.__fVolt
-        KinEn0 = particle.fPardict['KinEn0']
+        KinEn0 = self.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk[5] += u*1e-6/KinEn0
         return Xk
