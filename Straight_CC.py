@@ -50,6 +50,9 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
+StateList = form_state_list((0e-3,1e-3),(0e-3,1e-3),3,3)
+E = PCL.Ensemble.from_state(StateList)
+
 #%%
 
 tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
@@ -62,18 +65,18 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = LTC.Lattice([QFA2, OD1, SFP, OD2, R3], PCL.Particle(),'vode')
-StateList = form_state_list((0e-3,1e-3),(0e-3,1e-3),1,1)
-E = PCL.Ensemble.from_state(StateList)
+tLat = LTC.Lattice([QFA2, OD1, SFP, OD2, R3, OD2.copy()],Options={'Generator':'vode'})
+
 #%%
 
-tLat.track(E,1)
+tLat.track(E,2,'4')
     
 #%%
 
 df = E.getDataFrame()
-df = PDS.melt(df, id_vars=['PID','s'])
-dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin(E.listNames())]
-print(ggplot(dat,aes(x='s',y='value',color='variable')) + 
-     geom_line()  + theme_bw())
+dfe = df.fTransitions
+dfm = PDS.melt(df, id_vars=['PID','s','at'])
+dat = dfm.loc[dfm['variable'].isin(['x','y'])&dfm['PID'].isin(E.listNames())]
+print(ggplot(dat,aes(x='s',y='value',color='variable')) +
+     geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
 
