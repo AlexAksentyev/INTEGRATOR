@@ -16,6 +16,8 @@ class Element:
         
         self.fPardict = {'Curve':Curve, 'Length':Length}
         
+        self.fGeomdict = copy.deepcopy(self.fPardict)
+        
         self.fFndict = { # defines the element EM field
                 'Ex':(self.fArgList, '0'),
                 'Ey':(self.fArgList, '0'),
@@ -42,7 +44,7 @@ class Element:
         else: return {key:value[1] for key,value in self.fFndict.items()}
 
     def getGeometry(self):
-        return {key:self.fPardict[key] for key in ('Curve','R','Length','Hgap')}
+        return self.fGeomdict
 
     def frontKick(self, state, particle):
         return list(state)
@@ -88,7 +90,7 @@ class MQuad(Element, HasCounter):
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
         self.__fGrad = value
-        self.fPardict.update({'Grad':value})
+        self.fGeomdict.update({'Grad':value})
         
     def getGrad(self):
         return self.__fGrad
@@ -104,7 +106,7 @@ class MDipole(Element, HasCounter):
     def __init__(self, Length, R, BField, Name = "MDipole"):
         Element.__init__(self, 1/R, Length, Name)
         HasCounter.__init__(self)
-        self.fPardict.update({'R':R})
+        self.fGeomdict.update({'R':R})
         self.setBField(BField)
         
     def setBField(self,BField):
@@ -153,7 +155,7 @@ class MSext(Element, HasCounter):
     def setGrad(self, value):
         self._Element__setField({'Bx':str(value)+'*(x*y)','By':str(value)+'*(x*x - y*y)','Bs':'0'})
         self.__fGrad = value
-        self.fPardict.update({'Grad':value})
+        self.fGeomdict.update({'Grad':value})
         
     def getGrad(self):
         return self.__fGrad
@@ -176,7 +178,7 @@ class Wien(Element, HasCounter):
         
         Element.__init__(self, Crv, Length, Name)
         HasCounter.__init__(self)
-        self.fPardict.update({'Hgap':Hgap})
+        self.fGeomdict.update({'Hgap':Hgap})
         self.fPardict.update(RefPart.fPardict)
         
         self.setEField(EField)
@@ -206,7 +208,8 @@ class Wien(Element, HasCounter):
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
         self._Element__setField({'Ex':str(EField)})
-        self.fPardict.update({'R':R[0], 'Curve':1/R[0]})
+        self.fPardict.update({'Curve':1/R[0]})
+        self.fGeomdict.update({'R':R[0], 'Curve':1/R[0]})
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
