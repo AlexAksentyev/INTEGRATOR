@@ -6,6 +6,7 @@ Created on Thu Oct  5 09:19:48 2017
 @author: alexa
 """
 import PyDSTool as DST
+import collections as CLN
 #import pathos.multiprocessing as MLP
 from utilFunc import phi, sadd, smult
 
@@ -14,7 +15,14 @@ import re
 
 class Lattice:
     
-    def __init__(self, ElSeq, RefPart, Gen='dopri'):
+    def __init__(self, ElSeq, RefPart, Gen='dopri', optional=dict()):
+        
+        try: passed_events = optional['Events']
+        except KeyError:
+            passed_events = []
+        else: 
+            if type(passed_events) is not list:  
+                passed_events = list(passed_events)
         
         Gen = Gen.upper()
         if Gen == 'VODE': tlang = 'python'
@@ -58,7 +66,7 @@ class Lattice:
             _id +=1
             event_args.update({'name':'passto'+str(_id%self.fCount)})
             pass_event = DST.makeZeroCrossEvent('s-'+str(e.fPardict['Length']),1,event_args,varnames=['s'],parnames=list(self.fPardict.keys()),targetlang=tlang)
-            DSargs.events = [pass_event, NaN_event]
+            DSargs.events = [pass_event, NaN_event]+passed_events
             
             DSargs.pars.update(self.fPardict)
             if Gen == 'DOPRI': DS = DST.Generator.Dopri_ODEsystem(DSargs)
