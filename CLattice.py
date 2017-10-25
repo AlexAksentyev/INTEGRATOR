@@ -10,6 +10,7 @@ import PyDSTool as DST
 from utilFunc import phi, sadd, smult
 
 from subprocess import call
+import re
 
 class Lattice:
     
@@ -76,7 +77,7 @@ class Lattice:
         info = list()
         for i in range(len(MI_list)):
             transdict = {'dK':"self.outin([x,y,ts,px,py,dK],self.RefPart)"} # this is frontkick_n+1(backkick_n(state))
-            transdict.update({'s':'0'}) # then reset s for the next element
+            transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
             epmapping = DST.EvMapping(transdict, model=MI_list[i].model) # transition event state map
             epmapping.outin = lambda state, part: DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick(state,part),part)[5] # dK is state[5]
             epmapping.RefPart = RefPart
@@ -145,7 +146,8 @@ class Lattice:
                 'Sy' : 'v6_Syp',
                 'Ss' : 'v6_Ssp',
                 's'  : '1',
-                'start':'0'
+                'start':'0',
+                'at':'0'
                 }
         
         DSargs = DST.args(name=Element.fName)       
@@ -180,6 +182,23 @@ class Lattice:
         tstp = NTurns * self.__fLength
         self.fDSModel.tdata = [0,tstp]
         
+        ## for recurring computation
+        # somehow i can't do self.fDSmodel.cleanupMemory(), because the objects
+        # involved don't have some required attributes. Could be a python version-related issue
+        trajnames = self.fDSModel.trajectories.keys()
+        for name in Ensemble.fIniStateDict.keys():
+            if name in trajnames: 
+                try:
+                    key, ind = re.split('_',name)
+                    ind = str(int(ind) + 1)
+                except ValueError:
+                    key = re.split('_',name)[0]
+                    ind = str(1)
+                    
+                key += '_'+ind
+                Ensemble.rename(name, key)
+        
+        
         #%% parallel computation 
         # would be nice to fix it
         # however  unlikely, due to lack of knowledge of PyDSTool's internals
@@ -199,7 +218,7 @@ class Lattice:
         # this works as expected
             
         for name,inistate in Ensemble.fIniStateDict.items():
-            inistate.update({'start':StartID})
+            inistate.update({'start':StartID, 'at':StartID})
             self.fDSModel.compute(name,ics=inistate)
             
         Ensemble.fTrajectories = self.fDSModel.trajectories
