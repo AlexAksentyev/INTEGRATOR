@@ -98,21 +98,26 @@ class Ensemble:
         return str(pd)
         
     def getDataFrame(self):
-            rval = PDS.DataFrame()
-            for name, traj in self.fTrajectories.items():
-                pts = traj.sample()
-                pd = PDS.DataFrame(dict(zip(pts.coordnames, pts.coordarray)))
-                pd['s'] = pts.indepvararray
-                pd['PID'] = name
-                rval=rval.append(pd)
-                
-            return rval
+        rval = PDS.DataFrame()
+        traj0 = self.fTrajectories[self.__fDB.by_index(0)]
+        np = len(traj0.timePartitions)
+        evt = traj0(list(range(np+1)),asmap=True)['t']
+        for name, traj in self.fTrajectories.items():
+            pts = traj.sample()
+            pd = PDS.DataFrame(dict(zip(pts.coordnames, pts.coordarray)))
+            pd['s'] = pts.indepvararray
+            pd['PID'] = name
+            rval=rval.append(pd)
+           
+        rval.fTransitions = evt
+        return rval
         
     def set(self, name, **pdict):
         self.fIniStateDict[name].update(pdict)
         
     def rename(self, oldname, newname):
         self.fIniStateDict[newname] = self.fIniStateDict.pop(oldname)
+        self.__fDB.map([newname],[self.__fDB.by_name(oldname)])
         
     def listNames(self):
         return list(self.fIniStateDict.keys())
