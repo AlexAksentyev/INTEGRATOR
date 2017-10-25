@@ -101,7 +101,7 @@ class Ensemble:
         rval = PDS.DataFrame()
         traj0 = self.fTrajectories[self.__fDB.by_index(0)]
         np = len(traj0.timePartitions)
-        evt = traj0(list(range(np+1)),asmap=True)['t']
+        evt = traj0(list(range(np+1)),asmap=True)
         for name, traj in self.fTrajectories.items():
             pts = traj.sample()
             pd = PDS.DataFrame(dict(zip(pts.coordnames, pts.coordarray)))
@@ -109,7 +109,9 @@ class Ensemble:
             pd['PID'] = name
             rval=rval.append(pd)
            
-        rval.fTransitions = evt
+        rval.fTransitions = PDS.DataFrame(dict(zip(evt.coordnames, evt.coordarray)))
+        rval.fTransitions['s'] = rval.fTransitions['t']
+        rval.fTransitions.drop(['t'],axis=1,inplace=True)
         return rval
         
     def set(self, name, **pdict):
