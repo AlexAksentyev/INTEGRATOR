@@ -34,6 +34,6 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
     StateList = list()
     for x in xs:
         for y in ys:
-            StateList.append([x,y]+[0]*7+[0, 0, 1])
+            StateList.append([x,y]+[0]*6+[0, 0, 1])
     
     return StateList

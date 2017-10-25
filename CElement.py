@@ -7,7 +7,7 @@ import re
 
 class Element:
     
-    fArgList = ['x','y','ts','px','py','dK','H','s','start','Sx','Sy','Ss']
+    fArgList = ['x','y','ts','px','py','dK','H','s','Sx','Sy','Ss']
     
     fArgStr = None
     
