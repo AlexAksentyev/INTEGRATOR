@@ -7,6 +7,7 @@ Created on Thu Oct  5 09:19:48 2017
 """
 import PyDSTool as DST
 import collections as CLN
+import CParticle as PCL
 #import pathos.multiprocessing as MLP
 from utilFunc import phi, sadd, smult
 
@@ -15,14 +16,7 @@ import re
 
 class Lattice:
     
-    def __init__(self, ElSeq, RefPart, Gen='dopri', optional=dict()):
-        
-        try: passed_events = optional['Events']
-        except KeyError:
-            passed_events = []
-        else: 
-            if type(passed_events) is not list:  
-                passed_events = list(passed_events)
+    def __init__(self, ElSeq, RefPart = PCL.Particle(), Gen='dopri', Options=dict()):
         
         Gen = Gen.upper()
         if Gen == 'VODE': tlang = 'python'
@@ -35,6 +29,13 @@ class Lattice:
         self.fPardict = dict()
         
         #%% global event definitions
+        try: passed_events = Options['Events']
+        except KeyError:
+            passed_events = []
+        else: 
+            if type(passed_events) is not list:  
+                passed_events = list(passed_events)
+        
         event_args = {'name':'NaN_event','eventtol':1e-4,'eventdelay':0,'term':True, 'active':True, 'precise':True}
         
         ## the NaN error handling event definition
@@ -51,11 +52,18 @@ class Lattice:
         self.__fLength = 0 #lattice length
         for e in ElSeq:
             self.__fLength += e.fPardict['Length']
-#            self.fPardict.update({'L'+e.fName:e.fPardict['Length']}) # log in the element position along the optical axis
-#            self.fPardict.update({'kappa'+e.fName:e.fPardict['Curve']}) # and its curvature
             
             ## RHS for DS 
             DSargs = Lattice.setup_element(e,RefPart)
+            
+            try: passed_algparams = Options['algparams']
+            except KeyError:
+                passed_algparams = dict()
+            else: 
+                if not type(passed_algparams) == dict:
+                    raise TypeError('Expected a dictionary')
+            
+            DSargs.algparams = passed_algparams
             
             ## model selection
             DSargs.update({'xdomain':{'start':_id}}) #can't select the initial model w/o this
@@ -230,4 +238,3 @@ class Lattice:
             self.fDSModel.compute(name,ics=inistate)
             
         Ensemble.fTrajectories = self.fDSModel.trajectories
-            
