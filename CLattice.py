@@ -16,7 +16,10 @@ import re
 
 class Lattice:
     
-    def __init__(self, ElSeq, RefPart = PCL.Particle(), Gen='dopri', Options=dict()):
+    def __init__(self, ElSeq, RefPart = PCL.Particle(), Options=dict()):
+
+        try: Gen = Options['Generator']
+        except KeyError: Gen = 'dopri'
         
         Gen = Gen.upper()
         if Gen == 'VODE': tlang = 'python'
@@ -56,7 +59,7 @@ class Lattice:
             ## RHS for DS 
             DSargs = Lattice.setup_element(e,RefPart)
             
-            try: passed_algparams = Options['algparams']
+            try: passed_algparams = Options['Algparams']
             except KeyError:
                 passed_algparams = dict()
             else: 
@@ -89,11 +92,23 @@ class Lattice:
         self.fMods = DS_list
         
         #%% construction of the hybrid model
+        try: passed_tmaps = Options['T-maps']
+        except KeyError:
+            passed_tmaps = dict()
+        else:
+            if not type(passed_tmaps) == dict:
+                raise TypeError('Expected a dictionaty of dicts: element index: {x:map, y:map, ...}')
+        
         all_names = [e.fName for e in ElSeq]
         info = list()
         for i in range(len(MI_list)):
             transdict = {'dK':"self.outin([x,y,ts,px,py,dK],self.RefPart)"} # this is frontkick_n+1(backkick_n(state))
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
+            ## from Options
+            try: tmap = passed_tmaps[i]
+            except KeyError: pass
+            else: transdict.update(tmap)
+            ##
             epmapping = DST.EvMapping(transdict, model=MI_list[i].model) # transition event state map
             epmapping.outin = lambda state, part: DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick(state,part),part)[5] # dK is state[5]
             epmapping.RefPart = RefPart
