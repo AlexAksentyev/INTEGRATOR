@@ -48,9 +48,11 @@ class Element:
         return self.fGeomdict
 
     def frontKick(self, state):
+        print('Enter element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by 0')        
         return list(state)
     
     def rearKick(self, state):
+        print('Enter element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by 0')        
         return list(state)
     
 class HasCounter:
@@ -60,8 +62,7 @@ class HasCounter:
     
     def __init__(self):
         super().__init__()
-        if 'fName' not in self.__dict__.keys():
-            self.fName = 'NoName'    
+        if 'fName' not in self.__dict__.keys(): self.fName = 'NoName'    
         self.fName += self.__fSep+str(self.__class__.fCount)
         self.__class__.fCount += 1
 
@@ -202,7 +203,7 @@ class Wien(Element, HasCounter):
         
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
-        self._Element__setField({'Ex':str(EField)})
+        self._Element__setField({'Ex':str(EField)+'/(1+Curve*x)'})
         self.fPardict.update({'Curve':1/R[0]})
         self.fGeomdict.update({'R':R[0], 'Curve':1/R[0]})
         
@@ -237,6 +238,7 @@ class Wien(Element, HasCounter):
         KinEn0 = self.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk[5] -= u*1e-6/KinEn0
+        print('Enter element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by '+str(-u*1e-6/KinEn0))
         return Xk
         
     def rearKick(self, state):
@@ -249,4 +251,5 @@ class Wien(Element, HasCounter):
         KinEn0 = self.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk[5] += u*1e-6/KinEn0
+        print('Exit element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by '+str(+u*1e-6/KinEn0))
         return Xk
