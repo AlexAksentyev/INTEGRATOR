@@ -104,31 +104,22 @@ class Lattice:
         info = list()
         for i in range(len(MI_list)):
             ## transition event mapping dictionary
-            transdict = {'dK':"self.outin([x,y,ts,px,py,dK,at,t])"} # this is frontkick_n+1(backkick_n(state))
+            transdict = {'dK':"self.outin([x,y,ts,px,py,dK])"} # this is frontkick_n+1(backkick_n(state))
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
             # from Options
             try: tmap = passed_tmaps[i]
             except KeyError: pass
             else: transdict.update(tmap)
             # transition event state map
-            tem = DST.EvMapping(transdict, model=MI_list[i].model) 
+            tem = DST.EvMapping(transdict, model=DS_list[i]) 
             # transition from element i to element i+1
             tem.outin = lambda state: DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick(state))[5] # dK is state[5]
             info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, tem))]))
             
-            ## upon exiting from accelerator
-#            exitdict = {'dK':"self.exit([x,y,ts,px,py,dK])"}
-            # exit event state map
-#            eem = DST.EvMapping(exitdict, model=MI_list[i].model) 
-#            eem.exit = lambda state: DS_list[i].Element.rearKick(state)[5] # dK is state[5]
-#            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('time',('terminate', eem))]))
-            
-        
         modelInfoDict = DST.makeModelInfo(info)
         
         mod_args = {'name':'lattice','modelInfo':modelInfoDict}
         self.fDSModel = DST.Model.HybridModel(mod_args)
-        self.fModInfo = modelInfoDict
     
     @classmethod
     def setup_element(cls, Element, RefPart):
@@ -263,9 +254,8 @@ class Lattice:
         for name,inistate in IniStateDictCopy.items():
             inistate.update({'start':StartID, 'at':StartID})
             names = list(inistate.keys())
-            names = ['x','y','ts','px','py','dK','at','s']
             linistate = [inistate[e] for e in names]
-            dK = self.fMods[int(StartID)].Element.frontKick(linistate)[5]
+            dK = self.fMods[int(StartID)].Element.frontKick(linistate)[5] # state[5] = dK
             inistate.update({'dK':dK})
             self.fDSModel.compute(name,ics=inistate)
             
