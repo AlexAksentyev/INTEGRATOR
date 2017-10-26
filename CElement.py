@@ -77,14 +77,14 @@ class Drift(Element, HasCounter):
     """
     
     def __init__(self, Length, Name = "Drift"):
-        super().__init__(0,Length,Name)
+        super().__init__(Curve=0,Length=Length,Name=Name)
 
 class MQuad(Element, HasCounter):
     """ magnetic quadrupole
     """
 
     def __init__(self, Length, Grad, Name = "MQuad"):
-        super().__init__(0,Length,Name)
+        super().__init__(Curve=0,Length=Length,Name=Name)
         self.setGrad(Grad)   
         
     def setGrad(self, value):
@@ -104,7 +104,7 @@ class MDipole(Element, HasCounter):
     """
     
     def __init__(self, Length, R, BField, Name = "MDipole"):
-        super().__init__(1/R,Length,Name)
+        super().__init__(Curve=1/R,Length=Length,Name=Name)
         self.fGeomdict.update({'R':R})
         self.setBField(BField)
         
@@ -126,19 +126,18 @@ class MDipole(Element, HasCounter):
         return particle.Pc(particle.fKinEn0)*1e6/(BField*particle.CLIGHT())
   
 
-class Solenoid(MDipole, HasCounter):
+class MSol(Element, HasCounter):
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
-        super().__init__(0,Length,Name)
-        self.setBField((0,0,Bs))
+        super().__init__(Curve=0,Length=Length,Name=Name)
+        self.setBField(Bs)
         
-    @classmethod
-    def computeBStrength(cls, *args):
-        print('Not defined')
+    def setBField(self, BField):
+        self.__fBField = (0,0,BField)
+        self._Element__setField({'Bs':BField})
         
-    @classmethod
-    def computeRadius(cls, *args):
-        print('Infinite radius = zero curvature')
+    def getBField(self):
+        return self.__fBField
         
 
 class MSext(Element, HasCounter):
@@ -146,7 +145,7 @@ class MSext(Element, HasCounter):
     """
     
     def __init__(self, Length, Grad, Name = "MSext"):
-        super().__init__(0,Length,Name)
+        super().__init__(Curve=0,Length=Length,Name=Name)
         self.setGrad(Grad)
         
     def setGrad(self, value):
@@ -173,7 +172,7 @@ class Wien(Element, HasCounter):
             
         self.__fHgap = Hgap
         
-        super().__init__(Crv,Length,Name)
+        super().__init__(Curve=Crv,Length=Length,Name=Name)
         self.fGeomdict.update({'Hgap':Hgap})
         self.fPardict.update(RefPart.fPardict)
         
