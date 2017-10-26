@@ -12,6 +12,7 @@ class Element:
     fArgStr = None
     
     def __init__(self, Curve, Length, Name = "Element"):
+        super().__init__()
         self.fName = Name
         
         self.fPardict = {'Curve':Curve, 'Length':Length}
@@ -58,6 +59,7 @@ class HasCounter:
     __fSep = "_"
     
     def __init__(self):
+        super().__init__()
         if 'fName' not in self.__dict__.keys():
             self.fName = 'NoName'    
         self.fName += self.__fSep+str(self.__class__.fCount)
@@ -75,16 +77,14 @@ class Drift(Element, HasCounter):
     """
     
     def __init__(self, Length, Name = "Drift"):
-        Element.__init__(self, 0, Length, Name)
-        HasCounter.__init__(self)
+        super().__init__(0,Length,Name)
 
 class MQuad(Element, HasCounter):
     """ magnetic quadrupole
     """
 
     def __init__(self, Length, Grad, Name = "MQuad"):
-        Element.__init__(self, 0, Length, Name)
-        HasCounter.__init__(self)
+        super().__init__(0,Length,Name)
         self.setGrad(Grad)   
         
     def setGrad(self, value):
@@ -104,8 +104,7 @@ class MDipole(Element, HasCounter):
     """
     
     def __init__(self, Length, R, BField, Name = "MDipole"):
-        Element.__init__(self, 1/R, Length, Name)
-        HasCounter.__init__(self)
+        super().__init__(1/R,Length,Name)
         self.fGeomdict.update({'R':R})
         self.setBField(BField)
         
@@ -130,8 +129,7 @@ class MDipole(Element, HasCounter):
 class Solenoid(MDipole, HasCounter):
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
-        Element.__init__(self, 0, Length, Name)
-        HasCounter.__init__(self)
+        super().__init__(0,Length,Name)
         self.setBField((0,0,Bs))
         
     @classmethod
@@ -148,8 +146,7 @@ class MSext(Element, HasCounter):
     """
     
     def __init__(self, Length, Grad, Name = "MSext"):
-        Element.__init__(self, 0, Length, Name)
-        HasCounter.__init__(self)
+        super().__init__(0,Length,Name)
         self.setGrad(Grad)
         
     def setGrad(self, value):
@@ -167,7 +164,7 @@ class Wien(Element, HasCounter):
     
     def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R = None, Name = "Wien?"):
         
-        assert any([e is not None for e in [EField, R]]), "Either the E-field, or Radius must be defined"
+        if all([e is None for e in [EField, R]]): raise Exception("Either the E-field, or Radius must be defined")
         
         if R is None: Crv = None
         else: 
@@ -176,8 +173,7 @@ class Wien(Element, HasCounter):
             
         self.__fHgap = Hgap
         
-        Element.__init__(self, Crv, Length, Name)
-        HasCounter.__init__(self)
+        super().__init__(Crv,Length,Name)
         self.fGeomdict.update({'Hgap':Hgap})
         self.fPardict.update(RefPart.fPardict)
         
