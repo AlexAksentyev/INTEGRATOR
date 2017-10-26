@@ -12,7 +12,6 @@ class Element:
     fArgStr = None
     
     def __init__(self, Curve, Length, Name = "Element"):
-        super().__init__()
         self.fName = Name
         
         self.fPardict = {'Curve':Curve, 'Length':Length}
@@ -29,6 +28,7 @@ class Element:
                 }
         
         self.fArgStr = phi(',',*self.fArgList) # argument string '(x,y,...)' for RHS definition
+        super().__init__()
         
     def __repr__(self):
         return str(self.getField())
@@ -47,12 +47,10 @@ class Element:
     def getGeometry(self):
         return self.fGeomdict
 
-    def frontKick(self, state):
-        print('Enter element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by 0')        
+    def frontKick(self, state):      
         return list(state)
     
-    def rearKick(self, state):
-        print('Enter element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by 0')        
+    def rearKick(self, state):       
         return list(state)
     
 class HasCounter:
@@ -61,10 +59,10 @@ class HasCounter:
     __fSep = "_"
     
     def __init__(self):
-        super().__init__()
         if 'fName' not in self.__dict__.keys(): self.fName = 'NoName'    
         self.fName += self.__fSep+str(self.__class__.fCount)
         self.__class__.fCount += 1
+        super().__init__()
 
     def copy(self, Name = None):
         self.__class__.fCount += 1
@@ -238,7 +236,7 @@ class Wien(Element, HasCounter):
         KinEn0 = self.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk[5] -= u*1e-6/KinEn0
-        print('Enter element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by '+str(-u*1e-6/KinEn0))
+        print('front')
         return Xk
         
     def rearKick(self, state):
@@ -251,5 +249,5 @@ class Wien(Element, HasCounter):
         KinEn0 = self.fPardict['KinEn0']
         u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
         Xk[5] += u*1e-6/KinEn0
-        print('Exit element '+self.fName+'('+str(state[6])+','+'s = '+str(state[7])+'); dK changed by '+str(+u*1e-6/KinEn0))
+        print('rear')
         return Xk
