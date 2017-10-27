@@ -3,6 +3,7 @@ import collections as CLN
 from utilFunc import phi
 import copy
 import re
+import PyDSTool as DST
 
 
 class Element:
@@ -47,11 +48,13 @@ class Element:
     def getGeometry(self):
         return self.fGeomdict
 
-    def frontKick(self, state):      
-        return list(state)
+    def frontKick(self, arg):   
+        print('front kick, element {}, V {}'.format(self.fName, 0))
+        return 'dK'
     
-    def rearKick(self, state):       
-        return list(state)
+    def rearKick(self, arg):   
+        print('rear kick, element {}, V {}'.format(self.fName, 0))
+        return 'dK'
     
 class HasCounter:
     fCount = 0
@@ -226,28 +229,22 @@ class Wien(Element, HasCounter):
         
         self._Element__setField({'By':B})
     
-    def frontKick(self, state):
-        x=state[0]
-        Xk = list(state)
-        R = self.__fR[0]
-        R1 = self.__fR[1]
-        R2 = self.__fR[2]
-        V = self.__fVolt
-        KinEn0 = self.fPardict['KinEn0']
-        u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
-        Xk[5] -= u*1e-6/KinEn0
-        print('front')
-        return Xk
+    def frontKick(self, arg):
+        R = str(self.__fR[0])
+        R1 = str(self.__fR[1])
+        R2 = str(self.__fR[2])
+        V = str(self.__fVolt)
+        KinEn0 = str(self.fPardict['KinEn0'])
+        f = '{} - (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
+        print('front kick, element {}, V {}'.format(self.fName, V))
+        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)
         
-    def rearKick(self, state):
-        x=state[0]
-        Xk = list(state)
-        R = self.__fR[0]
-        R1 = self.__fR[1]
-        R2 = self.__fR[2]
-        V = self.__fVolt
-        KinEn0 = self.fPardict['KinEn0']
-        u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
-        Xk[5] += u*1e-6/KinEn0
-        print('rear')
-        return Xk
+    def rearKick(self, arg):
+        R = str(self.__fR[0])
+        R1 = str(self.__fR[1])
+        R2 = str(self.__fR[2])
+        V = str(self.__fVolt)
+        KinEn0 = str(self.fPardict['KinEn0'])
+        f = '{} + (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
+        print('rear kick, element {}, V {}'.format(self.fName, V))
+        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)

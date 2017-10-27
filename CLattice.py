@@ -14,6 +14,7 @@ from utilFunc import phi, sadd, smult
 from subprocess import call
 import re
 import copy
+import math
 
 class Lattice:
     
@@ -104,16 +105,16 @@ class Lattice:
         info = list()
         for i in range(len(MI_list)):
             ## transition event mapping dictionary
-            transdict = {'dK':"self.outin([x,y,ts,px,py,dK])"} # this is frontkick_n+1(backkick_n(state))
+            outin = DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick('dK'))
+            transdict = {'dK':outin} # this is frontkick_n+1(backkick_n(state))
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
             # from Options
             try: tmap = passed_tmaps[i]
             except KeyError: pass
             else: transdict.update(tmap)
             # transition event state map
-            tem = DST.EvMapping(transdict, model=DS_list[i]) 
+            tem = DST.EvMapping(transdict, infodict={'vars':DS_list[i].Element.fArgList+['at'], 'pars':[]}) 
             # transition from element i to element i+1
-            tem.outin = lambda state: DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick(state))[5] # dK is state[5]
             info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, tem))]))
             
         modelInfoDict = DST.makeModelInfo(info)
@@ -253,10 +254,11 @@ class Lattice:
         IniStateDictCopy = copy.deepcopy(Ensemble.fIniStateDict)
         for name,inistate in IniStateDictCopy.items():
             inistate.update({'start':StartID, 'at':StartID})
-            names = list(inistate.keys())
-            linistate = [inistate[e] for e in names]
-            dK = self.fMods[int(StartID)].Element.frontKick(linistate)[5] # state[5] = dK
-            inistate.update({'dK':dK})
+#            f_def = self.fMods[int(StartID)].Element.frontKick('dK')
+#            f_fun = DST.Fun(f_def,[],'InjFront')
+#            f_py = DST.expr2fun(f_fun)
+#            dK = f_py(inistate['dK'], math.log ,inistate['x'])
+#            inistate.update({'dK':dK})
             self.fDSModel.compute(name,ics=inistate)
             
         Ensemble.fTrajectories = self.fDSModel.trajectories
