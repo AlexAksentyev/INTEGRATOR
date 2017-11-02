@@ -69,7 +69,7 @@ tLat = LTC.Lattice([OD1, SFN, R3],Options={'Generator':'vode'})
 
 #%%
 
-tLat.track(E,2,'0')
+tLat.track(E,4,'0')
     
 #%%
 

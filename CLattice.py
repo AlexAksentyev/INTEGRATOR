@@ -15,7 +15,6 @@ from utilFunc import phi, sadd, smult
 from subprocess import call
 import re
 import copy
-import math
 
 class Lattice:
     
