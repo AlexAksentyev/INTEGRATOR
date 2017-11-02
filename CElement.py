@@ -173,6 +173,8 @@ class Wien(Element, HasCounter):
     The magnetic field definition is weird
     """
     
+    __f0 = None
+    
     def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R = None, Name = "Wien?"):
         
         if all([e is None for e in [EField, R]]): raise Exception("Either the E-field, or Radius must be defined")
@@ -218,6 +220,14 @@ class Wien(Element, HasCounter):
         self.fPardict.update({'Curve':1/R[0]})
         self.fGeomdict.update({'R':R[0], 'Curve':1/R[0]})
         
+        #define a subfunction for use in kicks
+        R0 = float(R[0])
+        x = DST.Var('x')
+        
+        self.__f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
+                     1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
+                     1/8*(x/R0)**8,['x'],'sub')
+        
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
         m0 = self.fPardict['m0']
@@ -249,12 +259,7 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
-                     1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
-                     1/8*(x/R0)**8,['x'],'sub')
-        
-        f = DST.Fun(dK - (-V + 2*V*f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Front')
-#        f = DST.Fun(dK - (R0+x),self.fArgList,'Front')
+        f = DST.Fun(dK - (-V + 2*V*self.__f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Front')
         print('front kick, element {}, V {}'.format(self.fName, V))
         return f
         
@@ -272,27 +277,7 @@ class Wien(Element, HasCounter):
                          1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
                          1/8*(x/R0)**8,['x'],'sub')
         
-        f = DST.Fun(dK + (-V + 2*V*f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Rear')
-#        f = DST.Fun(dK + (R0+x),self.fArgList,'Front')
+        f = DST.Fun(dK + (-V + 2*V*self.__f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Rear')
         print('rear kick, element {}, V {}'.format(self.fName, V))
         return f
     
-#    def frontKick(self, arg):
-#        R = str(self.__fR[0])
-#        R1 = str(self.__fR[1])
-#        R2 = str(self.__fR[2])
-#        V = str(self.__fVolt)
-#        KinEn0 = str(self.fPardict['KinEn0'])
-#        f = '{} - (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
-#        print('front kick, element {}, V {}'.format(self.fName, V))
-#        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)
-#        
-#    def rearKick(self, arg):
-#        R = str(self.__fR[0])
-#        R1 = str(self.__fR[1])
-#        R2 = str(self.__fR[2])
-#        V = str(self.__fVolt)
-#        KinEn0 = str(self.fPardict['KinEn0'])
-#        f = '{} + (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
-#        print('rear kick, element {}, V {}'.format(self.fName, V))
-#        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)
