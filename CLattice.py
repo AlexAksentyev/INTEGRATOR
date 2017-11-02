@@ -4,6 +4,14 @@
 Created on Thu Oct  5 09:19:48 2017
 
 @author: alexa
+
+To do:
+    * not sure how to make the terminal event at each DS
+    where if the integration time's up, perform tem0 mapping and exit
+    
+    * looking at the trajectories when the kicks are on/off, beginning to doubt
+    the necessity of kicks: trajectories look wrong w/kicks; not only dK, but x too...
+    though, w/out them, the energy values used in computations are different
 """
 import PyDSTool as DST
 import collections as CLN
@@ -104,26 +112,31 @@ class Lattice:
         
         all_names = [e.fName for e in ElSeq]
         info = list()
-        dK = DST.Var('dK')
         for i in range(len(MI_list)):
-            print(i)
             ## transition event mapping dictionary
             front = DS_list[(i+1)%self.fCount].Element.frontKick()
             rear = DS_list[i%self.fCount].Element.rearKick()
             front.mapNames({'dK':rear(*self.fArgList)()}) # this is frontkick_n+1(backkick_n(state))
             outin = front(*self.fArgList)
-#            transdict = {'dK':outin()}
-            transdict = DST.args(dK=outin)
-            print(transdict)
+### !!!!!!!! TESTING THE DIFFERENCE BETWEEN KICKS/NO KICKS
+            transdict = DST.args(dK=outin) # TESTING !!!
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
+            # if this element is last
+            outin0 = rear(*self.fArgList)
+            transdict0 = DST.args(dK=outin0)
+### !!!!!!! UNNECESSARY HERE; BUT USEFUL
+            transdict0.update({'at':'-1'}) # IF DID FINAL KICK, INDICATE
             # from Options
             try: tmap = passed_tmaps[i]
             except KeyError: pass
             else: transdict.update(tmap)
             # transition event state map
             tem = DST.EvMapping(transdict, infodict={'vars':DS_list[i].Element.fArgList+['at'], 'pars':[]}) 
-            # transition from element i to element i+1
-            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, tem))]))
+            tem0 = DST.EvMapping(transdict0, infodict={'vars':DS_list[i].Element.fArgList+['at'], 'pars':[]}) 
+            # transition from element i to element i+1...
+### !!! FINAL KICK NOT WORKING
+            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, tem))]))#,
+#                                               ('time',('terminate', tem0))])) # ... and the final kick
             
         modelInfoDict = DST.makeModelInfo(info)
         
@@ -262,11 +275,9 @@ class Lattice:
         IniStateDictCopy = copy.deepcopy(Ensemble.fIniStateDict)
         for name,inistate in IniStateDictCopy.items():
             inistate.update({'start':StartID, 'at':StartID})
-#            f_def = self.fMods[int(StartID)].Element.frontKick('dK')
-#            f_fun = DST.Fun(f_def,[],'InjFront')
-#            f_py = DST.expr2fun(f_fun)
-#            dK = f_py(inistate['dK'], math.log ,inistate['x'])
-#            inistate.update({'dK':dK})
+            f_def = self.fMods[int(StartID)].Element.frontKick()
+            dK = f_def.eval(**inistate).tonumeric()
+            inistate.update({'dK':dK})
             self.fDSModel.compute(name,ics=inistate)
             
         Ensemble.fTrajectories = self.fDSModel.trajectories
