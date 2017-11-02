@@ -50,12 +50,12 @@ class Element:
     
     def frontKick(self):
         dK = DST.Var('dK')
-        print('front kick, element {}, V {}'.format(self.fName, 0))
+        print('front kick, {}'.format(self.fName))
         return DST.Fun(dK, self.fArgList,'Front')
     
     def rearKick(self):   
         dK = DST.Var('dK')
-        print('rear kick, element {}, V {}'.format(self.fName, 0))
+        print('rear kick, {}'.format(self.fName))
         return DST.Fun(dK, self.fArgList,'Rear')
 
 #    def frontKick(self, arg):   
@@ -226,7 +226,7 @@ class Wien(Element, HasCounter):
         
         self.__f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
                      1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
-                     1/8*(x/R0)**8,['x'],'sub')
+                     1/8*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10,['x'],'sub')
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
@@ -250,7 +250,7 @@ class Wien(Element, HasCounter):
         self._Element__setField({'By':B})
         
     def frontKick(self):
-        R0 = float(self.__fR[0])
+#        R0 = float(self.__fR[0])
         R1 = float(self.__fR[1])
         R2 = float(self.__fR[2])
         V = float(self.__fVolt)
@@ -260,11 +260,11 @@ class Wien(Element, HasCounter):
         dK = DST.Var('dK')
         
         f = DST.Fun(dK - (-V + 2*V*self.__f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Front')
-        print('front kick, element {}, V {}'.format(self.fName, V))
+        print('front kick, {}'.format(self.fName))
         return f
         
     def rearKick(self):
-        R0 = float(self.__fR[0])
+#        R0 = float(self.__fR[0])
         R1 = float(self.__fR[1])
         R2 = float(self.__fR[2])
         V = float(self.__fVolt)
@@ -273,11 +273,7 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
-                         1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
-                         1/8*(x/R0)**8,['x'],'sub')
-        
         f = DST.Fun(dK + (-V + 2*V*self.__f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Rear')
-        print('rear kick, element {}, V {}'.format(self.fName, V))
+        print('rear kick, {}'.format(self.fName))
         return f
     
