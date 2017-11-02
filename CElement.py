@@ -3,7 +3,6 @@ import collections as CLN
 from utilFunc import phi
 import copy
 import re
-import math
 import PyDSTool as DST
 
 
@@ -250,7 +249,11 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK - (-V + 2*V*(DST.Log(R0/R1)+x/R0)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Front')
+        f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
+                     1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
+                     1/8*(x/R0)**8,['x'],'sub')
+        
+        f = DST.Fun(dK - (-V + 2*V*f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Front')
 #        f = DST.Fun(dK - (R0+x),self.fArgList,'Front')
         print('front kick, element {}, V {}'.format(self.fName, V))
         return f
@@ -265,7 +268,11 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK + (-V + 2*V*(DST.Log(R0/R1)+x/R0)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Rear')
+        f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
+                         1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
+                         1/8*(x/R0)**8,['x'],'sub')
+        
+        f = DST.Fun(dK + (-V + 2*V*f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Rear')
 #        f = DST.Fun(dK + (R0+x),self.fArgList,'Front')
         print('rear kick, element {}, V {}'.format(self.fName, V))
         return f
