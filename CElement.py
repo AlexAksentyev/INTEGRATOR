@@ -3,6 +3,7 @@ import collections as CLN
 from utilFunc import phi
 import copy
 import re
+import math
 import PyDSTool as DST
 
 
@@ -47,14 +48,24 @@ class Element:
 
     def getGeometry(self):
         return self.fGeomdict
-
-    def frontKick(self, arg):   
-        print('front kick, element {}, V {}'.format(self.fName, 0))
-        return 'dK'
     
-    def rearKick(self, arg):   
+    def frontKick(self):
+        dK = DST.Var('dK')
+        print('front kick, element {}, V {}'.format(self.fName, 0))
+        return DST.Fun(dK, self.fArgList,'Front')
+    
+    def rearKick(self):   
+        dK = DST.Var('dK')
         print('rear kick, element {}, V {}'.format(self.fName, 0))
-        return 'dK'
+        return DST.Fun(dK, self.fArgList,'Rear')
+
+#    def frontKick(self, arg):   
+#        print('front kick, element {}, V {}'.format(self.fName, 0))
+#        return 'dK'
+#    
+#    def rearKick(self, arg):   
+#        print('rear kick, element {}, V {}'.format(self.fName, 0))
+#        return 'dK'
     
 class HasCounter:
     fCount = 0
@@ -185,11 +196,11 @@ class Wien(Element, HasCounter):
         Mass0 = self.fPardict['Mass0']
         K0 = self.fPardict['KinEn0']
         gamma = K0 / Mass0 + 1
-        beta = NP.sqrt(gamma**2-1)/gamma
+        beta = float(NP.sqrt(gamma**2-1)/gamma)
         return (gamma, beta)
     
     def __Pc(self, KNRG):
-        return NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2)
+        return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
     
     def setEField(self, EField=None):
         P0c = self.__Pc(self.fPardict['KinEn0'])
@@ -228,23 +239,53 @@ class Wien(Element, HasCounter):
         B = B[1:len(B)-1]
         
         self._Element__setField({'By':B})
-    
-    def frontKick(self, arg):
-        R = str(self.__fR[0])
-        R1 = str(self.__fR[1])
-        R2 = str(self.__fR[2])
-        V = str(self.__fVolt)
-        KinEn0 = str(self.fPardict['KinEn0'])
-        f = '{} - (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
-        print('front kick, element {}, V {}'.format(self.fName, V))
-        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)
         
-    def rearKick(self, arg):
-        R = str(self.__fR[0])
-        R1 = str(self.__fR[1])
-        R2 = str(self.__fR[2])
-        V = str(self.__fVolt)
-        KinEn0 = str(self.fPardict['KinEn0'])
-        f = '{} + (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
+    def frontKick(self):
+        R0 = float(self.__fR[0])
+        R1 = float(self.__fR[1])
+        R2 = float(self.__fR[2])
+        V = float(self.__fVolt)
+        KinEn0 = float(self.fPardict['KinEn0'])
+        
+        x = DST.Var('x')
+        dK = DST.Var('dK')
+        
+        f = DST.Fun(dK - (-V + 2*V*(DST.Log(R0/R1)+x/R0)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Front')
+#        f = DST.Fun(dK - (R0+x),self.fArgList,'Front')
+        print('front kick, element {}, V {}'.format(self.fName, V))
+        return f
+        
+    def rearKick(self):
+        R0 = float(self.__fR[0])
+        R1 = float(self.__fR[1])
+        R2 = float(self.__fR[2])
+        V = float(self.__fVolt)
+        KinEn0 = float(self.fPardict['KinEn0'])
+            
+        x = DST.Var('x')
+        dK = DST.Var('dK')
+        
+        f = DST.Fun(dK + (-V + 2*V*(DST.Log(R0/R1)+x/R0)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Rear')
+#        f = DST.Fun(dK + (R0+x),self.fArgList,'Front')
         print('rear kick, element {}, V {}'.format(self.fName, V))
-        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)
+        return f
+    
+#    def frontKick(self, arg):
+#        R = str(self.__fR[0])
+#        R1 = str(self.__fR[1])
+#        R2 = str(self.__fR[2])
+#        V = str(self.__fVolt)
+#        KinEn0 = str(self.fPardict['KinEn0'])
+#        f = '{} - (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
+#        print('front kick, element {}, V {}'.format(self.fName, V))
+#        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)
+#        
+#    def rearKick(self, arg):
+#        R = str(self.__fR[0])
+#        R1 = str(self.__fR[1])
+#        R2 = str(self.__fR[2])
+#        V = str(self.__fVolt)
+#        KinEn0 = str(self.fPardict['KinEn0'])
+#        f = '{} + (-{} + 2*{}*math.log(({} + x)/{})/math.log({}/{}))*1e-6/{}'
+#        print('rear kick, element {}, V {}'.format(self.fName, V))
+#        return f.format(arg, V, V, R, R1, R2, R1, KinEn0)

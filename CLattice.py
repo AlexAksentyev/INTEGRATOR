@@ -8,6 +8,7 @@ Created on Thu Oct  5 09:19:48 2017
 import PyDSTool as DST
 import collections as CLN
 import CParticle as PCL
+import CElement as ENT
 #import pathos.multiprocessing as MLP
 from utilFunc import phi, sadd, smult
 
@@ -32,6 +33,7 @@ class Lattice:
         
         self.fCount = len(ElSeq)
         self.fPardict = dict()
+        self.fArgList = ENT.Element.fArgList
         
         #%% global event definitions
         try: passed_events = Options['Events']
@@ -103,10 +105,17 @@ class Lattice:
         
         all_names = [e.fName for e in ElSeq]
         info = list()
+        dK = DST.Var('dK')
         for i in range(len(MI_list)):
+            print(i)
             ## transition event mapping dictionary
-            outin = DS_list[(i+1)%self.fCount].Element.frontKick(DS_list[i%self.fCount].Element.rearKick('dK'))
-            transdict = {'dK':outin} # this is frontkick_n+1(backkick_n(state))
+            front = DS_list[(i+1)%self.fCount].Element.frontKick()
+            rear = DS_list[i%self.fCount].Element.rearKick()
+            front.mapNames({'dK':rear(*self.fArgList)()}) # this is frontkick_n+1(backkick_n(state))
+            outin = front(*self.fArgList)
+#            transdict = {'dK':outin()}
+            transdict = DST.args(dK=outin)
+            print(transdict)
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
             # from Options
             try: tmap = passed_tmaps[i]
