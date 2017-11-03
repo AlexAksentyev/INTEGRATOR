@@ -1,8 +1,6 @@
 from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
-import PyDSTool as DST
-import pycse as CSE
 import re
 
 class Particle:
@@ -49,7 +47,7 @@ class Particle:
         self.__fState = value[:]
     
     def __RHS(self, state, at, element):
-        x,y,t,px,py,dEn,Sx,Sy,Ss,H,s = state # px, py are normalized to P0c for consistency with the other vars, i think
+        x,y,t,H,s,px,py,dEn,Sx,Sy,Ss = state # px, py are normalized to P0c for consistency with the other vars, i think
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -109,7 +107,7 @@ class Particle:
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
         
-        DX = [xp, yp, tp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp, Hp, 1]
+        DX = [xp, yp, tp, Hp, 1, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp]
         
         return DX
     
@@ -139,25 +137,24 @@ class Particle:
         x = [self.fStateLog[i][0] for i in self.fStateLog]
         y = [self.fStateLog[i][1] for i in self.fStateLog]
         t = [self.fStateLog[i][2] for i in self.fStateLog]
-        px = [self.fStateLog[i][3] for i in self.fStateLog]
-        py = [self.fStateLog[i][4] for i in self.fStateLog]
-        dW = [self.fStateLog[i][5] for i in self.fStateLog]
-        Sx = [self.fStateLog[i][6] for i in self.fStateLog]
-        Sy = [self.fStateLog[i][7] for i in self.fStateLog]
-        Ss = [self.fStateLog[i][8] for i in self.fStateLog]
-        H = [self.fStateLog[i][9] for i in self.fStateLog]
-        s = [self.fStateLog[i][10] for i in self.fStateLog]
+        H = [self.fStateLog[i][3] for i in self.fStateLog]
+        s = [self.fStateLog[i][4] for i in self.fStateLog]
+        px = [self.fStateLog[i][5] for i in self.fStateLog]
+        py = [self.fStateLog[i][6] for i in self.fStateLog]
+        dW = [self.fStateLog[i][7] for i in self.fStateLog]
+        Sx = [self.fStateLog[i][8] for i in self.fStateLog]
+        Sy = [self.fStateLog[i][9] for i in self.fStateLog]
+        Ss = [self.fStateLog[i][10] for i in self.fStateLog]
         trn = [x[0] for x in list(self.fStateLog.keys())]
         el = [re.sub('_.*','',x[1]) for x in list(self.fStateLog.keys())]
         
-        return PDS.DataFrame({'x':x,'y':y,'t':t,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'H':H,'s':s,'Element':el, 'Turn':trn})
+        return PDS.DataFrame({'x':x,'y':y,'t':t,'H':H,'s':s,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'Element':el, 'Turn':trn})
 
 
 class Ensemble:
     """ Ensemble of particles; handles tracking of multiple particles. 
     Create a bunch of worker nodes and call particle.track for the particles
     """
-    __fParticle = dict() # dictionary of particle pointers
     
     def __init__(self, ParticleList):
         self.addParticles(ParticleList)
@@ -169,7 +166,9 @@ class Ensemble:
     
     def addParticles(self, ParticleList):
         names = [e for e in range(len(ParticleList))]
+        svars = ['x','y','t','H','s','px','py','dK','Sx','Sy','Ss']
         self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
+        self.fIniStateDict = {key:dict(zip(svars, value.getState())) for (key,value) in zip(names, ParticleList)}
         
     def getParticles(self):
         return self.__fParticle
@@ -194,6 +193,10 @@ class Ensemble:
         
     def __getitem__(self, index):
         return self.__fParticle[index]
+    
+    def __repr__(self):
+        pd = PDS.DataFrame(self.fIniStateDict).T
+        return str(pd)
     
     
 class EventHandler:
