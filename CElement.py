@@ -11,13 +11,17 @@ class Element:
         self.fCurve = Curve
         self.fLength = Length
         self.fName = Name
+        
+        self.__fEField = (0,0,0)
+        self.__fBFIeld = (0,0,0)
+        
         super().__init__()
     
     def EField(self,arg):
-        return (0,0,0)
+        return self.__fEField
     
     def BField(self,arg):
-        return (0,0,0)
+        return self.__fBFIeld
 
     def frontKick(self,particle):
         pass # do nothing
@@ -62,7 +66,8 @@ class MQuad(Element, HasCounter):
         self.__fGrad = Grad
         
     def BField(self, arg):
-        x,y = arg[0:2]
+        x = arg['x']
+        y = arg['y']
         return (self.__fGrad*y, self.__fGrad*x,0)
         
 
@@ -91,10 +96,6 @@ class MDipole(Element, HasCounter):
     @classmethod
     def computeRadius(cls,particle, BField): 
         return particle.Pc(particle.fKinEn0)*1e6/(BField*particle.CLIGHT())
-        
-        
-    def BField(self, arg):
-        return self.__fBField
   
 
 class Solenoid(Element, HasCounter):
@@ -113,7 +114,8 @@ class MSext(Element, HasCounter):
         self.__fGrad = Grad
         
     def BField(self, arg):
-        x,y=arg[0:2]
+        x = arg['x']
+        y = arg['y']
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
 class Wien(Element, HasCounter):
@@ -185,12 +187,12 @@ class Wien(Element, HasCounter):
         self.__fBField = (0, BField, 0)
         
     def EField(self, arg):
-        x = arg[0]
+        x = arg['x']
         Ex = self.__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
-        x =  arg[0]
+        x =  arg['x']
         
         e0 = self.fPardict['q']
         m0 = self.fPardict['m0']
@@ -218,17 +220,17 @@ class Wien(Element, HasCounter):
         return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
     
     def frontKick(self, particle):
-        x=particle.getState()[0]
+        x=particle.getState()['x']
         u = self.__U(x)
         Xk = particle.getState()
-        Xk[5] -= u*1e-6/particle.fKinEn0
+        Xk['dK'] -= u*1e-6/particle.fKinEn0
         particle.setState(Xk)
         
     def rearKick(self, particle):
-        x=particle.getState()[0]
+        x=particle.getState()['x']
         u = self.__U(x)
         Xk = particle.getState()
-        Xk[5] += u*1e-6/particle.fKinEn0
+        Xk['dK'] += u*1e-6/particle.fKinEn0
         particle.setState(Xk)
         
     
@@ -241,7 +243,7 @@ class ERF(Element, HasCounter):
         self.fAmplitude, self.fFreq, self.fPhase = RF_params
         
     def EField(self, arg):
-        t = arg[2]
+        t = arg['t']
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase

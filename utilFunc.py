@@ -7,6 +7,7 @@ Created on Thu Oct 19 12:53:58 2017
 """
 
 import numpy as NP
+import CParticle as PCL
 
 def phi(operation,*w):
     s = '('
@@ -30,11 +31,12 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
     xs = NP.linspace(xint[0],xint[1],Nx)
     ys = NP.linspace(yint[0],yint[1],Ny)
     
+    names = PCL.Particle.fArgList
     
     StateList = list()
     for x in xs:
         for y in ys:
-            StateList.append([x,y]+[0]*6+[0, 0, 1])
+            StateList.append(dict(zip(names, [x,y]+[0]*6+[0, 0, 1])))
     
     return StateList
 
