@@ -13,11 +13,12 @@ import CElement as ENT
 from importlib import reload
 import numpy as NP
 from matplotlib import pyplot as PLT
-from utilFunc import *
+import utilFunc as U
 
 
 reload(ENT)
 reload(PCL)
+reload(U)
 
 
 Lq = 5e-2
@@ -48,9 +49,11 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
-StateList = form_state_list((5e-3,1e-3),(5e-3,1e-3),1,1)
-E = PCL.Ensemble.from_state(StateList)
+RF = ENT.ERF(10e-2, (100, 100e6, 0))
 
+StateList = U.form_state_list((5e-3,5e-3),(5e-3,10e-3),2,1)
+E = PCL.Ensemble.from_state(StateList)
+E[0].set(dK=1e-4)
 #%%
 
 tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
@@ -65,23 +68,31 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track(tLat,5,'0')
+E.track([OD1, RF, OD2],200,'0')
     
 #%%
 
 df = E.getDataFrame()
-df['X[cm]'] = df['y']*100 # these two are switched
-df['Y[cm]'] = df['x']*100 # for comparison with Optim
-df['L[cm]'] = df['s']*100
-dfm = PDS.melt(df, id_vars=['PID','s','Element','L[cm]'])
-dat = dfm.loc[dfm['variable'].isin(['X[cm]','Y[cm]'])&dfm['PID'].isin(E.listNames())]
-print(ggplot(dat,aes(x='s',y='value',color='variable')) +
-     geom_line() + geom_point() + theme_bw())
+df['dK'] = df['dK']
+#df['X[cm]'] = df['x']*100
+#df['Y[cm]'] = df['y']*100 
+#df['L[cm]'] = df['s']*100
+dfm = PDS.melt(df, id_vars=['PID','Element','s[cm]'])
+dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
+print(ggplot(dat,aes(x='s[cm]',y='value',color='variable')) + facet_wrap('PID',scales='free_y')+
+     geom_line() + theme_bw())
 
 
 #%%
+
+Sx0 = df[df['PID']==0]['Sx']
+Sx1 = df[df['PID']==1]['Sx']
+
+print(PLT.plot(Sx0-Sx1))
+
+#%%
 ## data from optim
-d = read_optim_data(name='StrSec.txt')
+d = U.read_optim_data(name='StrSec.txt')
 dm = PDS.melt(d,id_vars=['N','L','NAME'])
 dat2 = dm.loc[dm['variable'].isin(['X[cm]','Y[cm]'])]
 print(ggplot(dat2, aes(x='L',y='value',color='variable')) +
