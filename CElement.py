@@ -100,17 +100,8 @@ class MDipole(Element, HasCounter):
 class Solenoid(Element, HasCounter):
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
-        Element.__init__(self, 0, Length, Name+"_"+str(Solenoid.fCount))
-        self.setBField((0,0,Bs))
-        Solenoid.fCount += 1
-        
-    @classmethod
-    def computeBStrength(cls, *args):
-        print('Not defined')
-        
-    @classmethod
-    def computeRadius(cls, *args):
-        print('Infinite radius = zero curvature')
+        super().__init__(self, Curve=0, Length=Length, Name=Name)
+        self.__fField = (0,0,Bs)
         
 
 class MSext(Element, HasCounter):
@@ -241,3 +232,17 @@ class Wien(Element, HasCounter):
         particle.setState(Xk)
         
     
+class ERF(Element, HasCounter):
+    """ RF element
+    """
+    
+    def __init__(self, Length, RF_params = (0,0,0), Name = "RF"):
+        super().__init__(Curve=0,Length=Length,Name=Name)
+        self.fAmplitude, self.fFreq, self.fPhase = RF_params
+        
+    def EField(self, arg):
+        t = arg[2]
+        A = self.fAmplitude
+        w = self.fFreq*2*NP.pi
+        phi = self.fPhase
+        return (0, 0, A*NP.cos(w*t+phi))
