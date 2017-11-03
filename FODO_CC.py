@@ -19,6 +19,8 @@ for x in xs:
 
 #%%
 
+d = ENT.Drift(5)
+
 tLat = [ENT.MQuad(5e-2,-.82,"QD")]#, ENT.Drift(25e-2), ENT.Drift(15e-2),
 #        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
 #        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF"),

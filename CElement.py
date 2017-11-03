@@ -10,6 +10,7 @@ class Element:
         self.fCurve = Curve
         self.fLength = Length
         self.fName = Name
+        super().__init__()
     
     def EField(self,arg):
         return (0,0,0)
