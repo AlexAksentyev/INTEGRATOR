@@ -141,14 +141,14 @@ class Particle:
         s = [self.fStateLog[i][4] for i in self.fStateLog]
         px = [self.fStateLog[i][5] for i in self.fStateLog]
         py = [self.fStateLog[i][6] for i in self.fStateLog]
-        dW = [self.fStateLog[i][7] for i in self.fStateLog]
+        dK = [self.fStateLog[i][7] for i in self.fStateLog]
         Sx = [self.fStateLog[i][8] for i in self.fStateLog]
         Sy = [self.fStateLog[i][9] for i in self.fStateLog]
         Ss = [self.fStateLog[i][10] for i in self.fStateLog]
         trn = [x[0] for x in list(self.fStateLog.keys())]
         el = [re.sub('_.*','',x[1]) for x in list(self.fStateLog.keys())]
         
-        return PDS.DataFrame({'x':x,'y':y,'t':t,'H':H,'s':s,'px':px,'py':py,'dW':dW,'Sx':Sx,'Sy':Sy,'Ss':Ss,'Element':el, 'Turn':trn})
+        return PDS.DataFrame({'x':x,'y':y,'t':t,'H':H,'s':s,'px':px,'py':py,'dK':dK,'Sx':Sx,'Sy':Sy,'Ss':Ss,'Element':el, 'Turn':trn})
 
 
 class Ensemble:
