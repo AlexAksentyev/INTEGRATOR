@@ -2,6 +2,7 @@ import numpy as NP
 import collections as CLN
 import copy
 import re
+import math
 
 
 class Element:
@@ -129,59 +130,114 @@ class Wien(Element, HasCounter):
     The magnetic field definition is weird
     """
     
-    def __init__(self, Length, R, Hgap, Voltage, BField, Name = "Wien?"):
-        super().__init__(Curve=1/R, Length=Length, Name=Name)
-        self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
-        self.__fVolt = Voltage
-        self.__fBField = BField
+    def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R=None, Name = "Wien?"):
         
-    @staticmethod
-    def computeVoltage(particle, R, Hgap):
-        gamma,beta = particle.GammaBeta(particle.fKinEn0)
-        R = [R, R-Hgap, R**2/(R-Hgap)]
-        E0 = - particle.Pc(particle.fKinEn0)*beta/R[0] * 1e6
-        return (E0 * R[0] * NP.log(R[2] / R[1])) / (-2)
+        if all([e is None for e in [EField, R]]): raise Exception("Either the E-field, or Radius must be defined")
+        
+        if R is None: Crv = None
+        else: 
+            Crv = 1/R
+            self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
+            
+        self.__fHgap = Hgap
+        
+        q = RefPart.EZERO()
+        clight = RefPart.CLIGHT()
+        self.fPardict = {'KinEn0':RefPart.fKinEn0, 'Mass0':RefPart.fMass0,
+                         'q':q, 'clight':clight,
+                         'm0':RefPart.fMass0/clight**2*1e6*q}
+        
+        super().__init__(Curve=Crv,Length=Length,Name=Name)
+        
+        self.setEField(EField)
+        self.setBField(BField)
+        
+    def setEField(self, EField=None):
+        P0c = self.__Pc(self.fPardict['KinEn0'])
+        gamma, beta = self.__GammaBeta()
+        if EField is None:
+            R = self.__fR
+            EField = - P0c*beta/R[0] * 1e6
+        else:
+            assert EField < 0, "Incorrect field value ({} >= 0)".format(EField)
+            R = - P0c*beta/EField * 1e6
+            self.__fR = [R, R - self.__fHgap, R**2/(R-self.__fHgap)]
+            R = self.__fR
+        
+        self.fCurve = 1/R[0]
+        self.__fEField = (EField,0,0)
+        self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
+        
+        #define a subfunction for use in kicks
+        R0 = float(R[0])
+        R1 = float(self.__fR[1])
+        R2 = float(self.__fR[2])
+        V = float(self.__fVolt)
+        
+        self.__f0 = lambda x: (x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
+                     .2*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
+                     .125*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10) #log(1+x/R)
+        
+        self.__U = lambda x: (-V + 2*V*math.log((R0+x)/R1)/math.log(R2/R1)) # DK = q*U
     
-    @staticmethod
-    def computeBStrength(particle, R, Hgap): # no idea about the end-formula here
-        x = particle.getState()[0]
-        gamma,beta = particle.GammaBeta(particle.fKinEn0)
-        R = [R, R-Hgap, R**2/(R-Hgap)]
-        E0 = - particle.Pc(particle.fKinEn0)*beta/R[0] * 1e6
-        qm = particle.EZERO()/particle.fMass0
-        k = qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
+    def setBField(self, BField=None):        
         
-        v=beta*particle.CLIGHT()
-        B0 = -E0/v # this yields .46 for the deuteron at 270 MeV, as expected 
-        k = k*1.18
-        return 0.018935*(-B0)*(-1/R[0] + k*B0*v)*x
+        clight = self.fPardict['clight']
+        gamma, beta = self.__GammaBeta()        
+        
+        v = beta*clight
+        
+        if BField is None:
+            if self.__fEField is None: self.setEField()
+            BField = -self.__fEField[0]/v
+        
+        self.__fBField = (0, BField, 0)
         
     def EField(self, arg):
         x = arg[0]
-        Ex = -2*self.__fVolt/(NP.log(self.__fR[2]/self.__fR[1])*(self.__fR[0]+x))
+        Ex = self.__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
-    def BField(self, arg):        
-        return (0, self.__fBField, 0)
+    def BField(self, arg):
+        x =  arg[0]
+        
+        e0 = self.fPardict['q']
+        m0 = self.fPardict['m0']
+        clight = self.fPardict['clight']
+        qm = e0/(m0*clight**2)
+        
+        gamma, beta = self.__GammaBeta()
+        v = beta*clight
+        
+        k = 1.18 * qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
+        h = 1/self.__fR[0]
+        
+        B0 = self.__fBField[1]
+        B1 = .018935*(-B0)*(-h+k*v*B0)*x
+        return (0, B1, 0)
+    
+    def __GammaBeta(self):
+        Mass0 = self.fPardict['Mass0']
+        K0 = self.fPardict['KinEn0']
+        gamma = K0 / Mass0 + 1
+        beta = float(NP.sqrt(gamma**2-1)/gamma)
+        return (gamma, beta)
+    
+    def __Pc(self, KNRG):
+        return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
     
     def frontKick(self, particle):
         x=particle.__fState[0]
-        R = self.__fR[0]
-        R1 = self.__fR[1]
-        R2 = self.__fR[2]
-        V = self.__fVolt
-        u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
+        u = self.__U(x)
         Xk = particle.getState()
         Xk[5] -= u*1e-6/particle.fKinEn0
         particle.setState(Xk)
         
     def rearKick(self, particle):
         x=particle.__fState[0]
-        R = self.__fR[0]
-        R1 = self.__fR[1]
-        R2 = self.__fR[2]
-        V = self.__fVolt
-        u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
+        u = self.__U(x)
         Xk = particle.getState()
         Xk[5] += u*1e-6/particle.fKinEn0
         particle.setState(Xk)
+        
+    
