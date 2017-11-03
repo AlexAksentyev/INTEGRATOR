@@ -63,7 +63,7 @@ class MQuad(Element, HasCounter):
         
     def BField(self, arg):
         x,y = arg[0:2]
-        return (-self.__fGrad*y, -self.__fGrad*x,0)
+        return (self.__fGrad*y, self.__fGrad*x,0)
         
 
 class MDipole(Element, HasCounter):
