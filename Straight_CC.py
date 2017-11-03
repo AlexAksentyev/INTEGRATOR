@@ -65,7 +65,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track(tLat,5,'0')
+E.track([R3, OD1, BPM],5,'0')
     
 #%%
 
