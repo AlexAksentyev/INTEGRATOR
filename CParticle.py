@@ -58,6 +58,8 @@ class Particle:
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
         
         Ex,Ey,Es = element.EField(state)
+        assert not NP.isnan(t), 'NAN time'
+#        print('Element {}, t = {}, Es = {}'.format(element.fName, t, Es))
         Bx,By,Bs = element.BField(state)
         
         kappa = element.fCurve
@@ -134,11 +136,11 @@ class Particle:
             
         
     def getDataFrame(self):
-        x = [self.fStateLog[i][0] for i in self.fStateLog]
-        y = [self.fStateLog[i][1] for i in self.fStateLog]
+        x = [self.fStateLog[i][0]*100 for i in self.fStateLog]
+        y = [self.fStateLog[i][1]*100 for i in self.fStateLog]
         t = [self.fStateLog[i][2] for i in self.fStateLog]
         H = [self.fStateLog[i][3] for i in self.fStateLog]
-        s = [self.fStateLog[i][4] for i in self.fStateLog]
+        s = [self.fStateLog[i][4]*100 for i in self.fStateLog]
         px = [self.fStateLog[i][5] for i in self.fStateLog]
         py = [self.fStateLog[i][6] for i in self.fStateLog]
         dK = [self.fStateLog[i][7] for i in self.fStateLog]
@@ -148,7 +150,11 @@ class Particle:
         trn = [x[0] for x in list(self.fStateLog.keys())]
         el = [re.sub('_.*','',x[1]) for x in list(self.fStateLog.keys())]
         
-        return PDS.DataFrame({'x':x,'y':y,'t':t,'H':H,'s':s,'px':px,'py':py,'dK':dK,'Sx':Sx,'Sy':Sy,'Ss':Ss,'Element':el, 'Turn':trn})
+        return PDS.DataFrame({'X[cm]':x,'Y[cm]':y,'t':t,'H':H,'s[cm]':s,'px':px,'py':py,'dK':dK,'Sx':Sx,'Sy':Sy,'Ss':Ss,'Element':el, 'Turn':trn})
+    
+#    def set(self,**kwargs):
+#        self.__fIniState.update(**kwargs)
+#        self.fStateLog = {}
 
 
 class Ensemble:
