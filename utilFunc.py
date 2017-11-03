@@ -37,3 +37,9 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
             StateList.append([x,y]+[0]*6+[0, 0, 1])
     
     return StateList
+
+
+def read_optim_data(where = '/home/alexa/REPOS/data/', name = 'StrSec.txt'):
+    import pandas as PDS
+    d = PDS.read_table(where+name,delim_whitespace=True)
+    return d

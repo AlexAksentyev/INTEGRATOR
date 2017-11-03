@@ -6,7 +6,7 @@ Created on Mon Oct 23 15:55:02 2017
 @author: alexa
 """
 
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline, ggtitle
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -65,13 +65,43 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track([R3, OD1, BPM],5,'0')
+E.track(tLat,5,'0')
     
 #%%
 
 df = E.getDataFrame()
-dfm = PDS.melt(df, id_vars=['PID','s'])
-dat = dfm.loc[dfm['variable'].isin(['x','y','dK'])&dfm['PID'].isin(E.listNames())]
+df['X[cm]'] = df['y']*100 # these two are switched
+df['Y[cm]'] = df['x']*100 # for comparison with Optim
+df['L[cm]'] = df['s']*100
+dfm = PDS.melt(df, id_vars=['PID','s','Element','L[cm]'])
+dat = dfm.loc[dfm['variable'].isin(['X[cm]','Y[cm]'])&dfm['PID'].isin(E.listNames())]
 print(ggplot(dat,aes(x='s',y='value',color='variable')) +
-     geom_line() + theme_bw())
+     geom_line() + geom_point() + theme_bw())
 
+
+#%%
+## data from optim
+d = read_optim_data(name='StrSec.txt')
+dm = PDS.melt(d,id_vars=['N','L','NAME'])
+dat2 = dm.loc[dm['variable'].isin(['X[cm]','Y[cm]'])]
+print(ggplot(dat2, aes(x='L',y='value',color='variable')) +
+      geom_line() + theme_bw())
+
+#%%
+## merging both data frames for comparison
+assert len(NP.unique(dat['PID'])) == 1, 'More than one particle'
+dat2['L[cm]'] = dat2['L']
+dat2=dat2.drop(['L','N'],axis=1)
+dat2['From'] = 'Optim'
+
+dat['NAME'] = dat['Element']
+dat=dat.drop(['PID','Element','s'],axis=1)
+dat['From'] = 'Vanilla'
+
+dat3 = dat2.append(dat)
+
+#%%
+print(ggplot(dat3, aes(x='L[cm]',y='value',color='From')) + 
+      geom_line() + 
+      facet_grid('variable') + theme_bw() +
+      ggtitle('Switched X, Y (vanilla) for numeric comparison'))
