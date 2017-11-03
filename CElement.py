@@ -210,6 +210,7 @@ class Wien(Element, HasCounter):
             R = self.__fR
             EField = - P0c*beta/R[0] * 1e6
         else:
+            assert EField < 0, "Incorrect field value ({} >= 0)".format(EField)
             R = - P0c*beta/EField * 1e6
             self.__fR = [R, R - self.__fHgap, R**2/(R-self.__fHgap)]
             R = self.__fR
@@ -222,11 +223,16 @@ class Wien(Element, HasCounter):
         
         #define a subfunction for use in kicks
         R0 = float(R[0])
+        R1 = float(self.__fR[1])
+        R2 = float(self.__fR[2])
+        V = float(self.__fVolt)
         x = DST.Var('x')
         
         self.__f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
-                     1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
-                     1/8*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10,['x'],'sub')
+                     .2*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
+                     .125*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10,['x'],'taylor') #log(1+x/R)
+        
+        self.__U = DST.Fun(-V + 2*V*self.__f0(x)/DST.Log(R2/R1), ['x'], 'volts') # DK = q*U
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
@@ -250,30 +256,22 @@ class Wien(Element, HasCounter):
         self._Element__setField({'By':B})
         
     def frontKick(self):
-#        R0 = float(self.__fR[0])
-        R1 = float(self.__fR[1])
-        R2 = float(self.__fR[2])
-        V = float(self.__fVolt)
         KinEn0 = float(self.fPardict['KinEn0'])
         
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK - (-V + 2*V*self.__f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Front')
+        f = DST.Fun(dK - self.__U(x)*1e-6/KinEn0,self.fArgList,'Front')
         print('front kick, {}'.format(self.fName))
         return f
         
     def rearKick(self):
-#        R0 = float(self.__fR[0])
-        R1 = float(self.__fR[1])
-        R2 = float(self.__fR[2])
-        V = float(self.__fVolt)
         KinEn0 = float(self.fPardict['KinEn0'])
             
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK + (-V + 2*V*self.__f0(x)/DST.Log(R2/R1))*1e-6/KinEn0,self.fArgList,'Rear')
+        f = DST.Fun(dK + self.__U(x)*1e-6/KinEn0,self.fArgList,'Rear')
         print('rear kick, {}'.format(self.fName))
         return f
     
