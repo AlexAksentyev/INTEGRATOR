@@ -1,6 +1,7 @@
 import numpy as NP
 import collections as CLN
-
+import copy
+import re
 
 
 class Element:
@@ -21,47 +22,58 @@ class Element:
     
     def rearKick(self,particle):
         pass # do nothing
+        
+        
+class HasCounter:
+    fCount = 0
+    
+    __fSep = "_"
+    
+    def __init__(self):
+        if 'fName' not in self.__dict__.keys(): self.fName = 'NoName'    
+        self.fName += self.__fSep+str(self.__class__.fCount)
+        self.__class__.fCount += 1
+        super().__init__()
 
-class Drift(Element):
+    def copy(self, Name = None):
+        self.__class__.fCount += 1
+        res = copy.deepcopy(self)
+        if Name is None: res.fName = re.sub(self.__fSep+'.*',self.__fSep+str(res.__class__.fCount-1),res.fName)
+        else: res.fName = Name
+        return res
+        
+
+class Drift(Element, HasCounter):
     """ drift space
     """
     
-    fCount = 0
-    
     def __init__(self, Length, Name = "Drift"):
-        Element.__init__(self, 0, Length, Name+"_"+str(Drift.fCount))
-        Drift.fCount += 1
+        super().__init__(Curve=0, Length=Length, Name=Name)
         
 
-class MQuad(Element):
+class MQuad(Element, HasCounter):
     """ magnetic quadrupole
     """
     
-    fCount = 0
-    
     def __init__(self, Length, Grad, Name = "MQuad"):
-        Element.__init__(self, 0, Length, Name+"_"+str(MQuad.fCount))
+        super().__init__(Curve=0, Length=Length, Name=Name)
         self.__fGrad = Grad
-        MQuad.fCount += 1
         
     def BField(self, arg):
         x,y = arg[0:2]
         return (-self.__fGrad*y, -self.__fGrad*x,0)
         
 
-class MDipole(Element):
+class MDipole(Element, HasCounter):
     """ bending magnetic dipole (horizontally bending);
     define _BField as a tuple;
     could also be used as a solenoid, if _BField = (0,0,Bz)
     and fCurve = 0
     """
     
-    fCount = 0
-    
     def __init__(self, Length, R, BField, Name = "MDipole"):
-        Element.__init__(self, 1/R, Length, Name+"_"+str(MDipole.fCount))
+        super().__init__(Curve=1/R, Length=Length, Name=Name)
         self.setBField(BField)
-        MDipole.fCount += 1
         
     def setBField(self,BField):
         if not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
@@ -83,9 +95,7 @@ class MDipole(Element):
         return self.__fBField
   
 
-class Solenoid(MDipole):
-    
-    fCount = 0
+class Solenoid(Element, HasCounter):
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
         Element.__init__(self, 0, Length, Name+"_"+str(Solenoid.fCount))
@@ -101,34 +111,28 @@ class Solenoid(MDipole):
         print('Infinite radius = zero curvature')
         
 
-class MSext(Element):
+class MSext(Element, HasCounter):
     """ magnetic sextupole
     """
     
-    fCount = 0
-    
     def __init__(self, Length, Grad, Name = "MSext"):
-        Element.__init__(self, 0, Length, Name+"_"+str(MSext.fCount))
+        super().__init__(Curve=0, Length=Length, Name=Name)
         self.__fGrad = Grad
-        MSext.fCount += 1
         
     def BField(self, arg):
         x,y=arg[0:2]
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
-class Wien(Element):
+class Wien(Element, HasCounter):
     """ wien filter ?!?! 
     The magnetic field definition is weird
     """
     
-    fCount = 0
-    
     def __init__(self, Length, R, Hgap, Voltage, BField, Name = "Wien?"):
-        Element.__init__(self, 1/R, Length, Name+"_"+str(Wien.fCount))
+        super().__init__(Curve=1/R, Length=Length, Name=Name)
         self.__fR = [R, R - Hgap, R**2/(R-Hgap)]
         self.__fVolt = Voltage
         self.__fBField = BField
-        Wien.fCount += 1
         
     @staticmethod
     def computeVoltage(particle, R, Hgap):
