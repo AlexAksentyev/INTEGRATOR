@@ -227,14 +227,14 @@ class Wien(Element, HasCounter):
         return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
     
     def frontKick(self, particle):
-        x=particle.__fState[0]
+        x=particle.getState()[0]
         u = self.__U(x)
         Xk = particle.getState()
         Xk[5] -= u*1e-6/particle.fKinEn0
         particle.setState(Xk)
         
     def rearKick(self, particle):
-        x=particle.__fState[0]
+        x=particle.getState()[0]
         u = self.__U(x)
         Xk = particle.getState()
         Xk[5] += u*1e-6/particle.fKinEn0

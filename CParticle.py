@@ -173,6 +173,9 @@ class Ensemble:
         
     def getParticles(self):
         return self.__fParticle
+    
+    def listNames(self):
+        return list(self.__fParticle.keys())
         
     def track(self, ElementSeq, ntimes, FWD = True):
         for pcl in self.__fParticle.values():
