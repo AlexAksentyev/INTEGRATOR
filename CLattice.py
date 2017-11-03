@@ -9,9 +9,6 @@ To do:
     * not sure how to make the terminal event at each DS
     where if the integration time's up, perform tem0 mapping and exit
     
-    * looking at the trajectories when the kicks are on/off, beginning to doubt
-    the necessity of kicks: trajectories look wrong w/kicks; not only dK, but x too...
-    though, w/out them, the energy values used in computations are different
 """
 import PyDSTool as DST
 import collections as CLN
@@ -114,18 +111,14 @@ class Lattice:
         info = list()
         for i in range(len(MI_list)):
             ## transition event mapping dictionary
-            front = DS_list[(i+1)%self.fCount].Element.frontKick()
             rear = DS_list[i%self.fCount].Element.rearKick()
-            front.mapNames({'dK':rear(*self.fArgList)()}) # this is frontkick_n+1(backkick_n(state))
-            outin = front(*self.fArgList)
-### !!!!!!!! TESTING THE DIFFERENCE BETWEEN KICKS/NO KICKS
-            transdict = DST.args(dK=outin) # TESTING !!!
+            front = DS_list[(i+1)%self.fCount].Element.frontKick()
+            front.mapNames({'dK':rear(*self.fArgList)()}) # update to frontkick_n+1(backkick_n(state))
+            transdict = DST.args(dK=front(*self.fArgList)) 
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
             # if this element is last
-            outin0 = rear(*self.fArgList)
-            transdict0 = DST.args(dK=outin0)
-### !!!!!!! UNNECESSARY HERE; BUT USEFUL
-            transdict0.update({'at':'-1'}) # IF DID FINAL KICK, INDICATE
+            transdict0 = DST.args(dK=rear(*self.fArgList))
+            transdict0.update({'at':'-1'}) # if did final kick, indicate
             # from Options
             try: tmap = passed_tmaps[i]
             except KeyError: pass
@@ -230,8 +223,7 @@ class Lattice:
         name = ArgDict['name']
         print(name)
         self.fDSModel.compute(name,ics=inistate,tdata=tdata)
-        return self.fDSModel
-        
+        return self.fDSModel        
     
     def track(self, Ensemble, NTurns, StartID = '0'):
         tstp = NTurns * self.__fLength
