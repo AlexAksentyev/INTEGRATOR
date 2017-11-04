@@ -232,7 +232,7 @@ class Wien(Element, HasCounter):
                      1/5*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
                      1/8*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10,['x'],'taylor')
         
-        self.__U = DST.Fun((-V + 2*V*self.__f0(x)/DST.Log(R2/R1)), ['x'], 'volts')
+        self.__U = DST.Fun((-V + 2*V*(DST.Log(R0/R1) + self.__f0(x))/DST.Log(R2/R1)), ['x'], 'volts')
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
