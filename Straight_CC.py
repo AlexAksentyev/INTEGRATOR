@@ -6,7 +6,7 @@ Created on Mon Oct 23 15:55:02 2017
 @author: alexa
 """
 
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
+#from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -65,7 +65,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = LTC.Lattice([R3, BPM, OD1, OD2],Options={'Generator':'vode'})
+tLat = LTC.Lattice([R3],Options={'Generator':'vode'})
 
 #%%
 
@@ -75,10 +75,16 @@ traj = E.fTrajectories['X0']
 #%%
 
 df = E.getDataFrame()
-dfe = df.fTransitions
-df = dfe; df['PID'] = 'X0'
-dfm = PDS.melt(df, id_vars=['PID','s','at'])
-dat = dfm.loc[dfm['variable'].isin(['x','y','dK'])&dfm['PID'].isin(E.listNames())]
-print(ggplot(dat,aes(x='s',y='value',color='variable')) +
-     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
+#dfe = df.fTransitions
+#df = dfe; df['PID'] = 'X0'
+#dfm = PDS.melt(df, id_vars=['PID','s','at'])
+#dat = dfm.loc[dfm['variable'].isin(['x','y','dK'])&dfm['PID'].isin(E.listNames())]
+#print(ggplot(dat,aes(x='s',y='value',color='variable')) +
+#     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
+
+#%%
+PLT.plot(df['s'],df['x']*1e3,label='x')
+PLT.plot(df['s'],df['y']*1e3,label='y')
+PLT.xlabel('m'); PLT.ylabel('mm')
+PLT.legend()
 

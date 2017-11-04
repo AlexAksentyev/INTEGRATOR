@@ -114,18 +114,15 @@ class Lattice:
         info = list()
         for i in range(len(MI_list)):
             ## transition event mapping dictionary
-            front = DS_list[(i+1)%self.fCount].Element.frontKick()
             rear = DS_list[i%self.fCount].Element.rearKick()
+            front = DS_list[(i+1)%self.fCount].Element.frontKick()
             front.mapNames({'dK':rear(*self.fArgList)()}) # this is frontkick_n+1(backkick_n(state))
-            outin = front(*self.fArgList)
 ### !!!!!!!! TESTING THE DIFFERENCE BETWEEN KICKS/NO KICKS
-            transdict = DST.args(dK=outin) # TESTING !!!
+            transdict = DST.args(dK=front(*self.fArgList)) # TESTING !!!
             transdict.update({'s':'0','at':'(at+1)%'+str(self.fCount)}) # then reset s for the next element
             # if this element is last
-            outin0 = rear(*self.fArgList)
-            transdict0 = DST.args(dK=outin0)
-### !!!!!!! UNNECESSARY HERE; BUT USEFUL
-            transdict0.update({'at':'-1'}) # IF DID FINAL KICK, INDICATE
+            transdict0 = DST.args(dK=rear(*self.fArgList))
+            transdict0.update({'at':'-1'}) # if did final kick, indicate
             # from Options
             try: tmap = passed_tmaps[i]
             except KeyError: pass
