@@ -263,7 +263,7 @@ class Wien(Element, HasCounter):
         dK = DST.Var('dK')
         
         f = DST.Fun(dK - self.__U(x)*1e-6/KinEn0,self.fArgList,'Front')
-        print('rear kick {}, voltage {}'.format(self.fName, self.__U(3e-3)))
+        print('rear kick {}'.format(self.fName))
         return f
         
     def rearKick(self):
@@ -274,6 +274,8 @@ class Wien(Element, HasCounter):
         dK = DST.Var('dK')
         
         f = DST.Fun(dK + self.__U(x)*1e-6/KinEn0,self.fArgList,'Rear')
-        print('rear kick {}, voltage {}'.format(self.fName, self.__U(3e-3)))
+        print('rear kick {}'.format(self.fName))
         return f
     
+    def kickVolts(self, x):
+        return (self.__fVolt, self.__U(x).tonumeric())
