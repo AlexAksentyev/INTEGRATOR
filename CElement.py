@@ -173,6 +173,10 @@ class Wien(Element, HasCounter):
         
         self.__U = lambda x: (-V + 2*V*math.log((R0+x)/R1)/math.log(R2/R1)) # DK = q*U
     
+    
+    def kickVolts(self, x):
+        return self.__U(x)
+    
     def setBField(self, BField=None):        
         
         clight = self.fPardict['clight']
