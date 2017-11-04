@@ -20,15 +20,19 @@ for x in xs:
 
 #%%
 
-tLat = [ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF"),
-        ENT.MQuad(5e-2,.736,"QF"), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82,"QD"),
-        ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF")]
+d = ENT.Drift(5)
+
+tLat = [ENT.MQuad(5e-2,-.82,"QD")]#, ENT.Drift(25e-2), ENT.Drift(15e-2),
+#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF"),
+#        ENT.MQuad(5e-2,.736,"QF"), ENT.Drift(25e-2), ENT.Drift(15e-2),
+#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82,"QD"),
+#        ENT.MQuad(5e-2,-.82,"QD"), ENT.Drift(25e-2), ENT.Drift(15e-2),
+#        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
+#        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736,"QF")]
+    
+#tLat = [ENT.MDipole(2,8,.46)]
 #%%
 
 E = PCL.Ensemble.from_state(StateList)
@@ -36,8 +40,8 @@ E.track(tLat,5)
     
 
 def pos(data):
-    if data['Element'] == "QF": return 'R'
-    elif data['Element'] == "QD": return 'B'
+    if data['Element'] == "QF": return 'Red'
+    elif data['Element'] == "QD": return 'Blue'
     else: return 'Black'
 
 df = E.getDataFrame()
@@ -49,6 +53,6 @@ PLT.plot(dfs['s'],dfs['x'],label='x')
 PLT.plot(dfs['s'],dfs['y'],label='y')
 #%%
 dat = df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([8])]
-ggplot(dat,aes(x='s',y='value',color='variable')) + \
-     geom_line() + geom_point(color=dat['Quad']) + theme_bw()
+print(ggplot(dat,aes(x='s',y='value',color='variable')) + 
+     geom_line() + geom_point(color=dat['Quad']) + theme_bw())
     
