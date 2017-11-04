@@ -117,9 +117,6 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fStateLog = {(0, 'START'):self.__fState}
         
-        print(self.__fState)
-        print(self.__fIniState)
-        
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
