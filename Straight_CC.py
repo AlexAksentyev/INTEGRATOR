@@ -66,7 +66,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track([R3],4,'0')
+E.track([QFA2, OD1, SFP, OD2],1)
     
 #%%
 
@@ -79,8 +79,15 @@ df = E.getDataFrame()
 #     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
 
 #%%
-#PLT.plot(df['s'],df['x']*1e3,label='x')
-#PLT.plot(df['s'],df['y']*1e3,label='y')
-PLT.plot(df['s[cm]'],df['dK'],label='dK')
+PLT.subplot(211)
+PLT.plot(df['s[cm]'],df['X[cm]'],label='x')
+#PLT.plot(df['s[cm]'],df['Y[cm]'],label='y')
 PLT.legend()
+PLT.title('first 4, 1 times, vanilla 2.0')
+#PLT.plot(df['s[cm]'],df['dK'],label='dK')
+PLT.subplot(212)
+PLT.plot(df['s[cm]'],df['px'],label='px')
+#PLT.plot(df['s[cm]'],df['py'],label='py')
+PLT.legend()
+
 

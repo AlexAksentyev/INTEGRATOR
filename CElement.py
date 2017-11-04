@@ -171,7 +171,7 @@ class Wien(Element, HasCounter):
                      .2*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
                      .125*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10) #log(1+x/R)
         
-        self.__U = lambda x: (-V + 2*V*math.log((R0+x)/R1)/math.log(R2/R1)) # DK = q*U
+        self.__U = lambda x: (-V + 2*V*(math.log(R0/R1) + self.__f0(x))/math.log(R2/R1)) # DK = q*U; cross-checking TM
     
     
     def kickVolts(self, x):
