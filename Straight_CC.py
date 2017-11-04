@@ -65,7 +65,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = LTC.Lattice([R3],Options={'Generator':'vode'})
+tLat = LTC.Lattice([QFA2, OD1, SFP, OD2],Options={'Generator':'vode'})
 
 #%%
 
@@ -83,8 +83,8 @@ df = E.getDataFrame()
 #     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
 
 #%%
-#PLT.plot(df['s'],df['x']*1e3,label='x')
-#PLT.plot(df['s'],df['y']*1e3,label='y')
-PLT.plot(df['s'],df['dK'],label='dK')
+PLT.plot(df['s'],df['x']*1e3,label='x')
+PLT.plot(df['s'],df['y']*1e3,label='y')
+#PLT.plot(df['s'],df['dK'],label='dK')
 PLT.legend()
 
