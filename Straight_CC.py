@@ -65,7 +65,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = LTC.Lattice([QFA2, OD1, SFP, OD2],Options={'Generator':'vode'})
+tLat = LTC.Lattice([R3],Options={'Generator':'vode'})
 
 #%%
 
@@ -84,13 +84,14 @@ df = E.getDataFrame()
 
 #%%
 PLT.subplot(211)
-PLT.plot(df['s']*1e2,df['x']*1e2,label='x[cm]')
+#PLT.plot(df['s']*1e2,df['x']*1e2,label='x[cm]')
 #PLT.plot(df['s']*1e2,df['y']*1e2,label='y[cm]')
-PLT.legend()
+
 PLT.title('first 4, 1 times, TransMaps')
-#PLT.plot(df['s'],df['dK'],label='dK')
+PLT.plot(df['s']*1e2,df['dK'],label='dK vs s')
+PLT.legend()
 PLT.subplot(212)
-PLT.plot(df['s'],df['px'],label='px')
+PLT.plot(df['x']*1e3,df['dK'],label='dK vs x')
 #PLT.plot(df['s'],df['py'],label='py')
 PLT.legend()
 
