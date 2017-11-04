@@ -224,6 +224,7 @@ class Wien(Element, HasCounter):
         u = self.__U(x)
         Xk = particle.getState()
         Xk['dK'] -= u*1e-6/particle.fKinEn0
+        print('Kick voltage {}'.format(u))
         particle.setState(Xk)
         
     def rearKick(self, particle):
@@ -231,6 +232,7 @@ class Wien(Element, HasCounter):
         u = self.__U(x)
         Xk = particle.getState()
         Xk['dK'] += u*1e-6/particle.fKinEn0
+        print('Kick voltage {}'.format(u))
         particle.setState(Xk)
         
     

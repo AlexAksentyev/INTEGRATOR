@@ -20,6 +20,7 @@ reload(ENT)
 reload(PCL)
 reload(U)
 
+
 Lq = 5e-2
 QDG = -10.3
 QFG = 10.11
@@ -65,7 +66,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track([QDA2],4,'0')
+E.track([R3],4,'0')
     
 #%%
 
@@ -78,8 +79,8 @@ df = E.getDataFrame()
 #     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
 
 #%%
-PLT.plot(df['s[cm]'],df['X[cm]'],label='X[cm]')
-PLT.plot(df['s[cm]'],df['Y[cm]'],label='Y[cm]')
-PLT.xlabel('cm'); PLT.ylabel('cm')
+#PLT.plot(df['s'],df['x']*1e3,label='x')
+#PLT.plot(df['s'],df['y']*1e3,label='y')
+PLT.plot(df['s[cm]'],df['dK'],label='dK')
 PLT.legend()
 
