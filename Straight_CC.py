@@ -50,7 +50,7 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
-StateList = form_state_list((0e-3,1e-3),(0e-3,1e-3),1,1)
+StateList = form_state_list((3e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
