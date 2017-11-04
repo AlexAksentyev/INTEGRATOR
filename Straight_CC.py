@@ -49,7 +49,7 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
-StateList = U.form_state_list((3e-3,1e-3),(0e-3,1e-3),1,1)
+StateList = U.form_state_list((-3e-3,3e-3),(-3e-3,3e-3),10,10)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
@@ -66,7 +66,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track([QFA2, OD1, SFP, OD2],1)
+E.track([R3],1)
     
 #%%
 
@@ -80,14 +80,24 @@ df = E.getDataFrame()
 
 #%%
 PLT.subplot(211)
-PLT.plot(df['s[cm]'],df['X[cm]'],label='x')
+#PLT.plot(df['s[cm]'],df['X[cm]'],label='x')
 #PLT.plot(df['s[cm]'],df['Y[cm]'],label='y')
+PLT.title('R3, 1 times, vanilla 2.0')
+PLT.plot(df['s[cm]'],df['dK'],label='dK vs s')
 PLT.legend()
-PLT.title('first 4, 1 times, vanilla 2.0')
-#PLT.plot(df['s[cm]'],df['dK'],label='dK')
 PLT.subplot(212)
-PLT.plot(df['s[cm]'],df['px'],label='px')
+PLT.plot(df['X[cm]']*10,df['dK'],label='dK vs x[mm]')
 #PLT.plot(df['s[cm]'],df['py'],label='py')
 PLT.legend()
 
+#%%
+# test RHS
+state0 = E[0].getState()
+RHS = E[0].RHS
+state = PDS.DataFrame()
+state0 = list(state0.values())
+for k,v in E.getParticles().items():
+    state0 = list(v.getState().values())
+    state0 = PDS.DataFrame(dict(zip(v.getState().keys(), RHS(state0,0,R3))), index=[k])
+    state = state.append(state0)
 

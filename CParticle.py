@@ -73,7 +73,7 @@ class Particle:
                      # H' = Pc/Ps hs
         
         dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
-        gammap = dEnp/self.fMass0 # gamma prime
+#        gammap = dEnp/self.fMass0 # gamma prime
         
         gamma,beta = self.GammaBeta(KinEn)
         q = self.__ezero
@@ -114,6 +114,9 @@ class Particle:
         DX = [xp, yp, 1, tp, Hp, Pxp/P0c, Pyp/P0c, dEnp/self.fKinEn0, Sxp, Syp, Ssp]
         
         return DX
+    
+    def RHS(self, state, at, element):
+        return self.__RHS(state, at, element)
     
     def track(self, ElementSeq, ntimes, FWD = True):
         brks = 101

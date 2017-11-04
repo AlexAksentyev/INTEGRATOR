@@ -177,6 +177,12 @@ class Wien(Element, HasCounter):
     def kickVolts(self, x):
         return (self.__fVolt, self.__U(x))
     
+    def printFields(self):
+        Ex,Ey,Es = self.__fEField
+        Bx,By,Bs = self.__fBField
+        print('Ex {}, Ey {}, Es {}'.format(Ex,Ey,Es))
+        print('Bx {}, By {}, Bs {}'.format(Bx,By,Bs))
+    
     def setBField(self, BField=None):        
         
         clight = self.fPardict['clight']
