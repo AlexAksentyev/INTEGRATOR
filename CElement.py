@@ -175,7 +175,7 @@ class Wien(Element, HasCounter):
     
     
     def kickVolts(self, x):
-        return self.__U(x)
+        return (self.__fVolt, self.__U(x))
     
     def setBField(self, BField=None):        
         
