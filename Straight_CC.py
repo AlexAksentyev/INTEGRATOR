@@ -48,7 +48,7 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
-StateList = U.form_state_list((5e-3,1e-3),(5e-3,1e-3),1,1)
+StateList = U.form_state_list((3e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
@@ -65,7 +65,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track(tLat,4,'0')
+E.track([QDA2],4,'0')
     
 #%%
 
