@@ -83,8 +83,8 @@ df = E.getDataFrame()
 #     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
 
 #%%
-PLT.plot(df['s'],df['x']*1e3,label='x')
-PLT.plot(df['s'],df['y']*1e3,label='y')
-PLT.xlabel('m'); PLT.ylabel('mm')
+#PLT.plot(df['s'],df['x']*1e3,label='x')
+#PLT.plot(df['s'],df['y']*1e3,label='y')
+PLT.plot(df['s'],df['dK'],label='dK')
 PLT.legend()
 
