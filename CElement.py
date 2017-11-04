@@ -100,7 +100,7 @@ class MQuad(Element, HasCounter):
         self.setGrad(Grad)   
         
     def setGrad(self, value):
-        self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
+        self._Element__setField({'Bx':str(value)+'*(y)','By':str(value)+'*(x)'})
         self.__fGrad = value
         self.fGeomdict.update({'Grad':value})
         
