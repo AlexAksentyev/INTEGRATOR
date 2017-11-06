@@ -74,7 +74,7 @@ df = E.getDataFrame()
 #dfe = df.fTransitions
 #df = dfe; df['PID'] = 'X0'
 dfm = PDS.melt(df, id_vars=['PID','s[cm]'])
-dat = dfm.loc[dfm['variable'].isin(['x','y','dK'])&dfm['PID'].isin(['0'])]
+dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(['0'])]
 print(ggplot(dat,aes(x='s[cm]',y='value',color='variable')) +
      geom_point() + geom_line() + theme_bw())
 
