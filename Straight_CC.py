@@ -51,7 +51,7 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
-EL0 = ENT.Element(1/42.18,25E-2)
+EL0 = ENT.Element(1/42.18,Lw)
 EL0.setField(Ex='-120e5/(1+Curve*x)')
 
 StateList = U.form_state_list((3e-3,1e-3),(0e-3,1e-3),1,1)
@@ -69,7 +69,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = LTC.Lattice([OD1,EL0, OD2],Options={'Generator':'vode'})
+tLat = LTC.Lattice([OD1,R3, OD2],Options={'Generator':'vode'})
 
 #%%
 

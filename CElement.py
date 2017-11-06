@@ -255,6 +255,8 @@ class Wien(Element, HasCounter):
         B = phi('*', 0.018935,-BField,phi('+',-h, phi('*',k,BField,v)), 'x')
         B = B[1:len(B)-1]
         
+        B=0 #TESTING
+        
         self._Element__setField({'By':B})
         
     def frontKick(self):
@@ -263,7 +265,7 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK - self.__U(x)*1e-6/KinEn0,self.fArgList,'Front')
+        f = DST.Fun(dK - .03+0*self.__U(x)*1e-6/KinEn0,self.fArgList,'Front')# TESTING
         print('front kick, {}'.format(self.fName))
         return f
         
@@ -274,7 +276,7 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK + self.__U(x)*1e-6/KinEn0,self.fArgList,'Rear')
+        f = DST.Fun(dK + .03 + 0*self.__U(x)*1e-6/KinEn0,self.fArgList,'Rear') #TESTING
         print('rear kick, {}'.format(self.fName))
         return f
     
