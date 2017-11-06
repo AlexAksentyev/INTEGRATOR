@@ -118,10 +118,12 @@ class Particle:
                 at = NP.linspace(0, element.fLength, brks)
                 
                 element.frontKick(self)
-                vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,))[brks-1]
-                self.setState(dict(zip(self.fArgList, vals)))
-                element.rearKick(self)
-                self.fStateLog.update({(n,element.fName):self.__fState})
+                vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
+                self.setState(dict(zip(self.fArgList, vals[brks-1]))) # only the exit state will have
+                element.rearKick(self) # an energy reset 
+                for k in range(brks-1):
+                    self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
+                self.fStateLog.update({(n,element.fName,'last'):self.__fState})
             
         
     def getDataFrame(self):

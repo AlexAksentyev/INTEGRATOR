@@ -6,7 +6,7 @@ Created on Mon Oct 23 15:55:02 2017
 @author: alexa
 """
 
-#from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -73,31 +73,10 @@ E.track([R3],1)
 df = E.getDataFrame()
 #dfe = df.fTransitions
 #df = dfe; df['PID'] = 'X0'
-#dfm = PDS.melt(df, id_vars=['PID','s','at'])
-#dat = dfm.loc[dfm['variable'].isin(['x','y','dK'])&dfm['PID'].isin(E.listNames())]
-#print(ggplot(dat,aes(x='s',y='value',color='variable')) +
-#     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
+dfm = PDS.melt(df, id_vars=['PID','s[cm]'])
+dat = dfm.loc[dfm['variable'].isin(['x','y','dK'])&dfm['PID'].isin(['0'])]
+print(ggplot(dat,aes(x='s[cm]',y='value',color='variable')) +
+     geom_point() + geom_line() + theme_bw())
 
-#%%
-PLT.subplot(211)
-#PLT.plot(df['s[cm]'],df['X[cm]'],label='x')
-#PLT.plot(df['s[cm]'],df['Y[cm]'],label='y')
-PLT.title('R3, 1 times, vanilla 2.0')
-PLT.plot(df['s[cm]'],df['dK'],label='dK vs s')
-PLT.legend()
-PLT.subplot(212)
-PLT.plot(df['X[cm]']*10,df['dK'],label='dK vs x[mm]')
-#PLT.plot(df['s[cm]'],df['py'],label='py')
-PLT.legend()
 
-#%%
-# test RHS
-state0 = E[0].getState()
-RHS = E[0].RHS
-state = PDS.DataFrame()
-state0 = list(state0.values())
-for k,v in E.getParticles().items():
-    state0 = list(v.getState().values())
-    state0 = PDS.DataFrame(dict(zip(v.getState().keys(), RHS(state0,0,R3))), index=[k])
-    state = state.append(state0)
 
