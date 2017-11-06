@@ -49,6 +49,9 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
+EL0 = ENT.Element(0, 25e-2)
+EL0.setEField((E,0,0))
+
 StateList = U.form_state_list((3e-3,3e-3),(-0e-3,3e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
@@ -64,7 +67,8 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = [QFA2, OD1,SFP,OD2,R3]
+tLat = [OD1,EL0, OD2]
+names = [e.fName for e in tLat]
 #%%
 
 E.track(tLat,1)
@@ -75,10 +79,10 @@ df = E.getDataFrame()
 #dfe = df.fTransitions
 #df = dfe; df['PID'] = 'X0'
 dfm = PDS.melt(df, id_vars=['PID','s[cm]'])
-dat = dfm.loc[dfm['variable'].isin(['X[cm]','dK'])&dfm['PID'].isin(E.listNames())]
+dat = dfm.loc[dfm['variable'].isin(['X[cm]','px','dK'])&dfm['PID'].isin(E.listNames())]
 print(ggplot(dat,aes(x='s[cm]',y='value',color='variable')) + facet_grid('variable',scales='free_y')+
      geom_point() + geom_line() + theme_bw()+
-     ggtitle('Vanilla 2, first {} elements'.format(len(tLat)))
+     ggtitle('Vanilla 2, {} elements'.format(names))
      )
 
 

@@ -23,11 +23,24 @@ class Element:
     def BField(self,arg):
         return self.__fBFIeld
 
-    def frontKick(self,particle):
+#    def frontKick(self,particle):
+#        pass # do nothing
+#    
+#    def rearKick(self,particle):
         pass # do nothing
-    
-    def rearKick(self,particle):
-        pass # do nothing
+        
+    def setEField(self,EF): # TESTING
+        self.__fEField = EF
+        
+    def frontKick(self, particle): #TESTING
+        Xk = particle.getState()
+        Xk['dK'] -= .03
+        particle.setState(Xk)
+        
+    def rearKick(self, particle): #TESTING
+        Xk = particle.getState()
+        Xk['dK'] += .03
+        particle.setState(Xk)
         
         
 class HasCounter:
@@ -55,6 +68,12 @@ class Drift(Element, HasCounter):
     
     def __init__(self, Length, Name = "Drift"):
         super().__init__(Curve=0, Length=Length, Name=Name)
+        
+    def frontKick(self,particle): #TESTING
+        pass # do nothing
+    
+    def rearKick(self,particle): #TESTING
+        pass # do nothing
         
 
 class MQuad(Element, HasCounter):
