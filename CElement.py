@@ -51,12 +51,12 @@ class Element:
     def frontKick(self):
         dK = DST.Var('dK')
         print('front kick, {}'.format(self.fName))
-        return DST.Fun(dK, self.fArgList,'Front')
+        return DST.Fun(dK - .03, self.fArgList,'Front') #TESTING
     
     def rearKick(self):   
         dK = DST.Var('dK')
         print('rear kick, {}'.format(self.fName))
-        return DST.Fun(dK, self.fArgList,'Rear')
+        return DST.Fun(dK + .03, self.fArgList,'Rear') #TESTING
     
 class HasCounter:
     fCount = 0
@@ -82,6 +82,16 @@ class Drift(Element, HasCounter):
     
     def __init__(self, Length, Name = "Drift"):
         super().__init__(Curve=0,Length=Length,Name=Name)
+        
+    def frontKick(self): # testing
+        dK = DST.Var('dK')
+        print('front kick, {}'.format(self.fName))
+        return DST.Fun(dK, self.fArgList,'Front')
+    
+    def rearKick(self):   # testing
+        dK = DST.Var('dK')
+        print('rear kick, {}'.format(self.fName))
+        return DST.Fun(dK, self.fArgList,'Rear')
 
 class MQuad(Element, HasCounter):
     """ magnetic quadrupole
