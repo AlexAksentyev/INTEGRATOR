@@ -66,7 +66,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = LTC.Lattice([R3],Options={'Generator':'vode'})
+tLat = LTC.Lattice([QFA2, OD1, SFP, OD2],Options={'Generator':'vode'})
 
 #%%
 
@@ -83,5 +83,5 @@ dfe = dfe.drop(dfe.index[len(df.fTransitions)-1])
 dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
 dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
 print(ggplot(dat,aes(x='s[m]',y='value',color='variable')) +
-     geom_line() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
+     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
 
