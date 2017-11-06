@@ -69,7 +69,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
-tLat = LTC.Lattice([OD1,EL0, OD2],Options={'Generator':'vode'})
+tLat = LTC.Lattice([OD1,R3, OD2],Options={'Generator':'vode'})
 
 #%%
 

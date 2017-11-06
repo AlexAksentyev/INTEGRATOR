@@ -255,8 +255,6 @@ class Wien(Element, HasCounter):
         B = phi('*', 0.018935,-BField,phi('+',-h, phi('*',k,BField,v)), 'x')
         B = B[1:len(B)-1]
         
-        B=0 #TESTING
-        
         self._Element__setField({'By':B})
         
     def frontKick(self):
