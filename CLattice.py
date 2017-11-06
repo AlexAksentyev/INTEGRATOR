@@ -156,8 +156,8 @@ class Lattice:
         sp2 = 'v4_Tp*( q / (v0_Lgamma* m0*m0*m0*clight*clight)) * (G/(1 + v0_Lgamma))*(v2_Px*v0_Bx+v2_Py*v0_By+v3_Ps*v0_Bs)'
         
         ## derivative definitions
-        sXpA = 'v0_hs*v0_P0c*px/v2_Ps'
-        sYpA = 'v0_hs*v0_P0c*py/v2_Ps'    
+        sXpA = 'v0_hs*v1_Px/v2_Ps'
+        sYpA = 'v0_hs*v1_Py/v2_Ps'    
         sHpA = 'v0_hs*v0_Pc/v2_Ps'
         sTpA = 'v3_Hp/v1_V'    
         
@@ -189,7 +189,7 @@ class Lattice:
                 'ts' : 'v4_Tp',
                 'px' : sadd(sFxATp, 'Curve*v2_Ps')+'/v0_P0c',
                 'py' : sFyATp+'/v0_P0c',
-                'dK' : sadd(smult(sExA,sXpA), smult(sEyA,sYpA), sEsA) + '*1e-6/KinEn0',
+                'dK' : sadd(smult('v0_Ex','v3_Xp'), smult('v0_Ey','v3_Yp'), 'v0_Es') + '*1e-6/KinEn0',
                 'Sx' : 'v6_Sxp',
                 'Sy' : 'v6_Syp',
                 'Ss' : 'v6_Ssp',
