@@ -108,6 +108,9 @@ class Ensemble:
             pd['s'] = pts.indepvararray
             pd['PID'] = name
             rval=rval.append(pd)
+            
+        rval[['x','y']] = rval[['x','y']].apply(lambda x: x*100) #turns to cm
+        rval.rename(columns={'x':'X[cm]', 'y':'Y[cm]', 's':'s[m]'}, inplace=True)
            
         rval.fTransitions = PDS.DataFrame(dict(zip(evt.coordnames, evt.coordarray)))
         rval.fTransitions['s'] = rval.fTransitions['t']

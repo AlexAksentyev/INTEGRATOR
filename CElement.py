@@ -57,14 +57,6 @@ class Element:
         dK = DST.Var('dK')
         print('rear kick, {}'.format(self.fName))
         return DST.Fun(dK, self.fArgList,'Rear')
-
-#    def frontKick(self, arg):   
-#        print('front kick, element {}, V {}'.format(self.fName, 0))
-#        return 'dK'
-#    
-#    def rearKick(self, arg):   
-#        print('rear kick, element {}, V {}'.format(self.fName, 0))
-#        return 'dK'
     
 class HasCounter:
     fCount = 0
@@ -100,7 +92,7 @@ class MQuad(Element, HasCounter):
         self.setGrad(Grad)   
         
     def setGrad(self, value):
-        self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
+        self._Element__setField({'Bx':str(value)+'*(y)','By':str(value)+'*(x)'})
         self.__fGrad = value
         self.fGeomdict.update({'Grad':value})
         
@@ -232,7 +224,7 @@ class Wien(Element, HasCounter):
                      .2*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
                      .125*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10,['x'],'taylor') #log(1+x/R)
         
-        self.__U = DST.Fun(-V + 2*V*self.__f0(x)/DST.Log(R2/R1), ['x'], 'volts') # DK = q*U
+        self.__U = DST.Fun(-V + 2*V*(DST.Log(R0/R1) + self.__f0(x))/DST.Log(R2/R1), ['x'], 'volts') # DK = q*U
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
@@ -266,6 +258,7 @@ class Wien(Element, HasCounter):
         return f
         
     def rearKick(self):
+
         KinEn0 = float(self.fPardict['KinEn0'])
             
         x = DST.Var('x')
@@ -275,3 +268,5 @@ class Wien(Element, HasCounter):
         print('rear kick, {}'.format(self.fName))
         return f
     
+    def kickVolts(self, x):
+        return (self.__fVolt, self.__U(x).tonumeric())

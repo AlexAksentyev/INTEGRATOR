@@ -14,12 +14,13 @@ from importlib import reload
 import numpy as NP
 from matplotlib import pyplot as PLT
 import CLattice as LTC
-from utilFunc import *
+import utilFunc as U
 
 
 reload(ENT)
 reload(PCL)
 reload(LTC)
+reload(U)
 
 
 Lq = 5e-2
@@ -50,7 +51,7 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
-StateList = form_state_list((5e-3,1e-3),(5e-3,1e-3),1,1)
+StateList = U.form_state_list((3e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
@@ -69,16 +70,18 @@ tLat = LTC.Lattice([R3],Options={'Generator':'vode'})
 
 #%%
 
-tLat.track(E,5,'0')
+tLat.track(E,1,'0')
+
     
-traj = E.fTrajectories['X0']
+#traj = E.fTrajectories['X0']
 #%%
 
 df = E.getDataFrame()
 dfe = df.fTransitions
+dfe = dfe.drop(dfe.index[len(df.fTransitions)-1])
 #df = dfe; df['PID'] = 'X0'
-dfm = PDS.melt(df, id_vars=['PID','s','at'])
-dat = dfm.loc[dfm['variable'].isin(['x','y','dK'])&dfm['PID'].isin(E.listNames())]
-print(ggplot(dat,aes(x='s',y='value',color='variable')) +
+dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
+dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
+print(ggplot(dat,aes(x='s[m]',y='value',color='variable')) +
      geom_line() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
 
