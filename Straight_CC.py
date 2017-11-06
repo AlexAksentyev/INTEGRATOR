@@ -49,7 +49,7 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
-EL0 = ENT.Element(0, 25e-2)
+EL0 = ENT.Element(1/42.18, Lw)
 EL0.setEField((E,0,0))
 
 StateList = U.form_state_list((3e-3,3e-3),(-0e-3,3e-3),1,1)
