@@ -109,7 +109,8 @@ class Particle:
     def track(self, ElementSeq, ntimes, FWD = True):
         brks = 101
         self.__fState = copy.deepcopy(self.__fIniState)
-        self.fStateLog = {(0, 'START'):self.__fState}
+        self.fStateLog = {} #{(0, 'START'):self.__fState} #not used because state log 
+                                                        #accumulates intra-element points, including this one
         
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
