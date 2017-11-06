@@ -6,7 +6,7 @@ Created on Mon Oct 23 15:55:02 2017
 @author: alexa
 """
 
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline, ggtitle
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -64,9 +64,10 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
 
+tLat = [QFA2, OD1,SFP,OD2,R3]
 #%%
 
-E.track([QFA2, OD1,SFP,OD2],1)
+E.track(tLat,1)
     
 #%%
 
@@ -74,9 +75,11 @@ df = E.getDataFrame()
 #dfe = df.fTransitions
 #df = dfe; df['PID'] = 'X0'
 dfm = PDS.melt(df, id_vars=['PID','s[cm]'])
-dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
-print(ggplot(dat,aes(x='s[cm]',y='value',color='variable')) +
-     geom_point() + geom_line() + theme_bw())
+dat = dfm.loc[dfm['variable'].isin(['X[cm]','dK'])&dfm['PID'].isin(E.listNames())]
+print(ggplot(dat,aes(x='s[cm]',y='value',color='variable')) + facet_grid('variable',scales='free_y')+
+     geom_point() + geom_line() + theme_bw()+
+     ggtitle('Vanilla 2, first {} elements'.format(len(tLat)))
+     )
 
 
 
