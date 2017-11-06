@@ -49,7 +49,7 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
-StateList = U.form_state_list((-3e-3,3e-3),(-3e-3,3e-3),10,10)
+StateList = U.form_state_list((3e-3,3e-3),(-0e-3,3e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
@@ -66,7 +66,7 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
 
 #%%
 
-E.track([R3],1)
+E.track([QFA2, OD1,SFP,OD2],1)
     
 #%%
 
@@ -74,7 +74,7 @@ df = E.getDataFrame()
 #dfe = df.fTransitions
 #df = dfe; df['PID'] = 'X0'
 dfm = PDS.melt(df, id_vars=['PID','s[cm]'])
-dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(['0'])]
+dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
 print(ggplot(dat,aes(x='s[cm]',y='value',color='variable')) +
      geom_point() + geom_line() + theme_bw())
 
