@@ -62,7 +62,7 @@ class Lattice:
         _id=0
         self.__fLength = 0 #lattice length
         for e in ElSeq:
-            self.__fLength += e.fPardict['Length']
+            self.__fLength += e.fGeomdict['Length']
             
             ## RHS for DS 
             DSargs = Lattice.setup_element(e,RefPart)
@@ -84,7 +84,7 @@ class Lattice:
              ## events
             _id +=1
             event_args.update({'name':'passto'+str(_id%self.fCount)})
-            pass_event = DST.makeZeroCrossEvent('s-'+str(e.fPardict['Length']),1,event_args,varnames=['s'],parnames=list(self.fPardict.keys()),targetlang=tlang)
+            pass_event = DST.makeZeroCrossEvent('s-'+str(e.fGeomdict['Length']),1,event_args,varnames=['s'],parnames=list(self.fPardict.keys()),targetlang=tlang)
             DSargs.events = [pass_event, NaN_event]+passed_events
             
             DSargs.pars.update(self.fPardict)
@@ -144,6 +144,7 @@ class Lattice:
         
         ## definitions
         arg = Element.fArgStr
+        crv = Element.fName+'_Curve'
         
         # fields
         sExA = 'Ex'+arg
@@ -169,14 +170,14 @@ class Lattice:
         sFyATp = '1e-6*clight*'+ sadd(smult(sEyA,sTpA), det('1',sBxA,sXpA,sBsA)) 
         
         # these are probably from TBMT
-        Sxp =      'Curve * Ss + v5_t6 * ((v3_Ps * v0_Ex - v2_Px * v0_Es) * Ss - (v2_Px * v0_Ey - v2_Py * v0_Ex) * Sy) + (v5_sp1*v0_By+v5_sp2*v2_Py)*Ss-(v5_sp1*v0_Bs+v5_sp2*v3_Ps)*Sy'
+        Sxp =      crv+' * Ss + v5_t6 * ((v3_Ps * v0_Ex - v2_Px * v0_Es) * Ss - (v2_Px * v0_Ey - v2_Py * v0_Ex) * Sy) + (v5_sp1*v0_By+v5_sp2*v2_Py)*Ss-(v5_sp1*v0_Bs+v5_sp2*v3_Ps)*Sy'
         Syp =                   'v5_t6 * ((v2_Px * v0_Ey - v2_Py * v0_Ex) * Sx - (v2_Py * v0_Es - v3_Ps * v0_Ey) * Ss) + (v5_sp1*v0_Bs+v5_sp2*v3_Ps)*Sx-(v5_sp1*v0_Bx+v5_sp2*v2_Px)*Ss'
-        Ssp = '(-1)*Curve * Sx + v5_t6 * ((v2_Py * v0_Es - v3_Ps * v0_Ey) * Sy - (v3_Ps * v0_Ex - v2_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v2_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v2_Py)*Sx'
+        Ssp = crv + '*(-1) * Sx + v5_t6 * ((v2_Py * v0_Es - v3_Ps * v0_Ey) * Sy - (v3_Ps * v0_Ex - v2_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v2_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v2_Py)*Sx'
         
         ## 
         reuse = RefPart.fReuse
         reuse.update({
-                    '(1+Curve*x)':'v0_hs',
+                    '(1+'+crv+'*x)':'v0_hs',
                     sExA:'v0_Ex', sEyA:'v0_Ey', sEsA:'v0_Es',
                     sBxA:'v0_Bx', sByA:'v0_By', sBsA:'v0_Bs',
                     sXpA:'v3_Xp',sYpA:'v3_Yp', sHpA:'v3_Hp',
@@ -190,7 +191,7 @@ class Lattice:
                 'y'  : 'v3_Yp',  
                 'H'  : 'v3_Hp',
                 'ts' : 'v4_Tp',
-                'px' : sadd(sFxATp, 'Curve*v2_Ps')+'/v0_P0c',
+                'px' : sadd(sFxATp, crv+'*v2_Ps')+'/v0_P0c',
                 'py' : sFyATp+'/v0_P0c',
                 'dK' : sadd(smult('v0_Ex','v3_Xp'), smult('v0_Ey','v3_Yp'), 'v0_Es') + '*1e-6/KinEn0',
                 'Sx' : 'v6_Sxp',
@@ -201,8 +202,10 @@ class Lattice:
                 'at':'0'
                 }
         
-        DSargs = DST.args(name=Element.fName)       
+        DSargs = DST.args(name=Element.fName)
+#        ed = {Element.fName+'_'+key:value for key,value in Element.fPardict.items()}
         DSargs.pars = {**RefPart.fPardict, **Element.fPardict}
+#        ed = {Element.fName+'_'+key:value for key,value in Element.fFndict.items()}
         DSargs.fnspecs = {**RefPart.fFndict, **Element.fFndict}
         DSargs.reuseterms=reuse
         

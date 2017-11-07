@@ -1,4 +1,5 @@
 import numpy as NP
+import pandas as PDS
 import collections as CLN
 from utilFunc import phi
 import copy
@@ -15,9 +16,9 @@ class Element:
     def __init__(self, Curve, Length, Name = "Element"):
         self.fName = Name
         
-        self.fPardict = {'Curve':Curve, 'Length':Length}
+        self.fGeomdict = {'Curve':Curve, 'Length':Length}
         
-        self.fGeomdict = copy.deepcopy(self.fPardict)
+        self.fPardict = {key:value for key,value in self.fGeomdict.items()}
         
         self.fFndict = { # defines the element EM field
                 'Ex':(self.fArgList, '0'),
@@ -41,9 +42,12 @@ class Element:
         inFldDict = {key:(self.fArgList, value) for key, value in FldDict.items()}
         self.fFndict.update(inFldDict)
         
-    def getField(self, fulldef = False):
-        if fulldef: return self.fFndict
-        else: return {key:value[1] for key,value in self.fFndict.items()}
+    def getField(self, *args):
+        if len(args)==0 : rval = {key:value[1] for key,value in self.fFndict.items()}    
+        elif len(args) == 1 : rval = self.fFndict[args[0]][1]        
+        else:rval = {key:self.fFndict[key][1] for key in args}
+        
+        return rval
 
     def getGeometry(self):
         return self.fGeomdict
@@ -75,6 +79,7 @@ class HasCounter:
         if Name is None: res.fName = re.sub(self.__fSep+'.*',self.__fSep+str(res.__class__.fCount-1),res.fName)
         else: res.fName = Name
         return res
+    
 
 class Drift(Element, HasCounter):
     """ drift space
@@ -83,12 +88,12 @@ class Drift(Element, HasCounter):
     def __init__(self, Length, Name = "Drift"):
         super().__init__(Curve=0,Length=Length,Name=Name)
         
-    def frontKick(self): # testing
+    def frontKick(self): # TESTING
         dK = DST.Var('dK')
         print('front kick, {}'.format(self.fName))
         return DST.Fun(dK, self.fArgList,'Front')
     
-    def rearKick(self):   # testing
+    def rearKick(self):   # TESTING
         dK = DST.Var('dK')
         print('rear kick, {}'.format(self.fName))
         return DST.Fun(dK, self.fArgList,'Rear')
@@ -219,9 +224,10 @@ class Wien(Element, HasCounter):
         
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
-        self._Element__setField({'Ex':str(EField)+'/(1+Curve*x)'})
         self.fPardict.update({'Curve':1/R[0]})
         self.fGeomdict.update({'R':R[0], 'Curve':1/R[0]})
+        crv = self.fName+'_Curve'
+        self._Element__setField({'Ex':str(EField)+'/(1+'+crv+'*x)'})
         
         #define a subfunction for use in kicks
         R0 = float(R[0])

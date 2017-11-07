@@ -63,16 +63,16 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
-EL0 = ENT.Element(R3.fPardict['Curve'],Lw)
-EL0.setField(Ex='-120e5/(1+Curve*x)')
+EL0 = ENT.Element(0*R3.fGeomdict['Curve'],Lw)
+EL0.setField(**R3.getField())
 
-StateList = U.form_state_list((3e-3,1e-3),(0e-3,1e-3),1,1)
+StateList = U.form_state_list((30e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
 
-R3Lat = LTC.Lattice([OD1, R3, OD2],Options={'Generator':'vode','LatName':'R3'})
-EL0Lat = LTC.Lattice([OD1, EL0, OD2],Options={'Generator':'vode','LatName':'EL0'})
+R3Lat = LTC.Lattice([R3],Options={'Generator':'dopri','LatName':'R3'})
+EL0Lat = LTC.Lattice([EL0],Options={'Generator':'vode','LatName':'EL0'})
 
 #%%
 
