@@ -133,7 +133,10 @@ class Lattice:
             
         modelInfoDict = DST.makeModelInfo(info)
         
-        mod_args = {'name':'lattice','modelInfo':modelInfoDict}
+        try: latname = Options['LatName']
+        except KeyError: latname = 'lattice'
+        
+        mod_args = {'name':latname,'modelInfo':modelInfoDict}
         self.fDSModel = DST.Model.HybridModel(mod_args)
     
     @classmethod
@@ -272,4 +275,4 @@ class Lattice:
             inistate.update({'dK':dK})
             self.fDSModel.compute(name,ics=inistate)
             
-        Ensemble.fTrajectories = self.fDSModel.trajectories
+        Ensemble.fLattice.update({self.fDSModel.name:self})

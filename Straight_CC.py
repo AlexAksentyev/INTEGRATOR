@@ -4,6 +4,18 @@
 Created on Mon Oct 23 15:55:02 2017
 
 @author: alexa
+
+Target lattice:
+    
+    #tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
+#        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+#        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+#        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+#        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+#        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+#        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+#        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
+#        ]
 """
 
 from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline, ggtitle
@@ -59,33 +71,25 @@ E = PCL.Ensemble.from_state(StateList)
 
 #%%
 
-tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
-        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
-        ]
-
-tLat = LTC.Lattice([OD1,R3, OD2],Options={'Generator':'vode'})
+R3Lat = LTC.Lattice([OD1, R3, OD2],Options={'Generator':'vode','LatName':'R3'})
+EL0Lat = LTC.Lattice([OD1, EL0, OD2],Options={'Generator':'vode','LatName':'EL0'})
 
 #%%
 
-tLat.track(E,1,'0')
-
+R3Lat.track(E,1,'0')
+EL0Lat.track(E,1,'0')
     
 #traj = E.fTrajectories['X0']
 #%%
 
-df = E.getDataFrame()
+df = E.getDataFrame('R3')
 dfe = df.fTransitions
-dfe = dfe.drop(dfe.index[len(df.fTransitions)-1])
-#df = dfe; df['PID'] = 'X0'
-dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
+df = df.append(E.getDataFrame('EL0'))
+dfm = PDS.melt(df, id_vars=['Lattice','PID','s[m]','at'])
 dat = dfm.loc[dfm['variable'].isin(['X[cm]','px','dK'])&dfm['PID'].isin(E.listNames())]
-print(ggplot(dat,aes(x='s[m]',y='value',color='variable')) + facet_grid('variable',scales='free_y') +
-     geom_point() + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
-     theme_bw() + ggtitle('Trans Maps, {} elements'.format(tLat.listModelNames())))
+print(
+     ggplot(dat,aes(x='s[m]',y='value',color='Lattice')) + facet_grid('variable',scales='free_y') +
+     geom_point(size=.3) + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
+     theme_bw()
+     )
 
