@@ -1,3 +1,5 @@
+import CParticle as PCL
+import pandas as PDS
 import numpy as NP
 import collections as CLN
 import copy
@@ -172,7 +174,7 @@ class Wien(Element, HasCounter):
                      .2*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
                      .125*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10) #log(1+x/R)
         
-        self.__U = lambda x: (-V + 2*V*(math.log(R0/R1) + self.__f0(x))/math.log(R2/R1)) # DK = q*U; cross-checking TM
+        self.__U = lambda x: (-V + 2*V*math.log((R0+x)/R1)/math.log(R2/R1)) # DK = q*U
     
     
     def kickVolts(self, x):
@@ -251,9 +253,23 @@ class ERF(Element, HasCounter):
     """ RF element
     """
     
-    def __init__(self, Length, RF_params = (0,0,0), Name = "RF"):
+    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = NP.pi/2, H_number = 50, Name = "RF"):
         super().__init__(Curve=0,Length=Length,Name=Name)
-        self.fAmplitude, self.fFreq, self.fPhase = RF_params
+        if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
+        elif type(RefPart) is PCL.Particle: pass
+        else: raise ValueError('Wrong type Reference Particle')
+        
+        self.fAmplitude = EField
+        self.fPhase = Phase
+        self.fFreq = RefPart.revFreq(Acc_length) * H_number
+        self.__fH_number = H_number
+        
+        self.__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
+                       'Frequency':self.fFreq,'h-number': self.__fH_number, 
+                       'Phase':self.fPhase},index=[self.fName]).T
+        
+    def __repr__(self):
+        return str(self.__fChars)
         
     def EField(self, arg):
         t = arg['t']
