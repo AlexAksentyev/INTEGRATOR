@@ -81,7 +81,6 @@ class Particle:
                      # H' = Pc/Ps hs
         
         dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
-#        gammap = dEnp/self.fMass0 # gamma prime
 
 #        if re.sub('_.*','',element.fName) == 'RF': print('Es {}, dKp {}'.format(Es, dEnp/self.fKinEn0))
         
@@ -141,7 +140,7 @@ class Particle:
                     return
             
         
-    def getDataFrame(self):
+    def getDataFrame(self, inner=True):
         x = [self.fStateLog[i]['x']*100 for i in self.fStateLog] # *100 -> cm
         y = [self.fStateLog[i]['y']*100 for i in self.fStateLog]
         s = [self.fStateLog[i]['s']*100 for i in self.fStateLog]
@@ -155,8 +154,17 @@ class Particle:
         Ss = [self.fStateLog[i]['Ss'] for i in self.fStateLog]
         trn = [x[0] for x in list(self.fStateLog.keys())]
         el = [re.sub('_.*','',x[1]) for x in list(self.fStateLog.keys())]
+        status = [x[2] for x in list(self.fStateLog.keys())]
         
-        return PDS.DataFrame({'X[cm]':x,'Y[cm]':y,'t':t,'H':H,'s[cm]':s,'px':px,'py':py,'dK':dK,'Sx':Sx,'Sy':Sy,'Ss':Ss,'Element':el, 'Turn':trn})
+        pd = PDS.DataFrame({'X[cm]':x,'Y[cm]':y,'t':t,
+                              'H':H,'s[cm]':s,
+                              'px':px,'py':py,'dK':dK,
+                              'Sx':Sx,'Sy':Sy,'Ss':Ss,
+                              'Element':el, 'Turn':trn, 'Status':status})
+        
+        if not inner: pd = pd[pd['Status']=='last']
+        
+        return pd.drop('Status',axis=1)
     
     def set(self,**kwargs):
         self.__fIniState.update(**kwargs)
@@ -203,10 +211,10 @@ class Ensemble:
     def count(self):
         return len(self.__fParticle)
     
-    def getDataFrame(self):
+    def getDataFrame(self, inner = True):
         df = PDS.DataFrame() 
         for name, pcl in self.getParticles().items(): 
-            pdf = pcl.getDataFrame()
+            pdf = pcl.getDataFrame(inner)
             pdf['PID'] = name
             df=df.append(pdf)
         return df
