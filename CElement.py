@@ -277,3 +277,11 @@ class ERF(Element, HasCounter):
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         return (0, 0, A*NP.cos(w*t+phi))
+    
+    def EField_vec(self, time_vec):
+        time_vec = NP.array(time_vec)
+        z = NP.zeros(len(time_vec))
+        A = self.fAmplitude
+        w = self.fFreq*2*NP.pi
+        phi = self.fPhase
+        return list(zip(z,z, A*NP.cos(w*time_vec+phi)))

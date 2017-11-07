@@ -198,7 +198,7 @@ class Ensemble:
         for pcl in self.__fParticle.values():
             pcl.track(ElementSeq, ntimes, FWD)
         
-    def size(self):
+    def count(self):
         return len(self.__fParticle)
     
     def getDataFrame(self):
