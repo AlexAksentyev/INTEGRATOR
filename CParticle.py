@@ -23,12 +23,13 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fGamma0, self.fBeta0 = self.GammaBeta(self.fKinEn0)
         
-        
-    def CLIGHT(self):
-        return self.__clight
+    @classmethod    
+    def CLIGHT(cls):
+        return cls.__clight
     
-    def EZERO(self):
-        return self.__ezero
+    @classmethod
+    def EZERO(cls):
+        return cls.__ezero
     
     def GammaBeta(self, NRG):
         gamma = NRG / self.fMass0 + 1
@@ -37,6 +38,11 @@ class Particle:
     
     def Pc(self, KNRG):
         return NP.sqrt((self.fMass0 + KNRG)**2 - self.fMass0**2)
+    
+    def revFreq(self, Lat_len):
+        gamma,beta = self.GammaBeta(self.fKinEn0)
+        v = beta*Particle.CLIGHT()
+        return v/Lat_len
         
     def getState(self):
         return copy.deepcopy(self.__fState)
@@ -45,8 +51,10 @@ class Particle:
         self.__fState = copy.deepcopy(value)
     
     def __RHS(self, state, at, element):
+        if any(NP.isnan(state)):  raise ValueError('NaN state variable(s)')
         state = dict(zip(self.fArgList, state))
         x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.values() # px, py are normalized to P0c for consistency with the other vars, i think
+        
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -118,13 +126,17 @@ class Particle:
                 else: element = ElementSeq[len(ElementSeq)-1-i]
                 at = NP.linspace(0, element.fLength, brks)
                 
-                element.frontKick(self)
-                vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
-                self.setState(dict(zip(self.fArgList, vals[brks-1]))) # only the exit state will have
-                element.rearKick(self) # an energy reset 
-                for k in range(brks-1):
-                    self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
-                self.fStateLog.update({(n,element.fName,'last'):self.__fState})
+                try:
+                    element.frontKick(self)
+                    vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
+                    self.setState(dict(zip(self.fArgList, vals[brks-1]))) # only the exit state will have
+                    element.rearKick(self) # an energy reset 
+                    for k in range(brks-1):
+                        self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
+                    self.fStateLog.update({(n,element.fName,'last'):self.__fState})
+                except ValueError:
+                    print('NAN error at: Element {}, turn {}'.format(element.fName, n))
+                    break
             
         
     def getDataFrame(self):
@@ -175,6 +187,12 @@ class Ensemble:
     
     def listNames(self):
         return list(self.__fParticle.keys())
+    
+    def setReference(self, name):
+        self.__fRefPart = self.__fParticle[name]
+        
+    def getReference(self):
+        return self.__fRefPart
         
     def track(self, ElementSeq, ntimes, FWD = True):
         for pcl in self.__fParticle.values():
@@ -198,4 +216,10 @@ class Ensemble:
         IniStateDict = {key:value.getState() for (key,value) in self.__fParticle.items()}
         pd = PDS.DataFrame(IniStateDict).T
         return str(pd)
+    
+    def revFreq(self, Lat_len):
+        return self.__fRefPart.revFreq(Lat_len)
+    
+    def plot(self, X, Y):
+        pass
     
