@@ -4,6 +4,18 @@
 Created on Mon Oct 23 15:55:02 2017
 
 @author: alexa
+
+target lattice:
+    #tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
+#        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+#        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+#        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+#        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+#        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+#        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+#        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
+#        ]
+    
 """
 
 from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline, ggtitle
@@ -51,50 +63,38 @@ R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
 StateList = U.form_state_list((0e-3,5e-3),(-0e-3,5e-3),2,2)
 E = PCL.Ensemble.from_state(StateList)
-E[1].set(dK=-5e-3)
-E[2].set(dK=5e-3)
-E[3].set(dK=1e-2)
+E[1].set(dK=-5e-4)
+E[2].set(dK=5e-4)
+E[3].set(dK=1e-4)
 E.setReference(0)
 
 ## prepping RF
 
 LRF = 5e-3
 Acc_len = 2*(OD1.fLength+OD2.fLength)+LRF
-ERF = ENT.ERF(LRF,E,Acc_len,H_number=20)
-
-#%%
-
-#tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
-#        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-#        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-#        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-#        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-#        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-#        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-#        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
-#        ]
+ERF = ENT.ERF(LRF,E,Acc_len,H_number=1)
 
 tLat = [OD1, OD2, OD1.copy(), OD2.copy(), ERF]
+
 assert Acc_len == NP.sum([e.fLength for e in tLat]), 'Inconsistent lattice lengths'
-names = [e.fName for e in tLat]
 #%%
 
-E.track(tLat,100)
+E.track(tLat,10)
     
 df = E.getDataFrame()
 #%%
-# show when the ensemble particles get into RF field
+### show when the ensemble particles get into RF field
 
-#tTOT = df['t']
-#EsTOT = [e[2] for e in ERF.EField_vec(tTOT)]
-#PLT.plot(tTOT,EsTOT,'.')
-#
-#for i in range(E.count()):
-#    df0 = E[i].getDataFrame()
-#    tRF = df0[df0['Element']=='RF']['t']
-#    EsRF = [e[2] for e in ERF.EField_vec(tRF)]
-#    PLT.plot(tRF, EsRF,'.',label=i)
-#PLT.legend()
+tTOT = df['t']
+EsTOT = [e[2] for e in ERF.EField_vec(tTOT)]
+PLT.plot(tTOT,EsTOT,'.')
+
+for i in range(E.count()):
+    df0 = E[i].getDataFrame()
+    tRF = df0[df0['Element']=='RF']['t']
+    EsRF = [e[2] for e in ERF.EField_vec(tRF)]
+    PLT.plot(tRF, EsRF,'.',label=i)
+PLT.legend()
 #%%
 th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
 df['Theta'] = df['t'].apply(th)
@@ -104,15 +104,16 @@ for i in range(E.count()):
     df.loc[df['PID']==i,'Theta'] -= df0['Theta']
     df.loc[df['PID']==i,'dK'] -= df0['dK']
 dfm = PDS.melt(df, id_vars=['PID','t','s[cm]', 'Theta'])
-ennames = E.listNames(); #ennames.remove(0)
+ennames = E.listNames(); ennames.remove(0)
 dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(ennames)]
 #%%
+names = [e.fName for e in tLat]
 print(ggplot(dat,aes(x='Theta',y='value',color='variable')) + facet_grid('PID',scales='free_y')+
      geom_line(size=.5) + theme_bw()+ #geom_point(size=.5) +
      ggtitle('Vanilla 2, {} elements; Es(RF) = {}'.format(names, ERF.fAmplitude))
      )
 
 #%%
-#for i in range(E.size()):
+#for i in range(E.count()):
 #    dat = df[df['PID']==i]
 #    PLT.polar(dat['Theta'],dat['dK'])

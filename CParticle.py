@@ -82,6 +82,8 @@ class Particle:
         
         dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
 #        gammap = dEnp/self.fMass0 # gamma prime
+
+#        if re.sub('_.*','',element.fName) == 'RF': print('Es {}, dKp {}'.format(Es, dEnp/self.fKinEn0))
         
         gamma,beta = self.GammaBeta(KinEn)
         q = self.__ezero
@@ -95,7 +97,7 @@ class Particle:
         Pyp = (Ey*tp + (Bx-xp*Bs))*1e-6*clight #Fy*tp * c, in Mev
         
         
-        Px,Py,Ps = tuple([e*q*1e6/clight for e in (Px,Py,Ps)]) # the original formulas use momenta, not P*c
+        Px,Py,Ps = [e*q*1e6/clight for e in (Px,Py,Ps)] # the original formulas use momenta, not P*c
         
         t5 = tp
         t6 =  t5* (q / (gamma * m0 * self.fMass0)) * (self.fG + 1/(1 + gamma))
@@ -136,7 +138,7 @@ class Particle:
                     self.fStateLog.update({(n,element.fName,'last'):self.__fState})
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
-                    break
+                    return
             
         
     def getDataFrame(self):
