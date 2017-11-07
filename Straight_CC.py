@@ -63,38 +63,41 @@ R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
 StateList = U.form_state_list((0e-3,5e-3),(-0e-3,5e-3),2,2)
 E = PCL.Ensemble.from_state(StateList)
-E[1].set(dK=-5e-4)
-E[2].set(dK=5e-4)
-E[3].set(dK=1e-4)
+E[1].set(dK=-5e-5)
+E[2].set(dK=1e-4)
+E[3].set(dK=5e-5)
 E.setReference(0)
 
 ## prepping RF
 
-LRF = 5e-3
+LRF = 5e-2
 Acc_len = 2*(OD1.fLength+OD2.fLength)+LRF
-ERF = ENT.ERF(LRF,E,Acc_len,H_number=1)
+ERF = ENT.ERF(LRF,E,Acc_len,EField=15e4,H_number=100)
 
 tLat = [OD1, OD2, OD1.copy(), OD2.copy(), ERF]
 
 assert Acc_len == NP.sum([e.fLength for e in tLat]), 'Inconsistent lattice lengths'
 #%%
 
-E.track(tLat,10)
+E.track(tLat,400)
+
+p=E.plot(size=.7)
     
-df = E.getDataFrame()
+print(p)
+#df = E.getDataFrame()
 #%%
 ### show when the ensemble particles get into RF field
 
-tTOT = df['t']
-EsTOT = [e[2] for e in ERF.EField_vec(tTOT)]
-PLT.plot(tTOT,EsTOT,'.')
-
-for i in range(E.count()):
-    df0 = E[i].getDataFrame()
-    tRF = df0[df0['Element']=='RF']['t']
-    EsRF = [e[2] for e in ERF.EField_vec(tRF)]
-    PLT.plot(tRF, EsRF,'.',label=i)
-PLT.legend()
+#tTOT = df['t']
+#EsTOT = [e[2] for e in ERF.EField_vec(tTOT)]
+#PLT.plot(tTOT,EsTOT,'.')
+#
+#for i in range(E.count()):
+#    df0 = E[i].getDataFrame()
+#    tRF = df0[df0['Element']=='RF']['t']
+#    EsRF = [e[2] for e in ERF.EField_vec(tRF)]
+#    PLT.plot(tRF, EsRF,'.',label=i)
+#PLT.legend()
 #%%
 th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
 df['Theta'] = df['t'].apply(th)

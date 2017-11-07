@@ -182,6 +182,7 @@ class Ensemble:
     
     def __init__(self, ParticleList):
         self.addParticles(ParticleList)
+        self.__fRefPart = None
         
     @classmethod
     def from_state(cls, StateList):
@@ -199,6 +200,9 @@ class Ensemble:
         return list(self.__fParticle.keys())
     
     def setReference(self, name):
+        if self.__fRefPart is not None:
+            print('Reference already set')
+            return
         self.__fRefPart = self.__fParticle[name]
         
     def getReference(self):
@@ -230,6 +234,27 @@ class Ensemble:
     def revFreq(self, Lat_len):
         return self.__fRefPart.revFreq(Lat_len)
     
-    def plot(self, X, Y):
-        pass
+    def plot(self, Xlab = 'Theta', Ylab = 'dK', inner=True, **kwargs):
+        df = self.getDataFrame(inner)
+        df0 = self.getReference().getDataFrame(inner)
+
+        pr = self.getReference()
+        if any([e is 'Theta' for e in [Xlab,Ylab]]):
+            th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
+            df['Theta'] = df['t'].apply(th)
+            df0['Theta'] = df0['t'].apply(th)
+        
+        n = len(NP.unique(df['PID']))
+        df0 = df0.iloc[NP.tile(NP.arange(len(df0)),n)]
+        
+        df[Xlab] -= df0[Xlab]
+        df[Ylab] -= df0[Ylab]
+        df.PID = df.PID.apply(lambda x: str(x))
+            
+        from ggplot import ggplot,aes, theme_bw, geom_point
+        
+        return ggplot(df, aes(x=Xlab,y=Ylab,color='PID')) + geom_point(**kwargs) + theme_bw()
+        
+        
+        
     

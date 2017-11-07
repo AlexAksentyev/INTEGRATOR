@@ -268,6 +268,8 @@ class ERF(Element, HasCounter):
             
         self.__fU = self.fAmplitude*self.fLength
         
+        RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
+        
     def __repr__(self):
         return str(self.__fChars)
         
@@ -299,3 +301,5 @@ class ERF(Element, HasCounter):
         Xk['dK'] += u*1e-6/particle.fKinEn0
 #        print('Kick voltage {}'.format(u))
         particle.setState(Xk)
+        
+        
