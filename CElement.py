@@ -181,10 +181,8 @@ class Wien(Element, HasCounter):
         return (self.__fVolt, self.__U(x))
     
     def printFields(self):
-        Ex,Ey,Es = self.__fEField
-        Bx,By,Bs = self.__fBField
-        print('Ex {}, Ey {}, Es {}'.format(Ex,Ey,Es))
-        print('Bx {}, By {}, Bs {}'.format(Bx,By,Bs))
+        print('Ex {}, Ey {}, Es {}'.format(*self.__fEField))
+        print('Bx {}, By {}, Bs {}'.format(*self.__fBField))
     
     def setBField(self, BField=None):        
         
@@ -267,6 +265,8 @@ class ERF(Element, HasCounter):
         self.__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
                        'Frequency':self.fFreq,'h-number': self.__fH_number, 
                        'Phase':self.fPhase},index=[self.fName]).T
+            
+        self.__fU = self.fAmplitude*self.fLength
         
     def __repr__(self):
         return str(self.__fChars)
@@ -285,3 +285,17 @@ class ERF(Element, HasCounter):
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
+    
+    def frontKick(self, particle):
+        u = self.__fU
+        Xk = particle.getState()
+        Xk['dK'] -= u*1e-6/particle.fKinEn0
+        print('Kick voltage {}'.format(u))
+        particle.setState(Xk)
+        
+    def rearKick(self, particle):
+        u = self.__fU
+        Xk = particle.getState()
+        Xk['dK'] += u*1e-6/particle.fKinEn0
+        print('Kick voltage {}'.format(u))
+        particle.setState(Xk)
