@@ -70,8 +70,9 @@ LRF = 5e-3
 Lacc = 2*(OD1.fPardict['Length'] + OD2.fPardict['Length']) + LRF
 ERF = ENT.ERF(5e-3,PCL.Particle(),5e-3)
 
-StateList = U.form_state_list((0e-3,1e-3),(0e-3,1e-3),1,1)
-E = PCL.Ensemble.from_state(StateList)
+StateList = U.form_state_list((1e-3,1e-3),(0e-3,1e-3),1,1)
+Ref = PCL.Ensemble.from_state([[0]*len(ENT.Element.fArgList)],'Ref')
+E = PCL.Ensemble.from_state(StateList) + Ref
 E.set('X0', dK=1e-4)
 #%%
     
@@ -89,7 +90,7 @@ dfe = df.fTransitions
 dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
 dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
 print(
-     ggplot(dat,aes(x='s[m]',y='value',color='variable')) + #facet_grid('variable',scales='free_y') +
+     ggplot(dat,aes(x='s[m]',y='value',color='variable')) + facet_grid('PID',scales='free_y') +
      geom_point(size=.3) + geom_line() + #geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
      theme_bw()
      )

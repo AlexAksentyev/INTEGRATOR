@@ -48,3 +48,21 @@ def GammaBeta(fPardict):
     
 def Pc(fPardict, KNRG):
     return float(NP.sqrt((fPardict['Mass0'] + KNRG)**2 - fPardict['Mass0']**2))
+
+
+def ThDKplot(df, ERF, **kwargs):
+    
+    df0 = df[df['PID']=='Ref0']
+    
+    th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
+    df['Theta'] = df['ts'].apply(th)
+    df0['Theta'] = df0['ts'].apply(th)
+    
+    df['Theta'] -= df0['Theta']
+    df['dK'] -= df0['dK']
+    
+    df.PID = df.PID.apply(lambda x: str(x))
+        
+    from ggplot import ggplot,aes, theme_bw, geom_point
+    
+    return ggplot(df, aes(x='Theta',y='dK',color='PID')) + geom_point(**kwargs) + theme_bw()
