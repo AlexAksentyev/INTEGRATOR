@@ -66,33 +66,28 @@ SFN = ENT.MSext(Ls,SFNG,"SFN")
 SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
+LRF = 5e-3
+Lacc = 2*(OD1.fPardict['Length'] + OD2.fPardict['Length']) + LRF
+ERF = ENT.ERF(5e-3,PCL.Particle(),5e-3)
 
-StateList = U.form_state_list((30e-3,1e-3),(0e-3,1e-3),1,1)
+StateList = U.form_state_list((0e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
-
+E.set('X0', dK=1e-4)
 #%%
-tLatSeq = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
-        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
-        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
-        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
-        ]
     
-tLat = LTC.Lattice(tLatSeq, Options={'Generator':'vode'})
+tLat = LTC.Lattice([OD1, OD2, ERF, OD1.copy(), OD2.copy()], Options={'Generator':'dopri'})
 
+assert tLat.getLength() == Lacc, 'Inconsistent lattice lengths'
 #%%
 
-tLat.track(E,5)
+tLat.track(E,100)
     
 #%%
 
 df = E.getDataFrame()
 dfe = df.fTransitions
 dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
-dat = dfm.loc[dfm['variable'].isin(['X[cm]','Y[cm]'])&dfm['PID'].isin(E.listNames())]
+dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
 print(
      ggplot(dat,aes(x='s[m]',y='value',color='variable')) + #facet_grid('variable',scales='free_y') +
      geom_point(size=.3) + geom_line() + #geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
