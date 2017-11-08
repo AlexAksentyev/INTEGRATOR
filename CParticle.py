@@ -98,7 +98,7 @@ class Ensemble:
         pd = PDS.DataFrame(self.fIniStateDict).T
         return str(pd)
         
-    def getDataFrame(self, LatName):
+    def getDataFrame(self, LatName='lattice'):
         rval = PDS.DataFrame()
         Trajectories = self.fLattice[LatName].fDSModel.trajectories
         traj0 = Trajectories[self.__fDB.by_index(0)]
