@@ -55,12 +55,12 @@ class Element:
     def frontKick(self):
         dK = DST.Var('dK')
         print('front kick, {}'.format(self.fName))
-        return DST.Fun(dK - .03, self.fArgList,'Front') #TESTING
+        return DST.Fun(dK, self.fArgList,'Front')
     
     def rearKick(self):   
         dK = DST.Var('dK')
         print('rear kick, {}'.format(self.fName))
-        return DST.Fun(dK + .03, self.fArgList,'Rear') #TESTING
+        return DST.Fun(dK, self.fArgList,'Rear')
     
 class HasCounter:
     fCount = 0
@@ -88,15 +88,6 @@ class Drift(Element, HasCounter):
     def __init__(self, Length, Name = "Drift"):
         super().__init__(Curve=0,Length=Length,Name=Name)
         
-    def frontKick(self): # TESTING
-        dK = DST.Var('dK')
-        print('front kick, {}'.format(self.fName))
-        return DST.Fun(dK, self.fArgList,'Front')
-    
-    def rearKick(self):   # TESTING
-        dK = DST.Var('dK')
-        print('rear kick, {}'.format(self.fName))
-        return DST.Fun(dK, self.fArgList,'Rear')
 
 class MQuad(Element, HasCounter):
     """ magnetic quadrupole
@@ -229,7 +220,7 @@ class Wien(Element, HasCounter):
         crv = str(self.fPardict['Curve'])
         self._Element__setField({'Ex':str(EField)+'/(1+'+crv+'*x)'})
         
-        #define a subfunction for use in kicks
+        #define the voltage function for use in kicks
         R0 = float(R[0])
         R1 = float(self.__fR[1])
         R2 = float(self.__fR[2])
@@ -269,7 +260,7 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK - .03+0*self.__U(x)*1e-6/KinEn0,self.fArgList,'Front')# TESTING
+        f = DST.Fun(dK - self.__U(x)*1e-6/KinEn0,self.fArgList,'Front')
         print('front kick, {}'.format(self.fName))
         return f
         
@@ -280,9 +271,68 @@ class Wien(Element, HasCounter):
         x = DST.Var('x')
         dK = DST.Var('dK')
         
-        f = DST.Fun(dK + .03 + 0*self.__U(x)*1e-6/KinEn0,self.fArgList,'Rear') #TESTING
+        f = DST.Fun(dK + self.__U(x)*1e-6/KinEn0,self.fArgList,'Rear')
         print('rear kick, {}'.format(self.fName))
         return f
     
     def kickVolts(self, x):
         return (self.__fVolt, self.__U(x).tonumeric())
+    
+    
+    
+#class ERF(Element, HasCounter):
+#    """ RF element
+#    """
+#    
+#    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = NP.pi/2, H_number = 50, Name = "RF"):
+#        super().__init__(Curve=0,Length=Length,Name=Name)
+#        if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
+#        elif type(RefPart) is PCL.Particle: pass
+#        else: raise ValueError('Wrong type Reference Particle')
+#        
+#        self.fAmplitude = EField
+#        self.fPhase = Phase
+#        self.fFreq = RefPart.revFreq(Acc_length) * H_number
+#        self.__fH_number = H_number
+#        
+#        self.__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
+#                       'Frequency':self.fFreq,'h-number': self.__fH_number, 
+#                       'Phase':self.fPhase},index=[self.fName]).T
+#            
+#        self.__fU = self.fAmplitude*self.fLength
+#        
+#        RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
+#        
+#    def __repr__(self):
+#        return str(self.__fChars)
+#        
+#    def EField(self, arg):
+#        t = arg['t']
+#        A = self.fAmplitude
+#        w = self.fFreq*2*NP.pi
+#        phi = self.fPhase
+#        return (0, 0, A*NP.cos(w*t+phi))
+#    
+#    def EField_vec(self, time_vec):
+#        time_vec = NP.array(time_vec)
+#        z = NP.zeros(len(time_vec))
+#        A = self.fAmplitude
+#        w = self.fFreq*2*NP.pi
+#        phi = self.fPhase
+#        return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
+#    
+#    def frontKick(self, particle):
+#        u = self.__fU
+#        Xk = particle.getState()
+#        Xk['dK'] -= u*1e-6/particle.fKinEn0
+##        print('Kick voltage {}'.format(u))
+#        particle.setState(Xk)
+#        
+#    def rearKick(self, particle):
+#        u = self.__fU
+#        Xk = particle.getState()
+#        Xk['dK'] += u*1e-6/particle.fKinEn0
+##        print('Kick voltage {}'.format(u))
+#        particle.setState(Xk)
+#        
+#        
