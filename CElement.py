@@ -1,7 +1,8 @@
 import numpy as NP
 import pandas as PDS
 import collections as CLN
-from utilFunc import phi
+import CParticle as PCL
+import utilFunc as U
 import copy
 import re
 import PyDSTool as DST
@@ -29,7 +30,7 @@ class Element:
                 'Bs':(self.fArgList, '0')
                 }
         
-        self.fArgStr = phi(',',*self.fArgList) # argument string '(x,y,...)' for RHS definition
+        self.fArgStr = U.phi(',',*self.fArgList) # argument string '(x,y,...)' for RHS definition
         super().__init__()
         
     def __repr__(self):
@@ -249,7 +250,7 @@ class Wien(Element, HasCounter):
             
         h = 1/self.__fR[0]
         
-        B = phi('*', 0.018935,-BField,phi('+',-h, phi('*',k,BField,v)), 'x')
+        B = U.phi('*', 0.018935,-BField,U.phi('+',-h, U.phi('*',k,BField,v)), 'x')
         B = B[1:len(B)-1]
         
         self._Element__setField({'By':B})
@@ -280,59 +281,61 @@ class Wien(Element, HasCounter):
     
     
     
-#class ERF(Element, HasCounter):
-#    """ RF element
-#    """
-#    
-#    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = NP.pi/2, H_number = 50, Name = "RF"):
-#        super().__init__(Curve=0,Length=Length,Name=Name)
-#        if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
-#        elif type(RefPart) is PCL.Particle: pass
-#        else: raise ValueError('Wrong type Reference Particle')
-#        
-#        self.fAmplitude = EField
-#        self.fPhase = Phase
-#        self.fFreq = RefPart.revFreq(Acc_length) * H_number
-#        self.__fH_number = H_number
-#        
-#        self.__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
-#                       'Frequency':self.fFreq,'h-number': self.__fH_number, 
-#                       'Phase':self.fPhase},index=[self.fName]).T
-#            
-#        self.__fU = self.fAmplitude*self.fLength
-#        
-#        RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
-#        
-#    def __repr__(self):
-#        return str(self.__fChars)
-#        
-#    def EField(self, arg):
-#        t = arg['t']
-#        A = self.fAmplitude
-#        w = self.fFreq*2*NP.pi
-#        phi = self.fPhase
-#        return (0, 0, A*NP.cos(w*t+phi))
-#    
-#    def EField_vec(self, time_vec):
-#        time_vec = NP.array(time_vec)
-#        z = NP.zeros(len(time_vec))
-#        A = self.fAmplitude
-#        w = self.fFreq*2*NP.pi
-#        phi = self.fPhase
-#        return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
-#    
-#    def frontKick(self, particle):
-#        u = self.__fU
-#        Xk = particle.getState()
-#        Xk['dK'] -= u*1e-6/particle.fKinEn0
-##        print('Kick voltage {}'.format(u))
-#        particle.setState(Xk)
-#        
-#    def rearKick(self, particle):
-#        u = self.__fU
-#        Xk = particle.getState()
-#        Xk['dK'] += u*1e-6/particle.fKinEn0
-##        print('Kick voltage {}'.format(u))
-#        particle.setState(Xk)
-#        
-#        
+class ERF(Element, HasCounter):
+    """ RF element
+    """
+    
+    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = NP.pi/2, H_number = 50, Name = "RF"):
+        super().__init__(Curve=0,Length=Length,Name=Name)
+        if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
+        elif type(RefPart) is PCL.Particle: pass
+        else: raise ValueError('Wrong type Reference Particle')
+        
+        self.fAmplitude = EField
+        self.fPhase = Phase
+        self.fFreq = RefPart.revFreq(Acc_length) * H_number
+        self.__fH_number = H_number
+        
+        self.__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
+                       'Frequency':self.fFreq,'h-number': self.__fH_number, 
+                       'Phase':self.fPhase},index=[self.fName]).T
+            
+        self.__fU = self.fAmplitude*self.fLength
+        
+        RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
+        
+    def __repr__(self):
+        return str(self.__fChars)
+    
+    def __setEField(self):
+        A = str(self.fAmplitude)
+        w = str(self.fFreq*2*NP.pi)
+        phi = str(self.fPhase)
+        Es = A+'*cos('+w+'*ts+'+phi+')'
+        self._Element__setField({'Es': Es})
+    
+    def EField_vec(self, time_vec):
+        time_vec = NP.array(time_vec)
+        z = NP.zeros(len(time_vec))
+        A = self.fAmplitude
+        w = self.fFreq*2*NP.pi
+        phi = self.fPhase
+        return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
+    
+    def frontKick(self, particle):
+        dK = DST.Var('dK')
+        KinEn0 = float(self.fPardict['KinEn0'])
+        
+        f = DST.Fun(dK - self.__fU*1e-6/KinEn0,self.fArgList,'Rear')
+        print('rear kick, {}'.format(self.fName))
+        return f
+        
+    def rearKick(self, particle):
+        dK = DST.Var('dK')
+        KinEn0 = float(self.fPardict['KinEn0'])
+        
+        f = DST.Fun(dK + self.__fU*1e-6/KinEn0,self.fArgList,'Rear')
+        print('rear kick, {}'.format(self.fName))
+        return f
+        
+        
