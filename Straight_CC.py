@@ -16,6 +16,10 @@ tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
         QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
         ]
+
+TODO:
+    * Consider reimplementing via ModelSpec classes
+    * Terminal event --- the final kick
 """
 
 from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline, ggtitle
@@ -85,7 +89,7 @@ tLat.track(E,5)
     
 #%%
 
-df = E.getDataFrame('lattice')
+df = E.getDataFrame()
 dfe = df.fTransitions
 dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
 dat = dfm.loc[dfm['variable'].isin(['X[cm]','Y[cm]'])&dfm['PID'].isin(E.listNames())]
