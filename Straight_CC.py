@@ -71,8 +71,8 @@ E = PCL.Ensemble.from_state(StateList)
 
 #%%
 
-R3Lat = LTC.Lattice([R3],Options={'Generator':'dopri','LatName':'R3'})
-EL0Lat = LTC.Lattice([EL0],Options={'Generator':'vode','LatName':'EL0'})
+R3Lat = LTC.Lattice([OD1, OD2, R3],Options={'Generator':'dopri','LatName':'R3'})
+EL0Lat = LTC.Lattice([OD1, OD2, EL0],Options={'Generator':'dopri','LatName':'EL0'})
 
 #%%
 

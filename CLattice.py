@@ -32,9 +32,6 @@ class Lattice:
         if Gen == 'VODE': tlang = 'python'
         else: tlang = 'c'
         
-        call('find ./dop853_temp/ -type f -exec rm {} + ', shell=True) # clear compiled code
-        call('find ./radau5_temp/ -type f -exec rm {} + ', shell=True)
-        
         self.fCount = len(ElSeq)
         self.fPardict = dict()
         self.fArgList = ENT.Element.fArgList
@@ -138,6 +135,11 @@ class Lattice:
         
         mod_args = {'name':latname,'modelInfo':modelInfoDict}
         self.fDSModel = DST.Model.HybridModel(mod_args)
+        
+    @classmethod
+    def clear(cls):
+        call('find ./dop853_temp/ -type f -exec rm {} + ', shell=True) # clear compiled code
+        call('find ./radau5_temp/ -type f -exec rm {} + ', shell=True)
     
     @classmethod
     def setup_element(cls, Element, RefPart):
@@ -145,6 +147,8 @@ class Lattice:
         ## definitions
         arg = Element.fArgStr
         crv = Element.fName+'_Curve'
+        hs = 'v0_hs_'+Element.fName
+        print('\n\n\t\t Element {}, hs {}\n\n'.format(Element.fName, hs))
         
         # fields
         sExA = 'Ex'+arg
@@ -160,9 +164,9 @@ class Lattice:
         sp2 = 'v4_Tp*( q / (v0_Lgamma* m0*m0*m0*clight*clight)) * (G/(1 + v0_Lgamma))*(v2_Px*v0_Bx+v2_Py*v0_By+v3_Ps*v0_Bs)'
         
         ## derivative definitions
-        sXpA = 'v0_hs*v1_Px/v2_Ps'
-        sYpA = 'v0_hs*v1_Py/v2_Ps'    
-        sHpA = 'v0_hs*v0_Pc/v2_Ps'
+        sXpA = hs+'*v1_Px/v2_Ps'
+        sYpA = hs+'*v1_Py/v2_Ps'    
+        sHpA = hs+'*v0_Pc/v2_Ps'
         sTpA = 'v3_Hp/v1_V'    
         
         det = lambda a,b,c,d: phi('-',smult(a,b),smult(c,d))
@@ -172,12 +176,12 @@ class Lattice:
         # these are probably from TBMT
         Sxp =      crv+' * Ss + v5_t6 * ((v3_Ps * v0_Ex - v2_Px * v0_Es) * Ss - (v2_Px * v0_Ey - v2_Py * v0_Ex) * Sy) + (v5_sp1*v0_By+v5_sp2*v2_Py)*Ss-(v5_sp1*v0_Bs+v5_sp2*v3_Ps)*Sy'
         Syp =                   'v5_t6 * ((v2_Px * v0_Ey - v2_Py * v0_Ex) * Sx - (v2_Py * v0_Es - v3_Ps * v0_Ey) * Ss) + (v5_sp1*v0_Bs+v5_sp2*v3_Ps)*Sx-(v5_sp1*v0_Bx+v5_sp2*v2_Px)*Ss'
-        Ssp = crv + '*(-1) * Sx + v5_t6 * ((v2_Py * v0_Es - v3_Ps * v0_Ey) * Sy - (v3_Ps * v0_Ex - v2_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v2_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v2_Py)*Sx'
+        Ssp = crv+' *(-1) * Sx + v5_t6 * ((v2_Py * v0_Es - v3_Ps * v0_Ey) * Sy - (v3_Ps * v0_Ex - v2_Px * v0_Es) * Sx) + (v5_sp1*v0_Bx+v5_sp2*v2_Px)*Sy-(v5_sp1*v0_By+v5_sp2*v2_Py)*Sx'
         
         ## 
-        reuse = RefPart.fReuse
+        reuse = copy.deepcopy(RefPart.fReuse)
         reuse.update({
-                    '(1+'+crv+'*x)':'v0_hs',
+                    '(1+'+crv+'*x)':hs,
                     sExA:'v0_Ex', sEyA:'v0_Ey', sEsA:'v0_Es',
                     sBxA:'v0_Bx', sByA:'v0_By', sBsA:'v0_Bs',
                     sXpA:'v3_Xp',sYpA:'v3_Yp', sHpA:'v3_Hp',
@@ -203,9 +207,7 @@ class Lattice:
                 }
         
         DSargs = DST.args(name=Element.fName)
-#        ed = {Element.fName+'_'+key:value for key,value in Element.fPardict.items()}
-        DSargs.pars = {**RefPart.fPardict, **Element.fPardict}
-#        ed = {Element.fName+'_'+key:value for key,value in Element.fFndict.items()}
+        DSargs.pars = {**RefPart.fPardict, crv:Element.fPardict['Curve']}
         DSargs.fnspecs = {**RefPart.fFndict, **Element.fFndict}
         DSargs.reuseterms=reuse
         

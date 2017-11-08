@@ -226,7 +226,7 @@ class Wien(Element, HasCounter):
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
         self.fPardict.update({'Curve':1/R[0]})
         self.fGeomdict.update({'R':R[0], 'Curve':1/R[0]})
-        crv = self.fName+'_Curve'
+        crv = str(self.fPardict['Curve'])
         self._Element__setField({'Ex':str(EField)+'/(1+'+crv+'*x)'})
         
         #define a subfunction for use in kicks
