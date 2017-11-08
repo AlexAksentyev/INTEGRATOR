@@ -148,7 +148,6 @@ class Lattice:
         arg = Element.fArgStr
         crv = str(Element.fPardict['Curve'])#Element.fName+'_Curve'
         hs = 'v0_hs'#_'+Element.fName
-        print('\n\n\t\t Element {}, hs {}\n\n'.format(Element.fName, hs))
         
         # fields
         sExA = 'Ex'+arg

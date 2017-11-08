@@ -63,33 +63,36 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
-EL0 = ENT.Element(0*R3.fGeomdict['Curve'],Lw)
-EL0.setField(**R3.getField())
-
 StateList = U.form_state_list((30e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
-
-R3Lat = LTC.Lattice([OD1, OD2, R3],Options={'Generator':'vode','LatName':'R3'})
-EL0Lat = LTC.Lattice([OD1, OD2, EL0],Options={'Generator':'vode','LatName':'EL0'})
+    tLatSeq = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
+        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
+        ]
+    
+tLat = LTC.Lattice(tLatSeq, Options={'Generator':'vode'})
 
 #%%
 
-R3Lat.track(E,1,'0')
-EL0Lat.track(E,1,'0')
+tLat.track(E,5)
     
 #traj = E.fTrajectories['X0']
 #%%
 
-df = E.getDataFrame('R3')
+df = E.getDataFrame('lattice')
 dfe = df.fTransitions
-df = df.append(E.getDataFrame('EL0'))
-dfm = PDS.melt(df, id_vars=['Lattice','PID','s[m]','at'])
-dat = dfm.loc[dfm['variable'].isin(['X[cm]','px','dK'])&dfm['PID'].isin(E.listNames())]
+dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
+dat = dfm.loc[dfm['variable'].isin(['X[cm]','Y[cm]'])&dfm['PID'].isin(E.listNames())]
 print(
-     ggplot(dat,aes(x='s[m]',y='value',color='Lattice')) + facet_grid('variable',scales='free_y') +
-     geom_point(size=.3) + geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
+     ggplot(dat,aes(x='s[m]',y='value',color='variable')) + #facet_grid('variable',scales='free_y') +
+     geom_point(size=.3) + geom_line() + #geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
      theme_bw()
      )
 
