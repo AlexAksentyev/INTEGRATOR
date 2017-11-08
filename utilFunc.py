@@ -50,16 +50,33 @@ def Pc(fPardict, KNRG):
     return float(NP.sqrt((fPardict['Mass0'] + KNRG)**2 - fPardict['Mass0']**2))
 
 
-def ThDKplot(df, ERF, **kwargs):
+def ThDKplot(Ensemble, ERF, **kwargs):#unfinished
+    import re 
+    
+    trajs = []
+    for name,traj in Ensemble.fLattices['lattice'].fDSModel.trajectories.items():
+        if re.sub('_.*','',name) == 'Ref':
+            traj0 = traj
+        else:
+            trajs.append(traj)
+            
+    t = traj0.underlyingMesh(['ts'])['ts']
+
+    df = PDS.DataFrame()
+    for traj in trajs:
+        
     
     df0 = df[df['PID']=='Ref0']
+    df = df[df['PID'] != 'Ref0']
     
     th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
     df['Theta'] = df['ts'].apply(th)
     df0['Theta'] = df0['ts'].apply(th)
     
-    df['Theta'] -= df0['Theta']
-    df['dK'] -= df0['dK']
+    n = len(NP.unique(df['PID']))
+    df0 = df0.iloc[NP.tile(NP.arange(len(df0)),n)]
+    
+    df[['Theta','dK']] = df[['Theta','dK']].sub(df0[['Theta','dK']], axis=0)
     
     df.PID = df.PID.apply(lambda x: str(x))
         

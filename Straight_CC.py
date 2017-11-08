@@ -33,6 +33,7 @@ import CLattice as LTC
 import utilFunc as U
 
 
+
 reload(ENT)
 reload(PCL)
 reload(LTC)
@@ -86,11 +87,12 @@ tLat.track(E,100)
 #%%
 
 df = E.getDataFrame()
+df['PID'] = df['PID'].apply(lambda x: str(x))
 dfe = df.fTransitions
 dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
 dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(E.listNames())]
 print(
-     ggplot(dat,aes(x='s[m]',y='value',color='variable')) + facet_grid('PID',scales='free_y') +
+     ggplot(dat,aes(x='s[m]',y='value',color='PID')) + #facet_grid('variable',scales='free_y') +
      geom_point(size=.3) + geom_line() + #geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
      theme_bw()
      )
