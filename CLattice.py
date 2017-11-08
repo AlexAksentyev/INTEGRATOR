@@ -146,8 +146,8 @@ class Lattice:
         
         ## definitions
         arg = Element.fArgStr
-        crv = Element.fName+'_Curve'
-        hs = 'v0_hs_'+Element.fName
+        crv = str(Element.fPardict['Curve'])#Element.fName+'_Curve'
+        hs = 'v0_hs'#_'+Element.fName
         print('\n\n\t\t Element {}, hs {}\n\n'.format(Element.fName, hs))
         
         # fields
@@ -207,7 +207,7 @@ class Lattice:
                 }
         
         DSargs = DST.args(name=Element.fName)
-        DSargs.pars = {**RefPart.fPardict, crv:Element.fPardict['Curve']}
+        DSargs.pars = {**RefPart.fPardict}#, crv:Element.fPardict['Curve']}
         DSargs.fnspecs = {**RefPart.fFndict, **Element.fFndict}
         DSargs.reuseterms=reuse
         
