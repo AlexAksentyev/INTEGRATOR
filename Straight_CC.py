@@ -5,8 +5,9 @@ Created on Mon Oct 23 15:55:02 2017
 
 @author: alexa
 
-Traget lattice:
-    tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
+Target lattice:
+    
+tLat = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
         QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
         QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
@@ -17,7 +18,7 @@ Traget lattice:
         ]
 """
 
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline
+from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point, geom_vline, ggtitle
 import pandas as PDS
 import CParticle as PCL
 import CElement as ENT
@@ -25,12 +26,13 @@ from importlib import reload
 import numpy as NP
 from matplotlib import pyplot as PLT
 import CLattice as LTC
-from utilFunc import *
+import utilFunc as U
 
 
 reload(ENT)
 reload(PCL)
 reload(LTC)
+reload(U)
 
 
 Lq = 5e-2
@@ -61,25 +63,35 @@ SDN = ENT.MSext(Ls,SDNG,"SDN")
 
 R3 = ENT.Wien(Lw,5e-2,PCL.Particle(),E,B,Name="R3")
 
-StateList = form_state_list((0e-3,1e-3),(0e-3,1e-3),3,3)
+StateList = U.form_state_list((30e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
-
-
-
-tLat = LTC.Lattice([OD1, OD2, R3],Options={'Generator':'vode'})
+tLatSeq = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
+        QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDN.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
+        QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
+        QDA2.copy(), OD1.copy(), SDP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy()
+        ]
+    
+tLat = LTC.Lattice(tLatSeq, Options={'Generator':'vode'})
 
 #%%
 
-tLat.track(E,1,'0')
+tLat.track(E,5)
     
 #%%
 
-df = E.getDataFrame()
+df = E.getDataFrame('lattice')
 dfe = df.fTransitions
-dfm = PDS.melt(df, id_vars=['PID','s','at'])
-dat = dfm.loc[dfm['variable'].isin(['x','y'])&dfm['PID'].isin(E.listNames())]
-print(ggplot(dat,aes(x='s',y='value',color='variable')) +
-     geom_line() + geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + theme_bw())
+dfm = PDS.melt(df, id_vars=['PID','s[m]','at'])
+dat = dfm.loc[dfm['variable'].isin(['X[cm]','Y[cm]'])&dfm['PID'].isin(E.listNames())]
+print(
+     ggplot(dat,aes(x='s[m]',y='value',color='variable')) + #facet_grid('variable',scales='free_y') +
+     geom_point(size=.3) + geom_line() + #geom_vline(x=list(dfe['s']),color='gray',linetype='dashed',size=.3) + 
+     theme_bw()
+     )
 

@@ -1,8 +1,10 @@
 import numpy as NP
+import pandas as PDS
 import collections as CLN
 from utilFunc import phi
 import copy
 import re
+import PyDSTool as DST
 
 
 class Element:
@@ -14,9 +16,9 @@ class Element:
     def __init__(self, Curve, Length, Name = "Element"):
         self.fName = Name
         
-        self.fPardict = {'Curve':Curve, 'Length':Length}
+        self.fGeomdict = {'Curve':Curve, 'Length':Length}
         
-        self.fGeomdict = copy.deepcopy(self.fPardict)
+        self.fPardict = {key:value for key,value in self.fGeomdict.items()}
         
         self.fFndict = { # defines the element EM field
                 'Ex':(self.fArgList, '0'),
@@ -40,18 +42,25 @@ class Element:
         inFldDict = {key:(self.fArgList, value) for key, value in FldDict.items()}
         self.fFndict.update(inFldDict)
         
-    def getField(self, fulldef = False):
-        if fulldef: return self.fFndict
-        else: return {key:value[1] for key,value in self.fFndict.items()}
+    def getField(self, *args):
+        if len(args)==0 : rval = {key:value[1] for key,value in self.fFndict.items()}    
+        elif len(args) == 1 : rval = self.fFndict[args[0]][1]        
+        else:rval = {key:self.fFndict[key][1] for key in args}
+        
+        return rval
 
     def getGeometry(self):
         return self.fGeomdict
-
-    def frontKick(self, state):      
-        return list(state)
     
-    def rearKick(self, state):       
-        return list(state)
+    def frontKick(self):
+        dK = DST.Var('dK')
+        print('front kick, {}'.format(self.fName))
+        return DST.Fun(dK - .03, self.fArgList,'Front') #TESTING
+    
+    def rearKick(self):   
+        dK = DST.Var('dK')
+        print('rear kick, {}'.format(self.fName))
+        return DST.Fun(dK + .03, self.fArgList,'Rear') #TESTING
     
 class HasCounter:
     fCount = 0
@@ -70,6 +79,7 @@ class HasCounter:
         if Name is None: res.fName = re.sub(self.__fSep+'.*',self.__fSep+str(res.__class__.fCount-1),res.fName)
         else: res.fName = Name
         return res
+    
 
 class Drift(Element, HasCounter):
     """ drift space
@@ -77,6 +87,16 @@ class Drift(Element, HasCounter):
     
     def __init__(self, Length, Name = "Drift"):
         super().__init__(Curve=0,Length=Length,Name=Name)
+        
+    def frontKick(self): # TESTING
+        dK = DST.Var('dK')
+        print('front kick, {}'.format(self.fName))
+        return DST.Fun(dK, self.fArgList,'Front')
+    
+    def rearKick(self):   # TESTING
+        dK = DST.Var('dK')
+        print('rear kick, {}'.format(self.fName))
+        return DST.Fun(dK, self.fArgList,'Rear')
 
 class MQuad(Element, HasCounter):
     """ magnetic quadrupole
@@ -87,7 +107,7 @@ class MQuad(Element, HasCounter):
         self.setGrad(Grad)   
         
     def setGrad(self, value):
-        self._Element__setField({'Bx':str(value)+'*(-y)','By':str(value)+'*(-x)'})
+        self._Element__setField({'Bx':str(value)+'*(y)','By':str(value)+'*(x)'})
         self.__fGrad = value
         self.fGeomdict.update({'Grad':value})
         
@@ -160,6 +180,8 @@ class Wien(Element, HasCounter):
     The magnetic field definition is weird
     """
     
+    __f0 = None
+    
     def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R = None, Name = "Wien?"):
         
         if all([e is None for e in [EField, R]]): raise Exception("Either the E-field, or Radius must be defined")
@@ -182,11 +204,11 @@ class Wien(Element, HasCounter):
         Mass0 = self.fPardict['Mass0']
         K0 = self.fPardict['KinEn0']
         gamma = K0 / Mass0 + 1
-        beta = NP.sqrt(gamma**2-1)/gamma
+        beta = float(NP.sqrt(gamma**2-1)/gamma)
         return (gamma, beta)
     
     def __Pc(self, KNRG):
-        return NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2)
+        return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
     
     def setEField(self, EField=None):
         P0c = self.__Pc(self.fPardict['KinEn0'])
@@ -195,15 +217,30 @@ class Wien(Element, HasCounter):
             R = self.__fR
             EField = - P0c*beta/R[0] * 1e6
         else:
+            assert EField < 0, "Incorrect field value ({} >= 0)".format(EField)
             R = - P0c*beta/EField * 1e6
             self.__fR = [R, R - self.__fHgap, R**2/(R-self.__fHgap)]
             R = self.__fR
         
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
-        self._Element__setField({'Ex':str(EField)+'/(1+Curve*x)'})
         self.fPardict.update({'Curve':1/R[0]})
         self.fGeomdict.update({'R':R[0], 'Curve':1/R[0]})
+        crv = str(self.fPardict['Curve'])
+        self._Element__setField({'Ex':str(EField)+'/(1+'+crv+'*x)'})
+        
+        #define a subfunction for use in kicks
+        R0 = float(R[0])
+        R1 = float(self.__fR[1])
+        R2 = float(self.__fR[2])
+        V = float(self.__fVolt)
+        x = DST.Var('x')
+        
+        self.__f0 = DST.Fun(x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
+                     .2*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
+                     .125*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10,['x'],'taylor') #log(1+x/R)
+        
+        self.__U = DST.Fun(-V + 2*V*(DST.Log(R0/R1) + self.__f0(x))/DST.Log(R2/R1), ['x'], 'volts') # DK = q*U
         
     def setBField(self, BField=None):        
         e0 = self.fPardict['q']
@@ -225,29 +262,27 @@ class Wien(Element, HasCounter):
         B = B[1:len(B)-1]
         
         self._Element__setField({'By':B})
-    
-    def frontKick(self, state):
-        x=state[0]
-        Xk = list(state)
-        R = self.__fR[0]
-        R1 = self.__fR[1]
-        R2 = self.__fR[2]
-        V = self.__fVolt
-        KinEn0 = self.fPardict['KinEn0']
-        u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
-        Xk[5] -= u*1e-6/KinEn0
-        print('front')
-        return Xk
         
-    def rearKick(self, state):
-        x=state[0]
-        Xk = list(state)
-        R = self.__fR[0]
-        R1 = self.__fR[1]
-        R2 = self.__fR[2]
-        V = self.__fVolt
-        KinEn0 = self.fPardict['KinEn0']
-        u = -V + 2*V*NP.log((R+x)/R1)/NP.log(R2/R1)
-        Xk[5] += u*1e-6/KinEn0
-        print('rear')
-        return Xk
+    def frontKick(self):
+        KinEn0 = float(self.fPardict['KinEn0'])
+        
+        x = DST.Var('x')
+        dK = DST.Var('dK')
+        
+        f = DST.Fun(dK - .03+0*self.__U(x)*1e-6/KinEn0,self.fArgList,'Front')# TESTING
+        print('front kick, {}'.format(self.fName))
+        return f
+        
+    def rearKick(self):
+
+        KinEn0 = float(self.fPardict['KinEn0'])
+            
+        x = DST.Var('x')
+        dK = DST.Var('dK')
+        
+        f = DST.Fun(dK + .03 + 0*self.__U(x)*1e-6/KinEn0,self.fArgList,'Rear') #TESTING
+        print('rear kick, {}'.format(self.fName))
+        return f
+    
+    def kickVolts(self, x):
+        return (self.__fVolt, self.__U(x).tonumeric())

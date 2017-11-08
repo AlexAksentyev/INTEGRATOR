@@ -64,6 +64,7 @@ class Ensemble:
         self.fName = Name
         self.fIniStateDict = {Name+key:value for key,value in StateDict.items()}
         self.fCount = len(self.fIniStateDict)
+        self.fLattice = {} # this'll keep pointers to the models of tracked lattices
         self.__fDB = DB()
         self.__fDB.map(self.fIniStateDict.keys(),list(range(self.fCount)))
         
@@ -97,17 +98,22 @@ class Ensemble:
         pd = PDS.DataFrame(self.fIniStateDict).T
         return str(pd)
         
-    def getDataFrame(self):
+    def getDataFrame(self, LatName='lattice'):
         rval = PDS.DataFrame()
-        traj0 = self.fTrajectories[self.__fDB.by_index(0)]
+        Trajectories = self.fLattice[LatName].fDSModel.trajectories
+        traj0 = Trajectories[self.__fDB.by_index(0)]
         np = len(traj0.timePartitions)
         evt = traj0(list(range(np+1)),asmap=True)
-        for name, traj in self.fTrajectories.items():
+        for name, traj in Trajectories.items():
             pts = traj.sample()
             pd = PDS.DataFrame(dict(zip(pts.coordnames, pts.coordarray)))
             pd['s'] = pts.indepvararray
             pd['PID'] = name
             rval=rval.append(pd)
+            
+        rval[['x','y']] = rval[['x','y']].apply(lambda x: x*100) #turns to cm
+        rval.rename(columns={'x':'X[cm]', 'y':'Y[cm]', 's':'s[m]'}, inplace=True)
+        rval['Lattice'] = LatName
            
         rval.fTransitions = PDS.DataFrame(dict(zip(evt.coordnames, evt.coordarray)))
         rval.fTransitions['s'] = rval.fTransitions['t']
