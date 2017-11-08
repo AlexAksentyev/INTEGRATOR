@@ -67,7 +67,7 @@ StateList = U.form_state_list((30e-3,1e-3),(0e-3,1e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 
 #%%
-    tLatSeq = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
+tLatSeq = [QFA2, OD1, SFP, OD2, R3, OD2.copy(), BPM, OD1.copy(), QDA2,
         QDA2.copy(), OD1.copy(), SDP, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
         QFA2.copy(), OD1.copy(), SFP.copy(), OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QDA2.copy(),
         QDA2.copy(), OD1.copy(), SDN, OD2.copy(), R3.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA2.copy(),
@@ -83,7 +83,6 @@ tLat = LTC.Lattice(tLatSeq, Options={'Generator':'vode'})
 
 tLat.track(E,5)
     
-#traj = E.fTrajectories['X0']
 #%%
 
 df = E.getDataFrame('lattice')

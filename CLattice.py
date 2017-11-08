@@ -125,8 +125,8 @@ class Lattice:
             tem0 = DST.EvMapping(transdict0, infodict={'vars':DS_list[i].Element.fArgList+['at'], 'pars':[]}) 
             # transition from element i to element i+1...
 ### !!! FINAL KICK NOT WORKING
-            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, tem))]))#,
-#                                               ('time',('terminate', tem0))])) # ... and the final kick
+            info.append(DST.makeModelInfoEntry(MI_list[i],all_names,[('passto'+str((i+1)%self.fCount),(MI_list[(i+1)%self.fCount].model.name, tem)),
+                                               ('time',('terminate', tem0))])) # ... and the final kick
             
         modelInfoDict = DST.makeModelInfo(info)
         
