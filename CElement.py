@@ -19,7 +19,7 @@ class Element:
         
         self.fGeomdict = {'Curve':Curve, 'Length':Length}
         
-        self.fPardict = {key:value for key,value in self.fGeomdict.items()}
+        self.fPardict = copy.deepcopy(self.fGeomdict)
         
         self.fFndict = { # defines the element EM field
                 'Ex':(self.fArgList, '0'),
@@ -192,19 +192,19 @@ class Wien(Element, HasCounter):
         self.setEField(EField)
         self.setBField(BField)
         
-    def __GammaBeta(self):
-        Mass0 = self.fPardict['Mass0']
-        K0 = self.fPardict['KinEn0']
-        gamma = K0 / Mass0 + 1
-        beta = float(NP.sqrt(gamma**2-1)/gamma)
-        return (gamma, beta)
-    
-    def __Pc(self, KNRG):
-        return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
+#    def __GammaBeta(self):
+#        Mass0 = self.fPardict['Mass0']
+#        K0 = self.fPardict['KinEn0']
+#        gamma = K0 / Mass0 + 1
+#        beta = float(NP.sqrt(gamma**2-1)/gamma)
+#        return (gamma, beta)
+#    
+#    def __Pc(self, KNRG):
+#        return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
     
     def setEField(self, EField=None):
-        P0c = self.__Pc(self.fPardict['KinEn0'])
-        gamma, beta = self.__GammaBeta()
+        P0c = U.Pc(self.fPardict, self.fPardict['KinEn0'])
+        gamma, beta = U.GammaBeta(self.fPardict)
         if EField is None:
             R = self.__fR
             EField = - P0c*beta/R[0] * 1e6
@@ -240,7 +240,7 @@ class Wien(Element, HasCounter):
         clight = self.fPardict['clight']
         qm = e0/(m0*clight**2)
         
-        gamma, beta = self.__GammaBeta()
+        gamma, beta = U.GammaBeta(self.fPardict)
         k = 1.18 * qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
         v = beta*clight
         
@@ -285,24 +285,23 @@ class ERF(Element, HasCounter):
     """ RF element
     """
     
-    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = NP.pi/2, H_number = 50, Name = "RF"):
+    def __init__(self, Length, Particle, Acc_length, EField = 1500, Phase = NP.pi/2, H_number = 50, Name = "RF"):
         super().__init__(Curve=0,Length=Length,Name=Name)
-        if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
-        elif type(RefPart) is PCL.Particle: pass
-        else: raise ValueError('Wrong type Reference Particle')
+        
+        self.fPardict.update(Particle.fPardict)
         
         self.fAmplitude = EField
         self.fPhase = Phase
-        self.fFreq = RefPart.revFreq(Acc_length) * H_number
+        self.fFreq = self.revFreq(Acc_length) * H_number
         self.__fH_number = H_number
         
         self.__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
                        'Frequency':self.fFreq,'h-number': self.__fH_number, 
                        'Phase':self.fPhase},index=[self.fName]).T
             
-        self.__fU = self.fAmplitude*self.fLength
+        self.__fU = self.fAmplitude*self.fPardict['Length']
         
-        RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
+        self.__setEField()
         
     def __repr__(self):
         return str(self.__fChars)
@@ -313,6 +312,11 @@ class ERF(Element, HasCounter):
         phi = str(self.fPhase)
         Es = A+'*cos('+w+'*ts+'+phi+')'
         self._Element__setField({'Es': Es})
+        
+    def revFreq(self, Acc_len):
+        gamma,beta = U.GammaBeta(self.fPardict)
+        v = beta*self.fPardict['clight']
+        return v/Acc_len
     
     def EField_vec(self, time_vec):
         time_vec = NP.array(time_vec)
@@ -322,7 +326,7 @@ class ERF(Element, HasCounter):
         phi = self.fPhase
         return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
     
-    def frontKick(self, particle):
+    def frontKick(self):
         dK = DST.Var('dK')
         KinEn0 = float(self.fPardict['KinEn0'])
         
@@ -330,7 +334,7 @@ class ERF(Element, HasCounter):
         print('rear kick, {}'.format(self.fName))
         return f
         
-    def rearKick(self, particle):
+    def rearKick(self):
         dK = DST.Var('dK')
         KinEn0 = float(self.fPardict['KinEn0'])
         

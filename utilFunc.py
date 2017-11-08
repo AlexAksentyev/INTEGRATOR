@@ -37,3 +37,14 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
             StateList.append([x,y]+[0]*6+[0, 0, 1])
     
     return StateList
+
+
+def GammaBeta(fPardict):
+        Mass0 = fPardict['Mass0']
+        K0 = fPardict['KinEn0']
+        gamma = K0 / Mass0 + 1
+        beta = float(NP.sqrt(gamma**2-1)/gamma)
+        return (gamma, beta)
+    
+def Pc(fPardict, KNRG):
+    return float(NP.sqrt((fPardict['Mass0'] + KNRG)**2 - fPardict['Mass0']**2))
