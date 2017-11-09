@@ -7,61 +7,69 @@ Created on Thu Oct 26 12:20:44 2017
 """
 import PyDSTool as DST
 import numpy as NP
-import math
+from matplotlib import pyplot as PLT
 
 
-arg = ['x','dK']
+
+class Element:
+    
+    def __init__(self, parDict, Name = 'Element'):
+        MSpec = DST.LeafComponent(Name)
+        MSpec.compatibleGens = ('Vode_ODEsystem', 'Dopri_ODEsystem', 'Radau_ODEsystem')
+        MSpec.targetLangs = DST.targetLangs
+    
+        if any([e not in parDict.keys() for e in ['A','w','phi']]): raise Exception('Insufficient parameters')
+        
+        
+        for n,v in parDict.items():
+            MSpec.add(DST.Par(str(v), n, domain=[-DST.Inf, DST.Inf]))
+            
+        m = DST.Par(1,'m',domain=[-DST.Inf, DST.Inf])
+        k = DST.Par(1.13,'k',domain=[-DST.Inf, DST.Inf])
+        MSpec.add([m,k])
+        
+        
+        x = DST.Var('x',domain=[-DST.Inf, DST.Inf])
+        t = DST.Var('t',domain=[-DST.Inf, DST.Inf])
+        
+        f = DST.Fun('A*cos(w*t+phi)',['t'], 'force')
+        MSpec.add(f)
+        
+        x_RHS = DST.Var('y','x',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
+        y_RHS = DST.Var(-k/m*x + f(t)/m,'y',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
+    
+        MSpec.add([x_RHS, y_RHS])
+        self.__fModSpec = MSpec
+        
+    def getModSpec(self): return self.__fModSpec
+        
+        
+    def getModel(self, targetGen='Vode', algparams=None):
+        targetGen = targetGen.capitalize() + '_ODEsystem'
+        if targetGen not in self.__fModSpec.compatibleGens: 
+            print('Valid solvers: ' + ','.join(self.__fModSpec.compatibleGens))
+            raise Exception('Invalid solver')
+            
+        modname = self.__fModSpec.name
+            
+#        targetlang = DST.theGenSpecHelper(targetGen).lang
+        if algparams is None: algparams = {}
+
+        Model = DST.ModelConstructor(modname, 
+                                           generatorspecs={modname: {'modelspec':self.__fModSpec,
+                                                                  'target':targetGen,
+                                                                  'algparams':algparams}})
+        return Model.getModel()
 
 #%%
-## inside element
-def frontKick():
-    dK = DST.Var('dK')
-    x = DST.Var('x')
+if __name__ is '__main__':
+    parDict = {'A':10,'w':3,'phi':0}
     
-#    arg = list(dict.fromkeys(['dK','x']+list(arg)))
-    
-    R0 = float(NP.float64(42.18))
-    R1 = 41.5
-    R2 = 42.5
-    V = 6000
-    KinEn0 = 270    
-    
-    
-    f0 = DST.Fun(DST.Log((R0+x)/R1),['x'],'sub')
-    f = DST.Fun(dK - (-V + 2*V*f0(x)/math.log(R2/R1))*1e-6/KinEn0,arg,'Rear')
-    
-    return f
-    
-def rearKick():
-    dK = DST.Var('dK')
-    x = DST.Var('x')
-    
-#    arg = list(dict.fromkeys(['dK','x']+list(arg)))
-    
-    R0 = float(NP.float64(42.18))
-    R1 = 41.5
-    R2 = 42.5
-    V = 6000
-    KinEn0 = 270
-    
-    f0 = DST.Fun(DST.Log((R0+x)/R1),['x'],'sub')
-    r = DST.Fun(dK + (-V + 2*V*f0(x)/math.log(R2/R1))*1e-6/KinEn0,arg,'Rear')
-    
-    return r
-
-#%%
-## composing lattice
-
-f = frontKick()
-r = rearKick()
-#d = dict(zip(arg,arg))
-#r_str = r.eval(**d)
-#d.update({'dK':r_str()})
-f.mapNames({'dK':r(*arg)()})
-outin = f(*arg)
-
-#%%
-## inside tracking
-dK0 = 0
-x0 = 1e-3
-vf = f(dK0, x0).tonumeric()
+    e = Element(parDict, 'Vode_system')
+    ms = e.getModSpec()
+    m = e.getModel()
+    m.compute('test1',ics={'x':0,'y':0},tdata=[0,10])
+    pts = m.sample('test1')
+    PLT.plot(pts['t'],pts['x'],label='x')
+    PLT.plot(pts['t'],pts['y'],label='y')
+    PLT.legend()
