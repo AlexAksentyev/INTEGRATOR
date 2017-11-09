@@ -34,6 +34,7 @@ class Element:
         
         f = DST.Fun('A*cos(w*t+phi)',['t'], 'force')
         self.__fModSpec.add(f)
+        self.__fReuseterms = {f.spec():'f_val'}
         
         self.addRHS()
         
@@ -71,7 +72,7 @@ class Element:
 #        targetlang = DST.theGenSpecHelper(targetGen).lang
         if algparams is None: algparams = {}
 
-        Model = DST.ModelConstructor(modname, 
+        Model = DST.ModelConstructor(modname, reuseTerms=self.__fReuseterms,
                                            generatorspecs={modname: {'modelspec':self.__fModSpec,
                                                                   'target':targetGen,
                                                                   'algparams':algparams}})
