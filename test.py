@@ -48,13 +48,15 @@ class Element:
         x = DST.Var('x',domain=[-DST.Inf, DST.Inf])
         t = DST.Var('t',domain=[-DST.Inf, DST.Inf])
         
-        f = self.__fModSpec['force']
-        if(id(f) == id(self.__fModSpec['force'])): print('Pointer')
+        f = self.__fModSpec['force'](t)
+        if(id(f) == id(self.__fModSpec['force'])): print('Function pointer')
         k = self.__fModSpec['k']
+        if id(k) == id(self.__fModSpec['k']): print('Parameter pointer')
         m = self.__fModSpec['m']
+#        b = self.__fModSpec['b']
         
         x_RHS = DST.Var('y','x',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
-        y_RHS = DST.Var(-k/m*x + f(t)/m,'y',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
+        y_RHS = DST.Var(-k/m*x + f/m,'y',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
         
         self.__fModSpec.add([x_RHS, y_RHS])
         
@@ -77,12 +79,11 @@ class Element:
 
 #%%
 if __name__ is '__main__':
-    parDict = {'A':10,'w':3,'phi':0}
+    parDict = {'A':100,'w':3,'phi':NP.pi/2}
     
     e = Element(parDict, 'Vode_system')
     ms = e.getModSpec()
     
-#%%
     m = e.getModel()
     m.compute('test1',ics={'x':0,'y':0},tdata=[0,10])
     pts = m.sample('test1')
