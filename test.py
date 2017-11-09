@@ -49,19 +49,19 @@ class Element:
         x = DST.Var('x',domain=[-DST.Inf, DST.Inf])
         t = DST.Var('t',domain=[-DST.Inf, DST.Inf])
         
-        f = self.__fModSpec['force'](t)
+        f = self.__fModSpec['force']
         if(id(f) == id(self.__fModSpec['force'])): print('Function pointer')
         k = self.__fModSpec['k']
         if id(k) == id(self.__fModSpec['k']): print('Parameter pointer')
         m = self.__fModSpec['m']
-#        b = self.__fModSpec['b']
+        b = DST.Par('b')
         
         x_RHS = DST.Var('y','x',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
-        y_RHS = DST.Var(-k/m*x + f/m,'y',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
+        y_RHS = DST.Var(-k/m*x + f(t)/m + b,'y',specType='RHSfuncSpec',domain=[-DST.Inf, DST.Inf])
         
         self.__fModSpec.add([x_RHS, y_RHS])
         
-    def getModel(self, targetGen='Vode', algparams=None):
+    def getModel(self, paramDict, targetGen='Vode', algparams=None):
         targetGen = targetGen.capitalize() + '_ODEsystem'
         if targetGen not in self.__fModSpec.compatibleGens: 
             print('Valid solvers: ' + ','.join(self.__fModSpec.compatibleGens))
@@ -69,7 +69,10 @@ class Element:
             
         modname = self.__fModSpec.name
             
-#        targetlang = DST.theGenSpecHelper(targetGen).lang
+        for p in paramDict.values(): 
+            p.setDomain([-DST.Inf, DST.Inf])
+            self.__fModSpec.add(p)
+        
         if algparams is None: algparams = {}
 
         Model = DST.ModelConstructor(modname, reuseTerms=self.__fReuseterms,
@@ -85,9 +88,9 @@ if __name__ is '__main__':
     e = Element(parDict, 'Vode_system')
     ms = e.getModSpec()
     
-    m = e.getModel()
-    m.compute('test1',ics={'x':0,'y':0},tdata=[0,10])
-    pts = m.sample('test1')
+    m = e.getModel({'b':DST.Par(10,'b')})
+    m.compute('test2',ics={'x':0,'y':0},tdata=[0,10])
+    pts = m.sample('test2')
     PLT.plot(pts['t'],pts['x'],label='x')
     PLT.plot(pts['t'],pts['y'],label='y')
     PLT.legend()
