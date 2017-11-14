@@ -70,9 +70,13 @@ E.setReference(0)
 
 ## prepping RF
 
-LRF = 5e-2
+LRF = 5e-3
+E_RF = 15e4
+H_num = 50
 Acc_len = 2*(OD1.fLength+OD2.fLength)+LRF
-ERF = ENT.ERF(LRF,E,Acc_len,EField=15e4,H_number=100)
+ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
+
+ERF.bSkip = False
 
 tLat = [OD1, OD2, OD1.copy(), OD2.copy(), ERF]
 
@@ -81,23 +85,31 @@ assert Acc_len == NP.sum([e.fLength for e in tLat]), 'Inconsistent lattice lengt
 
 E.track(tLat,400)
 
-p=E.plot(size=.7)
+p=E.plot(size=2) + ggtitle('LRF {} mm, ERF {} kV/cm, H {}'.format(LRF*1e3, E_RF/1e5, H_num))
     
 print(p)
-#df = E.getDataFrame()
+df = E.getDataFrame(inner=False)
 #%%
 ### show when the ensemble particles get into RF field
 
-#tTOT = df['t']
-#EsTOT = [e[2] for e in ERF.EField_vec(tTOT)]
-#PLT.plot(tTOT,EsTOT,'.')
-#
-#for i in range(E.count()):
-#    df0 = E[i].getDataFrame()
-#    tRF = df0[df0['Element']=='RF']['t']
-#    EsRF = [e[2] for e in ERF.EField_vec(tRF)]
-#    PLT.plot(tRF, EsRF,'.',label=i)
-#PLT.legend()
+df_fld = PDS.DataFrame()
+
+df_fld['time'] = df['t']
+df_fld['ERF'] = [e[2] for e in ERF.EField_vec(df_fld['time'])]
+df_fld['ID'] = 'None'
+
+
+tTOT = df['t']
+EsTOT = [e[2] for e in ERF.EField_vec(tTOT)]
+PLT.plot(tTOT,EsTOT,'.')
+
+for i in range(E.count()):
+    df0 = E[i].getDataFrame(inner=False)
+    tRF = df0[df0['Element']=='RF']['t']
+    EsRF = [e[2] for e in ERF.EField_vec(tRF)]
+    df_fld = df_fld.append(PDS.DataFrame({'time':tRF,'ERF':EsRF,'ID':i}))
+    PLT.plot(tRF, EsRF,'.',label=i)
+PLT.legend()
 #%%
 th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
 df['Theta'] = df['t'].apply(th)

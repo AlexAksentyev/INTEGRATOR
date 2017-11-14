@@ -17,9 +17,14 @@ class Element:
         self.__fEField = (0,0,0)
         self.__fBFIeld = (0,0,0)
         
+        self.bSkip = False # for testing ERF.advance()
+        
         super().__init__()
     
     def EField(self,arg):
+        return self.__fEField
+    
+    def Eprime_tp(self, arg): # added for testing with ERF
         return self.__fEField
     
     def BField(self,arg):
@@ -280,6 +285,13 @@ class ERF(Element, HasCounter):
         phi = self.fPhase
         return (0, 0, A*NP.cos(w*t+phi))
     
+    def Eprime_tp(self, arg): # Es prime divided by time prime
+        t = arg['t']
+        A = self.fAmplitude
+        w = self.fFreq*2*NP.pi
+        phi = self.fPhase
+        return (0, 0, -A*w*NP.sin(w*t+phi))
+    
     def EField_vec(self, time_vec):
         time_vec = NP.array(time_vec)
         z = NP.zeros(len(time_vec))
@@ -287,6 +299,20 @@ class ERF(Element, HasCounter):
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
+    
+    def advance(self, particle):
+        arg = particle.getState()
+        
+        w = self.fFreq*2*NP.pi
+        u = self.__fU
+        K = particle.fKinEn0 * (1 + arg['dK'])
+        
+        arg['dK'] += u*NP.cos(w*arg['t']+self.fPhase)*1e-6/particle.fKinEn0
+        arg['s'] += self.fLength
+        gamma,beta = particle.GammaBeta(K)
+        arg['t'] += self.fLength/beta/particle.CLIGHT()
+        
+        particle.setState(arg)
     
     def frontKick(self, particle):
         u = self.__fU

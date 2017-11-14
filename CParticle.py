@@ -4,6 +4,8 @@ import pandas as PDS
 import re
 import copy
 
+import CElement as ENT
+
 class Particle:
         
     
@@ -65,6 +67,8 @@ class Particle:
         Ps = NP.sqrt(Pc**2 - Px**2 - Py**2)
         
         Ex,Ey,Es = element.EField(state)
+# TESTING
+        Exp,Eyp,Esp = element.Eprime_tp(state) #TESTING
         assert not NP.isnan(t), 'NAN time'
 #        print('Element {}, t = {}, Es = {}'.format(element.fName, t, Es))
         Bx,By,Bs = element.BField(state)
@@ -79,8 +83,6 @@ class Particle:
                      # H^2 = ds'^2 + dx^2 + dy^2, dx = x' ds, dy = y' ds, ds' = (1+c*x)ds
                      # H^2 = ds^2 hs^2 *(1 + (Px/Ps)^2 + (Py/Ps)^2) = (ds hs)^2 (Pc)^2/Ps^2
                      # H' = Pc/Ps hs
-        
-        dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
 
 #        if re.sub('_.*','',element.fName) == 'RF': print('Es {}, dKp {}'.format(Es, dEnp/self.fKinEn0))
         
@@ -91,6 +93,7 @@ class Particle:
         m0 = q*1e6*self.fMass0/clight**2
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
+        dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
         
         Pxp = (Ex*tp + (yp*Bs-By))*1e-6*clight + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
         Pyp = (Ey*tp + (Bx-xp*Bs))*1e-6*clight #Fy*tp * c, in Mev
@@ -127,13 +130,20 @@ class Particle:
                 else: element = ElementSeq[len(ElementSeq)-1-i]
                 at = NP.linspace(0, element.fLength, brks)
                 
+                bERF = element.bSkip
+                    
+                
                 try:
                     element.frontKick(self)
-                    vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
-                    self.setState(dict(zip(self.fArgList, vals[brks-1]))) # only the exit state will have
+                    if not bERF:
+                        vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
+                        self.setState(dict(zip(self.fArgList, vals[brks-1]))) # only the exit state will have
+                    else:
+                        element.advance(self)
                     element.rearKick(self) # an energy reset 
-                    for k in range(brks-1):
-                        self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
+                    if not bERF:
+                        for k in range(brks-1):
+                            self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
                     self.fStateLog.update({(n,element.fName,'last'):self.__fState})
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
