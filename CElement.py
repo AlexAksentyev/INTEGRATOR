@@ -19,6 +19,9 @@ class Element:
         
         self.bSkip = False # for testing ERF.advance()
         
+        self.__fChars = PDS.DataFrame({'Curve':self.fCurve, 'Length':self.fLength}, 
+                                            index=[self.fName])
+        
         super().__init__()
     
     def EField(self,arg):
@@ -26,6 +29,9 @@ class Element:
     
     def Eprime_tp(self, arg): # added for testing with ERF
         return self.__fEField
+    
+    def __repr__(self):
+        return str(self._Element__fChars)
     
     def BField(self,arg):
         return self.__fBFIeld
@@ -72,6 +78,7 @@ class MQuad(Element, HasCounter):
     def __init__(self, Length, Grad, Name = "MQuad"):
         super().__init__(Curve=0, Length=Length, Name=Name)
         self.__fGrad = Grad
+        self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
         x = arg['x']
@@ -93,6 +100,10 @@ class MDipole(Element, HasCounter):
     def setBField(self,BField):
         if not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
         self.__fBField = BField[:]
+        self._Element__fChars['Bx'] = BField[0]
+        self._Element__fChars['By'] = BField[1]
+        self._Element__fChars['Bs'] = BField[2]
+        
         
     def getBField(self):
         return self.__fBField[:]
@@ -120,6 +131,7 @@ class MSext(Element, HasCounter):
     def __init__(self, Length, Grad, Name = "MSext"):
         super().__init__(Curve=0, Length=Length, Name=Name)
         self.__fGrad = Grad
+        self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
         x = arg['x']
@@ -127,11 +139,10 @@ class MSext(Element, HasCounter):
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
 class Wien(Element, HasCounter):
-    """ wien filter ?!?! 
-    The magnetic field definition is weird
+    """ wien filter
     """
     
-    def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R=None, Name = "Wien?"):
+    def __init__(self, Length, Hgap, RefPart, EField=None, BField=None, R=None, Name = "Wien"):
         
         if all([e is None for e in [EField, R]]): raise Exception("Either the E-field, or Radius must be defined")
         
@@ -168,16 +179,13 @@ class Wien(Element, HasCounter):
         self.fCurve = 1/R[0]
         self.__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
+        self._Element__fChars['Curve'] = self.fCurve
         
         #define a subfunction for use in kicks
         R0 = float(R[0])
         R1 = float(self.__fR[1])
         R2 = float(self.__fR[2])
         V = float(self.__fVolt)
-        
-        self.__f0 = lambda x: (x/R0 - .5*(x/R0)**2 + 1/3*(x/R0)**3 - .25*(x/R0)**4 +
-                     .2*(x/R0)**5 - 1/6*(x/R0)**6 + 1/7*(x/R0)**7 -
-                     .125*(x/R0)**8 + 1/9*(x/R0)**9 - .1*(x/R0)**10) #log(1+x/R)
         
         self.__U = lambda x: (-V + 2*V*math.log((R0+x)/R1)/math.log(R2/R1)) # DK = q*U
     
@@ -267,16 +275,13 @@ class ERF(Element, HasCounter):
         self.fFreq = RefPart.revFreq(Acc_length) * H_number
         self.__fH_number = H_number
         
-        self.__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
+        self._Element__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
                        'Frequency':self.fFreq,'h-number': self.__fH_number, 
                        'Phase':self.fPhase},index=[self.fName]).T
             
         self.__fU = self.fAmplitude*self.fLength
         
         RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
-        
-    def __repr__(self):
-        return str(self.__fChars)
         
     def EField(self, arg):
         t = arg['t']
