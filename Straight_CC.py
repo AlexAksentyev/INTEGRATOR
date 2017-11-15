@@ -32,49 +32,50 @@ reload(ENT)
 reload(PCL)
 reload(U)
 
-
-Lq = 5e-2
-QDG = -10.3
-QFG = 10.11
-Ls = 15e-2
-SDPG = 3.39598
-SFPG = 2.76958
-SDNG = 3.79311
-SFNG = 2.09837
-
-Lw = 361.55403e-2
-B = .082439761
-E = -120e5
-
-
-QFA2 = ENT.MQuad(Lq, QFG, "QFA2")
-QDA2 = ENT.MQuad(Lq, QDG, "QDA2")
-
+#
+#Lq = 5e-2
+#QDG = -10.3
+#QFG = 10.11
+#Ls = 15e-2
+#SDPG = 3.39598
+#SFPG = 2.76958
+#SDNG = 3.79311
+#SFNG = 2.09837
+#
+#Lw = 361.55403e-2
+#B = .082439761
+#E = -120e5
+#
+#
+#QFA2 = ENT.MQuad(Lq, QFG, "QFA2")
+#QDA2 = ENT.MQuad(Lq, QDG, "QDA2")
+#
 OD1 = ENT.Drift(25e-2, "OD1")
 OD2 = ENT.Drift(25e-2, "OD2")
-BPM = ENT.Drift(15e-2, "BPM")
+#BPM = ENT.Drift(15e-2, "BPM")
+#
+#SFP = ENT.MSext(Ls,SFPG,"SFP")
+#SDP = ENT.MSext(Ls,SDPG,"SDP")
+#SFN = ENT.MSext(Ls,SFNG,"SFN")
+#SDN = ENT.MSext(Ls,SDNG,"SDN")
+#
+#R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
 
-SFP = ENT.MSext(Ls,SFPG,"SFP")
-SDP = ENT.MSext(Ls,SDPG,"SDP")
-SFN = ENT.MSext(Ls,SFNG,"SFN")
-SDN = ENT.MSext(Ls,SDNG,"SDN")
-
-R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B,Name="R3")
-
-StateList = U.form_state_list((0e-3,5e-3),(-0e-3,5e-3),2,2)
+StateList = U.form_state_list((0e-3,0e-3),(-0e-3,0e-3),3,1)
 E = PCL.Ensemble.from_state(StateList)
-E[1].set(dK=-5e-5)
-E[2].set(dK=1e-4)
-E[3].set(dK=5e-5)
 E.setReference(0)
+n = E.count()-1
+ddk = 2e-4/n
+for i in range(1,E.count()):
+    E[i].set(dK=3e-4-(i-1)*ddk)
 
 ## prepping RF
 
-LRF = 5e-3
-E_RF = 15e4
+LRF = 5e-4
+E_RF = 15e5
 H_num = 50
 Acc_len = 2*(OD1.fLength+OD2.fLength)+LRF
-ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
+ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num, Phase=1.5*NP.pi)
 
 ERF.bSkip = False
 
@@ -83,12 +84,12 @@ tLat = [OD1, OD2, OD1.copy(), OD2.copy(), ERF]
 assert Acc_len == NP.sum([e.fLength for e in tLat]), 'Inconsistent lattice lengths'
 #%%
 
-E.track(tLat,400)
+E.track(tLat,1,inner=True)
 
-p=E.plot(size=2) + ggtitle('LRF {} mm, ERF {} kV/cm, H {}'.format(LRF*1e3, E_RF/1e5, H_num))
+Th,dK, p = E.plot()
     
-print(p)
-df = E.getDataFrame(inner=False)
+#print(p)
+#df = E.getDataFrame(inner=False)
 #%%
 ### show when the ensemble particles get into RF field
 
@@ -111,22 +112,22 @@ for i in range(E.count()):
     PLT.plot(tRF, EsRF,'.',label=i)
 PLT.legend()
 #%%
-th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
-df['Theta'] = df['t'].apply(th)
-df0 = E.getReference().getDataFrame()
-df0['Theta'] = df0['t'].apply(th)
-for i in range(E.count()):
-    df.loc[df['PID']==i,'Theta'] -= df0['Theta']
-    df.loc[df['PID']==i,'dK'] -= df0['dK']
-dfm = PDS.melt(df, id_vars=['PID','t','s[cm]', 'Theta'])
-ennames = E.listNames(); ennames.remove(0)
-dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(ennames)]
-#%%
-names = [e.fName for e in tLat]
-print(ggplot(dat,aes(x='Theta',y='value',color='variable')) + facet_grid('PID',scales='free_y')+
-     geom_line(size=.5) + theme_bw()+ #geom_point(size=.5) +
-     ggtitle('Vanilla 2, {} elements; Es(RF) = {}'.format(names, ERF.fAmplitude))
-     )
+#th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
+#df['Theta'] = df['t'].apply(th)
+#df0 = E.getReference().getDataFrame()
+#df0['Theta'] = df0['t'].apply(th)
+#for i in range(E.count()):
+#    df.loc[df['PID']==i,'Theta'] -= df0['Theta']
+#    df.loc[df['PID']==i,'dK'] -= df0['dK']
+#dfm = PDS.melt(df, id_vars=['PID','t','s[cm]', 'Theta'])
+#ennames = E.listNames(); ennames.remove(0)
+#dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(ennames)]
+##%%
+#names = [e.fName for e in tLat]
+#print(ggplot(dat,aes(x='Theta',y='value',color='variable')) + facet_grid('PID',scales='free_y')+
+#     geom_line(size=.5) + theme_bw()+ #geom_point(size=.5) +
+#     ggtitle('Vanilla 2, {} elements; Es(RF) = {}'.format(names, ERF.fAmplitude))
+#     )
 
 #%%
 #for i in range(E.count()):
