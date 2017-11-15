@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 dop853_temp/
 build/
+*.dat
