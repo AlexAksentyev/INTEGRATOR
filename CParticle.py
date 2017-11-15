@@ -93,7 +93,8 @@ class Particle:
         m0 = q*1e6*self.fMass0/clight**2
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
-        dEnp = (Ex*xp +Ey*yp +Es) * 1e-6 # added Kinetic energy prime (in MeV)
+        ds = element.fLength/(self.fIntBrks-1)
+        dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
         
         Pxp = (Ex*tp + (yp*Bs-By))*1e-6*clight + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
         Pyp = (Ey*tp + (Bx-xp*Bs))*1e-6*clight #Fy*tp * c, in Mev
@@ -118,8 +119,8 @@ class Particle:
     def RHS(self, state, at, element):
         return self.__RHS(state, at, element)
     
-    def track(self, ElementSeq, ntimes, FWD = True):
-        brks = 101
+    def track(self, ElementSeq, ntimes, FWD = True, inner = True):
+        self.fIntBrks = 101
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fStateLog = {} #{(0, 'START'):self.__fState} #not used because state log 
                                                         #accumulates intra-element points, including this one
@@ -128,7 +129,7 @@ class Particle:
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]
-                at = NP.linspace(0, element.fLength, brks)
+                at = NP.linspace(0, element.fLength, self.fIntBrks)
                 
                 bERF = element.bSkip
                     
@@ -137,12 +138,12 @@ class Particle:
                     element.frontKick(self)
                     if not bERF:
                         vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
-                        self.setState(dict(zip(self.fArgList, vals[brks-1]))) # only the exit state will have
+                        self.setState(dict(zip(self.fArgList, vals[self.fIntBrks-1]))) # only the exit state will have
                     else:
                         element.advance(self)
                     element.rearKick(self) # an energy reset 
-                    if not bERF:
-                        for k in range(brks-1):
+                    if not bERF and inner:
+                        for k in range(self.fIntBrks-1):
                             self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
                     self.fStateLog.update({(n,element.fName,'last'):self.__fState})
                 except ValueError:
@@ -191,6 +192,7 @@ class Ensemble:
     """
     
     def __init__(self, ParticleList):
+        self.__fParticle = {}
         self.addParticles(ParticleList)
         self.__fRefPart = None
         
@@ -200,8 +202,13 @@ class Ensemble:
         return cls(pcls)
     
     def addParticles(self, ParticleList):
-        names = [e for e in range(len(ParticleList))]
-        self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
+#        names = [e for e in range(len(ParticleList))]
+#        self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
+        pid = 0
+        for pcl in ParticleList:
+           self.__fParticle.update({pid:pcl}) 
+           pcl.fPID = str(pid)
+           pid += 1
         
     def getParticles(self):
         return self.__fParticle
@@ -218,9 +225,9 @@ class Ensemble:
     def getReference(self):
         return self.__fRefPart
         
-    def track(self, ElementSeq, ntimes, FWD = True):
+    def track(self, ElementSeq, ntimes, FWD = True, inner=True):
         for pcl in self.__fParticle.values():
-            pcl.track(ElementSeq, ntimes, FWD)
+            pcl.track(ElementSeq, ntimes, FWD, inner)
         
     def count(self):
         return len(self.__fParticle)
@@ -244,26 +251,44 @@ class Ensemble:
     def revFreq(self, Lat_len):
         return self.__fRefPart.revFreq(Lat_len)
     
-    def plot(self, Xlab = 'Theta', Ylab = 'dK', inner=True, **kwargs):
-        df = self.getDataFrame(inner)
-        df0 = self.getReference().getDataFrame(inner)
-
-        pr = self.getReference()
-        if any([e is 'Theta' for e in [Xlab,Ylab]]):
-            th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
-            df['Theta'] = df['t'].apply(th)
-            df0['Theta'] = df0['t'].apply(th)
+    def plot(self, inner=True, return_vals=True): # return_vals not implemented
+        df = self.getDataFrame(inner).loc[:,['t','dK', 'PID']]
         
-        n = len(NP.unique(df['PID']))
-        df0 = df0.iloc[NP.tile(NP.arange(len(df0)),n)]
+        pr = self.getReference()        
+        th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
+        df['Theta'] = df['t'].apply(th)
         
-        df[Xlab] -= df0[Xlab]
-        df[Ylab] -= df0[Ylab]
-        df.PID = df.PID.apply(lambda x: str(x))
+        nr = len(NP.unique(df['PID']))
+        nc = int(len(df)/nr)
+        
+        dK = NP.empty([nr,nc])
+        Th = NP.empty([nr,nc])
+        
+        from matplotlib import pyplot as PLT
+        
+        for i in range(nr):
+            dK[i] = NP.array(df.loc[df['PID']==i, 'dK'])
+            Th[i] = NP.array(df.loc[df['PID']==i, 'Theta'])
+            PLT.plot(Th[i]-Th[0],dK[i]-dK[0], label=i)
             
-        from ggplot import ggplot,aes, theme_bw, geom_point
         
-        return ggplot(df, aes(x=Xlab,y=Ylab,color='PID')) + geom_point(**kwargs) + theme_bw()
+        return (Th, dK, PLT.gcf())
+            
+    
+        
+#        
+#        df0 = df[df['PID'] == pr.fPID]
+#        
+#        n = len(NP.unique(df['PID']))
+#        df0 = df0.iloc[NP.tile(NP.arange(len(df0)),n)]
+#        
+#        df['Theta'] -= df0['Theta']
+#        df['dK'] -= df0['dK']
+#        df.PID = df.PID.apply(lambda x: str(x))
+#            
+#        from ggplot import ggplot,aes, theme_bw, geom_point
+#        
+#        return ggplot(df, aes(x=Xlab,y=Ylab,color='PID')) + geom_point(**kwargs) + theme_bw()
         
         
         
