@@ -184,6 +184,9 @@ class Particle:
         
     def __repr__(self):
         return str(PDS.DataFrame({'initial':self.__fIniState, 'current':self.__fState}).T)
+    
+    def __getitem__(self, name):
+        return self.fStateLog[name]
 
 
 class Ensemble:
