@@ -121,18 +121,21 @@ class Particle:
     def track(self, ElementSeq, ntimes, FWD = True, inner = True):
         self.fIntBrks = 101
         self.__fState = copy.deepcopy(self.__fIniState)
-#        self.fStateLog = {} #{(0, 'START'):self.__fState} #not used because state log 
-                                                        #accumulates intra-element points, including this one
         
         vartype = [('Turn',int),('Element',object),('Point', object)]
         vartype += list(zip(self.fArgList, NP.repeat(float, len(self.fArgList))))
         
-        if inner: nrow = ntimes*len(ElementSeq)*self.fIntBrks
-        else: nrow = ntimes*len(ElementSeq)
+        if inner: 
+            nrow = ntimes*len(ElementSeq)*self.fIntBrks
+            self.fStateLog = NP.recarray(nrow,dtype=vartype)
+            ind = 0
+        else: 
+            nrow = ntimes*len(ElementSeq) + 1
+            self.fStateLog = NP.recarray(nrow,dtype=vartype)
+            self.fStateLog[0] = 0,'START',0, *self.__fState.values()
+            ind = 1
         
-        self.tStateLog = NP.recarray(nrow,dtype=vartype)
         
-        ind = 0
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
@@ -151,11 +154,9 @@ class Particle:
                     element.rearKick(self) # an energy reset 
                     if not bERF and inner:
                         for k in range(self.fIntBrks-1):
-#                            self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
-                            self.tStateLog[ind] = n,element.fName,k, *vals[k]
+                            self.fStateLog[ind] = n,element.fName,k, *vals[k]
                             ind += 1
-#                    self.fStateLog.update({(n,element.fName,'last'):self.__fState})
-                    self.tStateLog[ind] = n,element.fName,'last', *self.__fState.values()
+                    self.fStateLog[ind] = n,element.fName,'last', *self.__fState.values()
                     ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
