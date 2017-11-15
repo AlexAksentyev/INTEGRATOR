@@ -55,8 +55,7 @@ class Particle:
     def __RHS(self, state, at, element):
         if any(NP.isnan(state)):  raise ValueError('NaN state variable(s)')
         state = dict(zip(self.fArgList, state))
-        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.values() # px, py are normalized to P0c for consistency with the other vars, i think
-        
+        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.values() # px, py are normalized to P0c for consistency with the other vars, i think       
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -122,9 +121,18 @@ class Particle:
     def track(self, ElementSeq, ntimes, FWD = True, inner = True):
         self.fIntBrks = 101
         self.__fState = copy.deepcopy(self.__fIniState)
-        self.fStateLog = {} #{(0, 'START'):self.__fState} #not used because state log 
+#        self.fStateLog = {} #{(0, 'START'):self.__fState} #not used because state log 
                                                         #accumulates intra-element points, including this one
         
+        vartype = [('Turn',int),('Element',object),('Point', object)]
+        vartype += list(zip(self.fArgList, NP.repeat(float, len(self.fArgList))))
+        
+        if inner: nrow = ntimes*len(ElementSeq)*self.fIntBrks
+        else: nrow = ntimes*len(ElementSeq)
+        
+        self.tStateLog = NP.recarray(nrow,dtype=vartype)
+        
+        ind = 0
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
@@ -132,7 +140,6 @@ class Particle:
                 at = NP.linspace(0, element.fLength, self.fIntBrks)
                 
                 bERF = element.bSkip
-                    
                 
                 try:
                     element.frontKick(self)
@@ -144,8 +151,12 @@ class Particle:
                     element.rearKick(self) # an energy reset 
                     if not bERF and inner:
                         for k in range(self.fIntBrks-1):
-                            self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
-                    self.fStateLog.update({(n,element.fName,'last'):self.__fState})
+#                            self.fStateLog.update({(n,element.fName,k):dict(zip(self.fArgList, vals[k]))})
+                            self.tStateLog[ind] = n,element.fName,k, *vals[k]
+                            ind += 1
+#                    self.fStateLog.update({(n,element.fName,'last'):self.__fState})
+                    self.tStateLog[ind] = n,element.fName,'last', *self.__fState.values()
+                    ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
                     return

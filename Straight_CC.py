@@ -84,52 +84,8 @@ tLat = [OD1, OD2, OD1.copy(), OD2.copy(), ERF]
 assert Acc_len == NP.sum([e.fLength for e in tLat]), 'Inconsistent lattice lengths'
 #%%
 
-E.track(tLat,1,inner=True)
+E.track(tLat,10,inner=True)
 
 Th,dK, p = E.plot()
     
-#print(p)
-#df = E.getDataFrame(inner=False)
-#%%
-### show when the ensemble particles get into RF field
 
-df_fld = PDS.DataFrame()
-
-df_fld['time'] = df['t']
-df_fld['ERF'] = [e[2] for e in ERF.EField_vec(df_fld['time'])]
-df_fld['ID'] = 'None'
-
-
-tTOT = df['t']
-EsTOT = [e[2] for e in ERF.EField_vec(tTOT)]
-PLT.plot(tTOT,EsTOT,'.')
-
-for i in range(E.count()):
-    df0 = E[i].getDataFrame(inner=False)
-    tRF = df0[df0['Element']=='RF']['t']
-    EsRF = [e[2] for e in ERF.EField_vec(tRF)]
-    df_fld = df_fld.append(PDS.DataFrame({'time':tRF,'ERF':EsRF,'ID':i}))
-    PLT.plot(tRF, EsRF,'.',label=i)
-PLT.legend()
-#%%
-#th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
-#df['Theta'] = df['t'].apply(th)
-#df0 = E.getReference().getDataFrame()
-#df0['Theta'] = df0['t'].apply(th)
-#for i in range(E.count()):
-#    df.loc[df['PID']==i,'Theta'] -= df0['Theta']
-#    df.loc[df['PID']==i,'dK'] -= df0['dK']
-#dfm = PDS.melt(df, id_vars=['PID','t','s[cm]', 'Theta'])
-#ennames = E.listNames(); ennames.remove(0)
-#dat = dfm.loc[dfm['variable'].isin(['dK'])&dfm['PID'].isin(ennames)]
-##%%
-#names = [e.fName for e in tLat]
-#print(ggplot(dat,aes(x='Theta',y='value',color='variable')) + facet_grid('PID',scales='free_y')+
-#     geom_line(size=.5) + theme_bw()+ #geom_point(size=.5) +
-#     ggtitle('Vanilla 2, {} elements; Es(RF) = {}'.format(names, ERF.fAmplitude))
-#     )
-
-#%%
-#for i in range(E.count()):
-#    dat = df[df['PID']==i]
-#    PLT.polar(dat['Theta'],dat['dK'])
