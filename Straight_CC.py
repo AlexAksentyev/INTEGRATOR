@@ -84,7 +84,7 @@ tLat = [OD1, OD2, OD1.copy(), OD2.copy(), ERF]
 assert Acc_len == NP.sum([e.fLength for e in tLat]), 'Inconsistent lattice lengths'
 #%%
 
-E.track(tLat,1000,inner=True)
+E.track(tLat,10000,inner=True)
 
 Th,dK, p = E.plot()
     
