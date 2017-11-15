@@ -132,7 +132,7 @@ class Particle:
         else: 
             nrow = ntimes*len(ElementSeq) + 1
             self.fStateLog = NP.recarray(nrow,dtype=vartype)
-            self.fStateLog[0] = 0,'START',0, *self.__fState.values()
+            self.fStateLog[0] = 0,'START','last', *self.__fState.values()
             ind = 1
         
         
@@ -164,30 +164,18 @@ class Particle:
             
         
     def getDataFrame(self, inner=True):
-        x = [self.fStateLog[i]['x']*100 for i in self.fStateLog] # *100 -> cm
-        y = [self.fStateLog[i]['y']*100 for i in self.fStateLog]
-        s = [self.fStateLog[i]['s']*100 for i in self.fStateLog]
-        t = [self.fStateLog[i]['t'] for i in self.fStateLog]
-        H = [self.fStateLog[i]['H'] for i in self.fStateLog]
-        px = [self.fStateLog[i]['px'] for i in self.fStateLog]
-        py = [self.fStateLog[i]['py'] for i in self.fStateLog]
-        dK = [self.fStateLog[i]['dK'] for i in self.fStateLog]
-        Sx = [self.fStateLog[i]['Sx'] for i in self.fStateLog]
-        Sy = [self.fStateLog[i]['Sy'] for i in self.fStateLog]
-        Ss = [self.fStateLog[i]['Ss'] for i in self.fStateLog]
-        trn = [x[0] for x in list(self.fStateLog.keys())]
-        el = [re.sub('_.*','',x[1]) for x in list(self.fStateLog.keys())]
-        status = [x[2] for x in list(self.fStateLog.keys())]
+
+        if inner:
+            pd = PDS.DataFrame(self.fStateLog)
+        else:
+            pd = PDS.DataFrame(self.fStateLog[self.fStateLog.Point =='last'])
+            
         
-        pd = PDS.DataFrame({'X[cm]':x,'Y[cm]':y,'t':t,
-                              'H':H,'s[cm]':s,
-                              'px':px,'py':py,'dK':dK,
-                              'Sx':Sx,'Sy':Sy,'Ss':Ss,
-                              'Element':el, 'Turn':trn, 'Status':status})
-        
-        if not inner: pd = pd[pd['Status']=='last']
-        
-        return pd.drop('Status',axis=1)
+        pd[['x','y','s']] *= 100
+        cols = list(pd.columns)
+        cols[3:6] = [e.upper() + '[cm]' for e in cols[3:6]]
+        pd.columns = cols
+        return pd
     
     def set(self,**kwargs):
         self.__fIniState.update(**kwargs)
