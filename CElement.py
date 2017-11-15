@@ -256,7 +256,7 @@ class ERF(Element, HasCounter):
     """ RF element
     """
     
-    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = NP.pi/2, H_number = 50, Name = "RF"):
+    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
         super().__init__(Curve=0,Length=Length,Name=Name)
         if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
         elif type(RefPart) is PCL.Particle: pass
@@ -314,18 +314,18 @@ class ERF(Element, HasCounter):
         
         particle.setState(arg)
     
-    def frontKick(self, particle):
-        u = self.__fU
-        Xk = particle.getState()
-        Xk['dK'] -= u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
-        
-    def rearKick(self, particle):
-        u = self.__fU
-        Xk = particle.getState()
-        Xk['dK'] += u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+#    def frontKick(self, particle):
+#        u = self.__fU
+#        Xk = particle.getState()
+#        Xk['dK'] -= u*1e-6/particle.fKinEn0
+##        print('Kick voltage {}'.format(u))
+#        particle.setState(Xk)
+#        
+#    def rearKick(self, particle):
+#        u = self.__fU
+#        Xk = particle.getState()
+#        Xk['dK'] += u*1e-6/particle.fKinEn0
+##        print('Kick voltage {}'.format(u))
+#        particle.setState(Xk)
         
         
