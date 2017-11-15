@@ -251,15 +251,13 @@ class Ensemble:
     def revFreq(self, Lat_len):
         return self.__fRefPart.revFreq(Lat_len)
     
-    def plot(self, inner=True, return_vals=True): # return_vals not implemented
-        df = self.getDataFrame(inner).loc[:,['t','dK', 'PID']]
+    def plot(self, inner=True):
         
         pr = self.getReference()        
         th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
-        df['Theta'] = df['t'].apply(th)
         
-        nr = len(NP.unique(df['PID']))
-        nc = int(len(df)/nr)
+        nr = self.count()
+        nc = len(pr.fStateLog.dK)
         
         dK = NP.empty([nr,nc])
         Th = NP.empty([nr,nc])
@@ -267,28 +265,12 @@ class Ensemble:
         from matplotlib import pyplot as PLT
         
         for i in range(nr):
-            dK[i] = NP.array(df.loc[df['PID']==i, 'dK'])
-            Th[i] = NP.array(df.loc[df['PID']==i, 'Theta'])
+            dK[i] = self[i].fStateLog.dK
+            Th[i] = th(self[i].fStateLog.t)
             PLT.plot(Th[i]-Th[0],dK[i]-dK[0], label=i)
             
         
         return (Th, dK, PLT.gcf())
-            
-    
-        
-#        
-#        df0 = df[df['PID'] == pr.fPID]
-#        
-#        n = len(NP.unique(df['PID']))
-#        df0 = df0.iloc[NP.tile(NP.arange(len(df0)),n)]
-#        
-#        df['Theta'] -= df0['Theta']
-#        df['dK'] -= df0['dK']
-#        df.PID = df.PID.apply(lambda x: str(x))
-#            
-#        from ggplot import ggplot,aes, theme_bw, geom_point
-#        
-#        return ggplot(df, aes(x=Xlab,y=Ylab,color='PID')) + geom_point(**kwargs) + theme_bw()
         
         
         
