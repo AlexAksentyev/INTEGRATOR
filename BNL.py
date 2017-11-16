@@ -108,17 +108,15 @@ H_num = 50
 Acc_len = LRF + sum([e.fLength for e in lattice])
 ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
 
-
-#SS1H2[12] = ERF
-
+lattice.insert(12,ERF)
 
 #%%
 ## tracking
-E.track(lattice,1,inner=True)
+E.track(lattice,10,inner=True)
 
 
 #%%
-p = E[3]
+p = E[2]
 PLT.plot(p['s'], p['x']*100, '--', label='x')
 PLT.plot(p['s'], p['y']*100, '--', label='y')
 PLT.xlabel('s[m]')
