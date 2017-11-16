@@ -49,7 +49,7 @@ ARC1 = [QFA1, OD1, OSF, OD2, BDA, OD2.copy(), BPM, OD1.copy(), QDA1,
 
 #%%
 ## prepping ensemble of states
-StateList = U.form_state_list((3e-3,0e-3),(0e-3,0e-3),1,1)
+StateList = U.form_state_list((3e-3,0e-3),(3e-3,0e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 E.setReference(0)
 n = E.count()-1
@@ -71,7 +71,7 @@ ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
 
 #%%
 ## tracking
-E.track(ARC1,10,inner=True)
+E.track(ARC1,20,inner=True)
 
 
 p = E[0]
