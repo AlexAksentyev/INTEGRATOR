@@ -6,6 +6,10 @@ import copy
 import re
 import math
 
+class Field:
+    def __init__():
+        pass
+
 
 class Element:
     
