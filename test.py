@@ -1,45 +1,60 @@
-from ggplot import ggplot, aes, geom_line, theme_bw, facet_wrap, facet_grid, geom_point
-import pandas as PDS
+import pyximport; pyximport.install(pyimport=True)
+
 import CParticle as PCL
 import CElement as ENT
-from importlib import reload
-import numpy as NP
+import utilFunc as U
 
-reload(ENT)
-reload(PCL)
-
-theme_bw()
-
-state = [5e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0]
-StateList = [
-        [1e-3, 0, 0, 0, 0, 0, 0, 0, 1, 0,0],
-        [0, 1e-3, 0, 0, 0, 0, 0, 0, 1, 0,0],
-        [3e-3, 3e-3, 0, 0, 0, 0, 0, 0, 1, 0,0],
-        [0, 0, 0, 0, 1e-4, 0, 0, 0, 1, 0,0],
-        [0, 0, 0, 0, 0, 1e-4, 0, 0, 1, 0,0]
-        ]
-
-p = PCL.Particle(state)
+from time import clock
 
 #%%
 
-tLat = [ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736),
-        ENT.MQuad(5e-2,.736), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,-.82),
-        ENT.MQuad(5e-2,-.82), ENT.Drift(25e-2), ENT.Drift(15e-2),
-        ENT.Drift(25e-2), ENT.Drift(220e-2), ENT.Drift(25e-2),
-        ENT.Drift(15e-2), ENT.Drift(25e-2), ENT.MQuad(5e-2,.736)]
-#%%
+# hardware parameters
+Lq = 5
+Ls = .15
 
+GSFP = 0 
+GSDP = 0
+
+Lw = 361.55403e-2
+B = .082439761
+E = -120e5
+#%%
+# lattice elements
+
+DL_25  = ENT.Drift(.25)
+DL_15 = ENT.Drift(.15)
+DL2_2 = ENT.Drift(2.2)
+BPM = ENT.Drift(15)
+
+QDS = ENT.MQuad(Lq, -.86)
+QFS = ENT.MQuad(Lq, .831)
+
+QDA = ENT.MQuad(Lq, -1.023)
+QFA = ENT.MQuad(Lq, 1.364)
+
+Sf = ENT.MSext(Ls, GSFP)
+Sd = ENT.MSext(Ls, GSDP)
+
+R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B)
+
+#%%
+# lattice definition
+
+SS1H2 = [QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
+         QFS , QFS , DL_25 , DL_15 , ENT.Element(0,0) , #  RF ,
+                                     DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
+         QDS , QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
+         QFS]
+
+
+StateList = U.form_state_list((0e-3,0e-3),(-0e-3,0e-3),3,1)
 E = PCL.Ensemble.from_state(StateList)
-E.track(tLat,5)
-    
-df = E.getDataFrame()
-df = PDS.melt(df, id_vars=['PID','t','s'])
-#%%
-print(ggplot(df.loc[df['variable'].isin(['x','y'])&df['PID'].isin([2])],aes(x='s',y='value',color='variable'))
-    + geom_point() + geom_line() + theme_bw())
-    
+E.setReference(0)
+n = E.count()-1
+ddk = 2e-4/n
+for i in range(1,E.count()):
+    E[i].set(dK=3e-4-(i-1)*ddk)
+
+start = clock()
+E.track(SS1H2,1000,inner=True)
+print('Time passed: {} sec'.format(clock()-start))

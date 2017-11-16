@@ -143,7 +143,7 @@ class Particle:
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]
                 if element.fLength == 0:
-                    print('Element length is zero; skipping...')
+#                    print('Element length is zero; skipping...')
                     break
                 at = NP.linspace(0, element.fLength, self.fIntBrks)
                 
