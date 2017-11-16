@@ -201,6 +201,19 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fStateLog = {}
         
+    def plot(self, Ylab, Xlab='s'):
+        from matplotlib import pyplot as PLT
+        
+        x = self[Xlab]
+        y = self[Ylab]
+        
+        PLT.plot(x,y, label=Ylab)
+        PLT.xlabel(Xlab)
+        
+        return PLT.gcf()
+        
+        
+        
     def __repr__(self):
         return str(PDS.DataFrame({'initial':self.__fIniState, 'current':self.__fState}).T)
     
