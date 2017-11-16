@@ -91,8 +91,7 @@ class Particle:
 #        if re.sub('_.*','',element.fName) == 'RF': print('Es {}, dKp {}'.format(Es, dEnp/self.fKinEn0))
         
         gamma,beta = self.GammaBeta(KinEn)
-        q = self.__ezero
-        clight = self.__clight
+        q = ezero
         v = beta*clight
         m0 = q*1e6*self.fMass0/clight**2
         
@@ -146,7 +145,7 @@ class Particle:
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]
                 if element.fLength == 0:
-                    print('Element length is zero; skipping...')
+                    print('Zero length element; skipping...')
                     break
                 at = NP.linspace(0, element.fLength, self.fIntBrks)
                 
@@ -155,7 +154,7 @@ class Particle:
                 try:
                     element.frontKick(self)
                     if not bERF:
-                        vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
+                        vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values from inside element
                         self.setState(dict(zip(StateVars, vals[self.fIntBrks-1]))) # only the exit state will have
                     else:
                         element.advance(self)
@@ -168,6 +167,9 @@ class Particle:
                     ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
+                    for m in range(ind,len(self.fStateLog)):
+                        self.fStateLog[ind] = n, element.fName, 'last', *([NP.NaN]*(len(vartype)-3))
+                        ind += 1
                     return
             
         
