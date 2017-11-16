@@ -30,7 +30,7 @@ class Element:
         return self.__fEField
     
     def BField(self,arg):
-        return self.__fBFIeld
+        return self.__fBField
 
     def frontKick(self,particle):
         pass # do nothing
@@ -110,15 +110,19 @@ class MQuad(Element, HasCounter):
 
 class MDipole(Element, HasCounter, Bend):
     """ bending magnetic dipole (horizontally bending);
-    define _BField as a tuple;
-    could also be used as a solenoid, if _BField = (0,0,Bz)
-    and fCurve = 0
+    define _BField as a tuple
     """
     
     def __init__(self, Length, RefPart, R=None, BField=None, Name = "MDipole"):
         if all([e is None for e in [BField, R]]): raise Exception("Either the B-field, or Radius must be defined")
         
-        if R is None: Crv = None
+        if R is None: # if R isn't given, BField is
+            if isinstance(BField, CLN.Sequence): By = BField[1] # we want the By component
+            else: By = BField
+            if By == 0: 
+                Crv = 0 # if By == 0, dipole is turned off == drift space; skip computeRadius
+                self.__fR = NP.Inf
+            else: Crv = None # otherwise, computeRadius
         else:
             Crv = 1/R
             self.__fR = R
@@ -152,7 +156,6 @@ class MDipole(Element, HasCounter, Bend):
         return self._Bend__Pc(KinEn)*1e6/(R*PCL.clight)
     
     def computeRadius(self,KinEn, BField): 
-        print('in')
         return self._Bend__Pc(KinEn)*1e6/(BField*PCL.clight)
   
 
