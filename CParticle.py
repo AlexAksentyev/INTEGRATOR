@@ -131,8 +131,8 @@ class Particle:
     def RHS(self, state, at, element):
         return self.__RHS(state, at, element)
     
-    def track(self, ElementSeq, ntimes, FWD = True, inner = True):
-        self.fIntBrks = 101
+    def track(self, ElementSeq, ntimes, FWD = True, inner = True, breaks=101):
+        self.fIntBrks = breaks
         self.__fState = copy.deepcopy(self.__fIniState)
         
         vartype = [('Turn',int),('Element',object),('Point', object)]
@@ -260,9 +260,9 @@ class Ensemble:
     def getReference(self):
         return self.__fRefPart
         
-    def track(self, ElementSeq, ntimes, FWD = True, inner=True):
+    def track(self, ElementSeq, ntimes, FWD = True, inner=True, breaks=101):
         for pcl in self.__fParticle.values():
-            pcl.track(ElementSeq, ntimes, FWD, inner)
+            pcl.track(ElementSeq, ntimes, FWD, inner, breaks)
         
     def count(self):
         return len(self.__fParticle)
@@ -298,6 +298,8 @@ class Ensemble:
         Th = NP.empty([nr,nc])
         
         from matplotlib import pyplot as PLT
+        
+        PLT.figure()
         
         for i in range(nr):
             dK[i] = self[i].fStateLog.dK
