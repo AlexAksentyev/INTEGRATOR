@@ -24,13 +24,13 @@ class Element:
         super().__init__(**kwargs)
     
     def EField(self,arg):
-        return self.__fEField
+        return self._Element__fEField
     
     def Eprime_tp(self, arg): # added for testing with ERF
-        return self.__fEField
+        return self._Element__fEField
     
     def BField(self,arg):
-        return self.__fBField
+        return self._Element__fBField
 
     def frontKick(self,particle):
         pass # do nothing
@@ -39,8 +39,8 @@ class Element:
         pass # do nothing
         
     def printFields(self):
-        print('Ex {}, Ey {}, Es {}'.format(*self.__fEField))
-        print('Bx {}, By {}, Bs {}'.format(*self.__fBField))
+        print('Ex {}, Ey {}, Es {}'.format(*self._Element__fEField))
+        print('Bx {}, By {}, Bs {}'.format(*self._Element__fBField))
     
     def __repr__(self):
         return str(self._Element__fChars)
@@ -143,14 +143,14 @@ class MDipole(Element, HasCounter, Bend):
             BField = (0, self.computeBStrength(self.__fPardict['KinEn0'], R), 0)
         elif not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
         
-        self.__fBField = BField[:]
+        self._Element__fBField = BField[:]
         self._Element__fChars['Bx'] = BField[0]
         self._Element__fChars['By'] = BField[1]
         self._Element__fChars['Bs'] = BField[2]
         
         
     def getBField(self):
-        return self.__fBField[:]
+        return self._Element__fBField[:]
     
     def computeBStrength(self,KinEn, R):
         return self._Bend__Pc(KinEn)*1e6/(R*PCL.clight)
@@ -213,7 +213,7 @@ class Wien(Element, HasCounter, Bend):
             R = self.__fR
         
         self.fCurve = 1/R[0]
-        self.__fEField = (EField,0,0)
+        self._Element__fEField = (EField,0,0)
         self.__fVolt = (EField * R[0] * math.log(R[2] / R[1])) / (-2)
         self._Element__fChars['Curve'] = self.fCurve
         
@@ -233,14 +233,14 @@ class Wien(Element, HasCounter, Bend):
         v = beta*clight
         
         if BField is None:
-            if self.__fEField is None: self.setEField()
-            BField = -self.__fEField[0]/v
+            if self._Element__fEField is None: self.setEField()
+            BField = -self._Element__fEField[0]/v
         
-        self.__fBField = (0, BField, 0)
+        self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
         x = arg['x']
-        Ex = self.__fEField[0]/(1+self.fCurve*x)
+        Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
@@ -257,7 +257,7 @@ class Wien(Element, HasCounter, Bend):
         k = 1.18 * qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
         h = 1/self.__fR[0]
         
-        B0 = self.__fBField[1]
+        B0 = self._Element__fBField[1]
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
         return (0, B1, 0)
     
