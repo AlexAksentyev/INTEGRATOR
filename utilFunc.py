@@ -31,7 +31,7 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
     xs = NP.linspace(xint[0],xint[1],Nx)
     ys = NP.linspace(yint[0],yint[1],Ny)
     
-    names = PCL.Particle.fArgList
+    names = PCL.StateVars
     
     StateList = list()
     for x in xs:

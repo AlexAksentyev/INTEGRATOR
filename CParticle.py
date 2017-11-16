@@ -1,15 +1,17 @@
 from scipy.integrate import odeint
 import numpy as NP
 import pandas as PDS
-import re
+#import re
 import copy
 
-import CElement as ENT
+#import CElement as ENT
+
+StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
 
 class Particle:
         
     
-    fArgList = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
+#    fArgList = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
     
     __ezero = 1.602176462e-19 # Coulomb
     __clight = 2.99792458e8 # m/s
@@ -19,7 +21,7 @@ class Particle:
     fG = -.142987
     
     
-    def __init__(self, State0):
+    def __init__(self, State0 = [0]*len(StateVars)):
             
         self.__fIniState = State0
         self.__fState = copy.deepcopy(self.__fIniState)
@@ -54,8 +56,8 @@ class Particle:
     
     def __RHS(self, state, at, element):
         if any(NP.isnan(state)):  raise ValueError('NaN state variable(s)')
-        state = dict(zip(self.fArgList, state))
-        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.values() # px, py are normalized to P0c for consistency with the other vars, i think       
+        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state # px, py are normalized to P0c for consistency with the other vars, i think       
+        state = dict(zip(StateVars, state)) # for passing into field functions
         
         KinEn = self.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -123,7 +125,7 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         
         vartype = [('Turn',int),('Element',object),('Point', object)]
-        vartype += list(zip(self.fArgList, NP.repeat(float, len(self.fArgList))))
+        vartype += list(zip(StateVars, NP.repeat(float, len(StateVars))))
         
         if inner: 
             nrow = ntimes*len(ElementSeq)*self.fIntBrks
@@ -140,6 +142,9 @@ class Particle:
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]
+                if element.fLength == 0:
+                    print('Element length is zero; skipping...')
+                    break
                 at = NP.linspace(0, element.fLength, self.fIntBrks)
                 
                 bERF = element.bSkip
@@ -148,7 +153,7 @@ class Particle:
                     element.frontKick(self)
                     if not bERF:
                         vals = odeint(self.__RHS, list(self.__fState.values()), at, args=(element,)) # vals contains values inside element
-                        self.setState(dict(zip(self.fArgList, vals[self.fIntBrks-1]))) # only the exit state will have
+                        self.setState(dict(zip(StateVars, vals[self.fIntBrks-1]))) # only the exit state will have
                     else:
                         element.advance(self)
                     element.rearKick(self) # an energy reset 
