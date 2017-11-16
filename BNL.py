@@ -18,86 +18,51 @@ reload(PCL)
 reload(U)
 
 # hardware parameters
-Lq = 5
-Ls = .15
-
 GSFP = 0 
 GSDP = 0
 
-Lw = 361.55403e-2
-B = .082439761
-E = -120e5
 #%%
 # lattice elements
 
-DL_25  = ENT.Drift(.25)
-DL_15 = ENT.Drift(.15)
-DL2_2 = ENT.Drift(2.2)
-BPM = ENT.Drift(15)
+OD1  = ENT.Drift(25e-2, "OD1")
+OD2  = ENT.Drift(25e-2, "OD2")
 
-QDS = ENT.MQuad(Lq, -8.6, Name='QDS')
-QFS = ENT.MQuad(Lq, 8.31, Name='QFS')
+QDA1 = ENT.MQuad(5e-2, -11.71, 'QDA1')
+QFA1 = ENT.MQuad(5e-2, 13.38, 'QFA1')
 
-QDA = ENT.MQuad(Lq, -10.23, Name='QDA')
-QFA = ENT.MQuad(Lq, 13.64, Name='QFA')
+OSF = ENT.MSext(15e-2,0,"OSF")
+SDP = ENT.MSext(15e-2,3.39598,"SDP")
 
-Sf = ENT.MSext(Ls, GSFP)
-Sd = ENT.MSext(Ls, GSDP)
+BDA = ENT.MDipole(182.02463e-2, PCL.Particle(), BField=1.5)
 
-R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B)
+BPM = ENT.Drift(15e-2,"BPM")
+
+R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
 
 #%%
 # lattice definition
 
-SS1H2 = [QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , DL_15 , ENT.Element(0,0) , #  RF ,
-                                     DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS]
+ARC1 = [QFA1, OD1, OSF, OD2, BDA, OD2.copy(), BPM, OD1.copy(), QDA1,
+        QDA1.copy(), OD1.copy(), SDP, OD2.copy(), BDA.copy(), OD2.copy(), BPM.copy(), OD1.copy(), QFA1.copy()]
 
-ARC1 = [QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25] +\
- [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA , QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25]*7 +\
-  [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA]
 
-SS2H1 = [QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , Sd , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25]
-
-SS2H2 = [QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS]
-
-ARC2 =  [QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25] +\
- [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA , QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25]*7 +\
-  [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA]
-
-SS1H1 = [QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , Sd , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS]
-
-lattice = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
 
 #%%
 ## prepping ensemble of states
-StateList = U.form_state_list((0e-3,0e-3),(-0e-3,0e-3),3,1)
+StateList = U.form_state_list((3e-3,0e-3),(0e-3,0e-3),1,1)
 E = PCL.Ensemble.from_state(StateList)
 E.setReference(0)
 n = E.count()-1
-ddk = 2e-4/n
-for i in range(1,E.count()):
-    E[i].set(dK=3e-4-(i-1)*ddk)
+if n > 0:
+    ddk = 2e-4/n
+    for i in range(1,E.count()):
+        E[i].set(dK=3e-4-(i-1)*ddk)
 
 # inserting RF
 LRF = 5e-4
 E_RF = 15e5
 H_num = 50
-Acc_len = LRF + sum([e.fLength for e in lattice])
+Acc_len = LRF + sum([e.fLength for e in ARC1])
 ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
 
 
@@ -106,8 +71,14 @@ ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
 
 #%%
 ## tracking
-E.track(SS1H2,10,inner=True)
+E.track(ARC1,10,inner=True)
 
 
-p = E[1]
-PLT.plot()
+p = E[0]
+
+#%%
+PLT.plot(p['s'], p['x']*100, '--', label='x')
+PLT.plot(p['s'], p['y']*100, '--', label='y')
+PLT.xlabel('s[m]')
+PLT.ylabel('cm')
+PLT.legend()
