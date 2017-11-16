@@ -201,13 +201,13 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fStateLog = {}
         
-    def plot(self, Ylab, Xlab='s'):
+    def plot(self, Ylab, *args, Xlab='s', **kwargs):
         from matplotlib import pyplot as PLT
         
         x = self[Xlab]
         y = self[Ylab]
         
-        PLT.plot(x,y, label=Ylab)
+        PLT.plot(x,y, *args, label=Ylab, **kwargs)
         PLT.xlabel(Xlab)
         
         return PLT.gcf()
