@@ -98,6 +98,7 @@ class Particle:
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
         ds = element.fLength/(self.fIntBrks-1)
         dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
+        gammap = dEnp/self.fMass0 # gamma prime
         
          ## I don't understand the following formulas
         betap = (dEnp*(self.fMass0)**2)/((KinEn+self.fMass0)**2*NP.sqrt(KinEn**2+2*KinEn*self.fMass0))
@@ -109,12 +110,7 @@ class Particle:
         
         # these two are in MeVs
         Pxp = Px*(betap/beta - gammap/gamma)+Pc*xpp/Hp-Px*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
-        Pyp = Py*(betap/beta - gammap/gamma)+Pc*ypp/Hp-Py*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
-        
-        
-        Pxp = (Ex*tp + (yp*Bs-By))*1e-6*clight + kappa*Ps #Fx * tp *c + kappa*Ps, in MeV
-        Pyp = (Ey*tp + (Bx-xp*Bs))*1e-6*clight #Fy*tp * c, in Mev
-        
+        Pyp = Py*(betap/beta - gammap/gamma)+Pc*ypp/Hp-Py*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))        
         
         Px,Py,Ps = [e*q*1e6/clight for e in (Px,Py,Ps)] # the original formulas use momenta, not P*c
         
