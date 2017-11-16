@@ -7,6 +7,7 @@ Created on Mon Sep 18 16:59:23 2017
 """
 #%%
 import pandas as PDS
+from matplotlib import pyplot as PLT
 import CParticle as PCL
 import CElement as ENT
 import utilFunc as U
@@ -34,11 +35,11 @@ DL_15 = ENT.Drift(.15)
 DL2_2 = ENT.Drift(2.2)
 BPM = ENT.Drift(15)
 
-QDS = ENT.MQuad(Lq, -.86)
-QFS = ENT.MQuad(Lq, .831)
+QDS = ENT.MQuad(Lq, -8.6, Name='QDS')
+QFS = ENT.MQuad(Lq, 8.31, Name='QFS')
 
-QDA = ENT.MQuad(Lq, -1.023)
-QFA = ENT.MQuad(Lq, 1.364)
+QDA = ENT.MQuad(Lq, -10.23, Name='QDA')
+QFA = ENT.MQuad(Lq, 13.64, Name='QFA')
 
 Sf = ENT.MSext(Ls, GSFP)
 Sd = ENT.MSext(Ls, GSDP)
@@ -100,12 +101,13 @@ Acc_len = LRF + sum([e.fLength for e in lattice])
 ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
 
 
-lattice[12] = ERF
+#SS1H2[12] = ERF
 
 
 #%%
 ## tracking
-E.track(lattice,10,inner=True)
+E.track(SS1H2,10,inner=True)
 
-Th,dK, p = E.plot()
-    
+
+p = E[1]
+PLT.plot()
