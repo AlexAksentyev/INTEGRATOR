@@ -114,12 +114,11 @@ ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
 
 #%%
 ## tracking
-E.track([BDA],1,inner=True)
+E.track([BDA],10,inner=True)
 
-
-p = E[1]
 
 #%%
+p = E[1]
 PLT.plot(p['s'], p['x']*100, '--', label='x')
 PLT.plot(p['s'], p['y']*100, '--', label='y')
 PLT.xlabel('s[m]')
