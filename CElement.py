@@ -6,36 +6,28 @@ import copy
 import re
 import math
 
-class Field:
-    def __init__():
-        pass
-
-
 class Element:
     
-    def __init__(self, Curve, Length, Name = "Element"):
+    def __init__(self, Curve, Length, Name = "Element",**kwargs):
         self.fCurve = Curve
         self.fLength = Length
         self.fName = Name
         
         self.__fEField = (0,0,0)
-        self.__fBFIeld = (0,0,0)
+        self.__fBField = (0,0,0)
         
         self.bSkip = False # for testing ERF.advance()
         
         self.__fChars = PDS.DataFrame({'Curve':self.fCurve, 'Length':self.fLength}, 
                                             index=[self.fName])
         
-        super().__init__()
+        super().__init__(**kwargs)
     
     def EField(self,arg):
         return self.__fEField
     
     def Eprime_tp(self, arg): # added for testing with ERF
         return self.__fEField
-    
-    def __repr__(self):
-        return str(self._Element__fChars)
     
     def BField(self,arg):
         return self.__fBFIeld
@@ -46,18 +38,44 @@ class Element:
     def rearKick(self,particle):
         pass # do nothing
         
+    def printFields(self):
+        print('Ex {}, Ey {}, Es {}'.format(*self.__fEField))
+        print('Bx {}, By {}, Bs {}'.format(*self.__fBField))
+    
+    def __repr__(self):
+        return str(self._Element__fChars)
         
+class Bend:
+    def __init__(self,RefPart,**kwargs):
+        q = PCL.ezero
+        clight = PCL.clight
+        self.fPardict = {'KinEn0':RefPart.fKinEn0, 'Mass0':RefPart.fMass0,
+                         'q':q, 'clight':clight,
+                         'm0':RefPart.fMass0/clight**2*1e6*q}
+        
+        super().__init__(**kwargs)
+        
+    def __GammaBeta(self):
+        Mass0 = self.fPardict['Mass0']
+        K0 = self.fPardict['KinEn0']
+        gamma = K0 / Mass0 + 1
+        beta = math.sqrt(gamma**2-1)/gamma
+        return (gamma, beta)
+    
+    def __Pc(self, KNRG):
+        return math.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2)
         
 class HasCounter:
     fCount = 0
     
     __fSep = "_"
     
-    def __init__(self):
-        if 'fName' not in self.__dict__.keys(): self.fName = 'NoName'    
+    def __init__(self, **kwargs):
+        if 'fName' not in self.__dict__.keys(): self.fName = 'NoName' 
+#        self.fName = Name   
         self.fName += self.__fSep+str(self.__class__.fCount)
         self.__class__.fCount += 1
-        super().__init__()
+        super().__init__(**kwargs)
 
     def copy(self, Name = None):
         self.__class__.fCount += 1
@@ -90,19 +108,37 @@ class MQuad(Element, HasCounter):
         return (self.__fGrad*y, self.__fGrad*x,0)
         
 
-class MDipole(Element, HasCounter):
+class MDipole(Element, HasCounter, Bend):
     """ bending magnetic dipole (horizontally bending);
     define _BField as a tuple;
     could also be used as a solenoid, if _BField = (0,0,Bz)
     and fCurve = 0
     """
     
-    def __init__(self, Length, R, BField, Name = "MDipole"):
-        super().__init__(Curve=1/R, Length=Length, Name=Name)
+    def __init__(self, Length, RefPart, R=None, BField=None, Name = "MDipole"):
+        if all([e is None for e in [BField, R]]): raise Exception("Either the B-field, or Radius must be defined")
+        
+        if R is None: Crv = None
+        else:
+            Crv = 1/R
+            self.__fR = R
+        
+        super().__init__(Curve=Crv, Length=Length, Name=Name, RefPart=RefPart)
+        
+        if Crv is None:
+             R = self.computeRadius(RefPart.fKinEn0, BField)
+             self.__fR = R
+             self.fCurve = 1/self.__fR
+             self._Element__fChars['Curve'] = self.fCurve
+             
         self.setBField(BField)
         
     def setBField(self,BField):
-        if not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
+        if BField is None:
+            R = self.__fR
+            BField = (0, self.computeBStrength(self.__fPardict['KinEn0'], R), 0)
+        elif not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
+        
         self.__fBField = BField[:]
         self._Element__fChars['Bx'] = BField[0]
         self._Element__fChars['By'] = BField[1]
@@ -112,13 +148,12 @@ class MDipole(Element, HasCounter):
     def getBField(self):
         return self.__fBField[:]
     
-    @classmethod    
-    def computeBStrength(cls,particle, R):
-        return particle.Pc(particle.fKinEn0)*1e6/(R*particle.CLIGHT())
+    def computeBStrength(self,KinEn, R):
+        return self._Bend__Pc(KinEn)*1e6/(R*PCL.clight)
     
-    @classmethod
-    def computeRadius(cls,particle, BField): 
-        return particle.Pc(particle.fKinEn0)*1e6/(BField*particle.CLIGHT())
+    def computeRadius(self,KinEn, BField): 
+        print('in')
+        return self._Bend__Pc(KinEn)*1e6/(BField*PCL.clight)
   
 
 class Solenoid(Element, HasCounter):
@@ -142,7 +177,7 @@ class MSext(Element, HasCounter):
         y = arg['y']
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
-class Wien(Element, HasCounter):
+class Wien(Element, HasCounter, Bend):
     """ wien filter
     """
     
@@ -157,20 +192,14 @@ class Wien(Element, HasCounter):
             
         self.__fHgap = Hgap
         
-        q = RefPart.EZERO()
-        clight = RefPart.CLIGHT()
-        self.fPardict = {'KinEn0':RefPart.fKinEn0, 'Mass0':RefPart.fMass0,
-                         'q':q, 'clight':clight,
-                         'm0':RefPart.fMass0/clight**2*1e6*q}
-        
-        super().__init__(Curve=Crv,Length=Length,Name=Name)
+        super().__init__(Curve=Crv,Length=Length,Name=Name, RefPart=RefPart)
         
         self.setEField(EField)
         self.setBField(BField)
         
     def setEField(self, EField=None):
-        P0c = self.__Pc(self.fPardict['KinEn0'])
-        gamma, beta = self.__GammaBeta()
+        P0c = self._Bend__Pc(self.fPardict['KinEn0'])
+        gamma, beta = self._Bend__GammaBeta()
         if EField is None:
             R = self.__fR
             EField = - P0c*beta/R[0] * 1e6
@@ -182,7 +211,7 @@ class Wien(Element, HasCounter):
         
         self.fCurve = 1/R[0]
         self.__fEField = (EField,0,0)
-        self.__fVolt = (EField * R[0] * NP.log(R[2] / R[1])) / (-2)
+        self.__fVolt = (EField * R[0] * math.log(R[2] / R[1])) / (-2)
         self._Element__fChars['Curve'] = self.fCurve
         
         #define a subfunction for use in kicks
@@ -191,20 +220,12 @@ class Wien(Element, HasCounter):
         R2 = float(self.__fR[2])
         V = float(self.__fVolt)
         
-        self.__U = lambda x: (-V + 2*V*math.log((R0+x)/R1)/math.log(R2/R1)) # DK = q*U
-    
-    
-    def kickVolts(self, x):
-        return (self.__fVolt, self.__U(x))
-    
-    def printFields(self):
-        print('Ex {}, Ey {}, Es {}'.format(*self.__fEField))
-        print('Bx {}, By {}, Bs {}'.format(*self.__fBField))
+        self.__U = lambda x: (-V + 2*V*NP.log((R0+x)/R1)/NP.log(R2/R1)) # DK = q*U
     
     def setBField(self, BField=None):        
         
         clight = self.fPardict['clight']
-        gamma, beta = self.__GammaBeta()        
+        gamma, beta = self._Bend__GammaBeta()        
         
         v = beta*clight
         
@@ -227,7 +248,7 @@ class Wien(Element, HasCounter):
         clight = self.fPardict['clight']
         qm = e0/(m0*clight**2)
         
-        gamma, beta = self.__GammaBeta()
+        gamma, beta = self._Bend__GammaBeta()
         v = beta*clight
         
         k = 1.18 * qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
@@ -236,16 +257,6 @@ class Wien(Element, HasCounter):
         B0 = self.__fBField[1]
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
         return (0, B1, 0)
-    
-    def __GammaBeta(self):
-        Mass0 = self.fPardict['Mass0']
-        K0 = self.fPardict['KinEn0']
-        gamma = K0 / Mass0 + 1
-        beta = float(NP.sqrt(gamma**2-1)/gamma)
-        return (gamma, beta)
-    
-    def __Pc(self, KNRG):
-        return float(NP.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2))
     
     def frontKick(self, particle):
         x=particle.getState()['x']
@@ -262,6 +273,9 @@ class Wien(Element, HasCounter):
         Xk['dK'] += u*1e-6/particle.fKinEn0
 #        print('Kick voltage {}'.format(u))
         particle.setState(Xk)
+        
+    def kickVolts(self, x):
+        return (self.__fVolt, self.__U(x))
         
     
 class ERF(Element, HasCounter):
