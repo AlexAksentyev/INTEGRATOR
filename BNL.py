@@ -21,8 +21,6 @@ reload(U)
 GSFP = 0 
 GSDP = 0
 
-LRF = 5e-4 # RF element length
-
 #%%
 # lattice elements
 
@@ -52,7 +50,7 @@ BPM = ENT.Drift(15e-2,"BPM")
 R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
 
 
-p_hold = ENT.Element(0,LRF,'placeholder')
+p_hold = ENT.Element(0,5e-4,'placeholder')
 #%%
 # lattice definition
 
@@ -117,12 +115,12 @@ if True:
 
 ## prepping RF
 #lattice = [OD2, ORB, p_hold, OD2, BPM] # test lattice
-#lattice = SSb1H2
+lattice = SSb1H2
 
 E_RF = 15e5
 H_num = 50
 Acc_len = sum([e.fLength for e in lattice])
-ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
+ERF = ENT.ERF(p_hold.fLength,E,Acc_len,EField=E_RF,H_number=H_num)
 
 ERF.bSkip = False
 
