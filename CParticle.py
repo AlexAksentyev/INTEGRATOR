@@ -8,13 +8,16 @@ import copy
 
 StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
 
+ezero = 1.602176462e-19 # Coulomb
+clight = 2.99792458e8 # m/s
+
 class Particle:
         
     
 #    fArgList = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
     
-    __ezero = 1.602176462e-19 # Coulomb
-    __clight = 2.99792458e8 # m/s
+#    __ezero = 1.602176462e-19 # Coulomb
+#    __clight = 2.99792458e8 # m/s
     
     fMass0 = 1876.5592 # deuteron mass in MeV
     fKinEn0 = 270.11275 # deuteron magic energy
@@ -27,13 +30,13 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fGamma0, self.fBeta0 = self.GammaBeta(self.fKinEn0)
         
-    @classmethod    
-    def CLIGHT(cls):
-        return cls.__clight
+#    @classmethod    
+#    def CLIGHT(cls):
+#        return cls.__clight
     
-    @classmethod
-    def EZERO(cls):
-        return cls.__ezero
+#    @classmethod
+#    def EZERO(cls):
+#        return cls.__ezero
     
     def GammaBeta(self, NRG):
         gamma = NRG / self.fMass0 + 1
@@ -45,7 +48,7 @@ class Particle:
     
     def revFreq(self, Lat_len):
         gamma,beta = self.GammaBeta(self.fKinEn0)
-        v = beta*Particle.CLIGHT()
+        v = beta*clight
         return v/Lat_len
         
     def getState(self):
