@@ -134,7 +134,7 @@ lattice[i]=ERF
 
 #%%
 ## tracking
-E.track(lattice, 100, inner=True, breaks = 101, FWD=True)
+E.track(lattice, 10, inner=False)
 
 E.plot()
 #%%
