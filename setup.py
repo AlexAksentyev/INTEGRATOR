@@ -9,6 +9,6 @@ from distutils.core import setup
 from Cython.Build import cythonize
 
 setup(
-    name = "Particle",
-    ext_modules = cythonize('CParticle.pyx'),  # accepts a glob pattern
+    name = "helloworld",
+    ext_modules = cythonize('helloworld.pyx'),  # accepts a glob pattern
 )
