@@ -4,7 +4,7 @@ import pandas as PDS
 #import re
 import copy
 
-#import CElement as ENT
+import CElement as ENT
 
 StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
 
@@ -132,6 +132,8 @@ class Particle:
         return self.__RHS(state, at, element)
     
     def track(self, ElementSeq, ntimes, FWD = True, inner = True, breaks=101):
+        if type(ElementSeq) == ENT.Lattice: ElementSeq = ElementSeq.fSequence
+        
         self.fIntBrks = breaks
         self.__fState = copy.deepcopy(self.__fIniState)
         
@@ -261,6 +263,7 @@ class Ensemble:
         return self.__fRefPart
         
     def track(self, ElementSeq, ntimes, FWD = True, inner=True, breaks=101):
+        if type(ElementSeq) == ENT.Lattice: ElementSeq = ElementSeq.fSequence
         for pcl in self.__fParticle.values():
             pcl.track(ElementSeq, ntimes, FWD, inner, breaks)
         

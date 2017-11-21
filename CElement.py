@@ -354,4 +354,25 @@ class ERF(Element, HasCounter):
 ##        print('Kick voltage {}'.format(u))
 #        particle.setState(Xk)
         
+class Lattice:
+    def __init__(self, ElSeq, RefPart):
         
+        super().__init__()
+        
+        if type(RefPart) is PCL.Ensemble: self.fRefPart = RefPart.getReference()
+        elif type(RefPart) is PCL.Particle: self.fRefPart = RefPart
+        else: raise ValueError('Wrong type Reference Particle')
+        
+        self.fSequence = ElSeq[:]
+        
+        self.fCount = len(ElSeq)
+        self.fLength = 0
+        for e in ElSeq: self.fLength += e.fLength
+        
+    def insertRF(self, position, length, **ERF_pars):
+        full_acc_len = self.fLength + length
+        rf = ERF(length,self.fRefPart, full_acc_len, **ERF_pars)
+        self.fSequence.insert(position, rf)
+        
+    def __repr__(self):
+        pass
