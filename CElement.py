@@ -285,7 +285,7 @@ class ERF(Element, HasCounter):
     """ RF element
     """
     
-    def __init__(self, Length, RefPart, Acc_length, EField = 1500, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
+    def __init__(self, Length, RefPart, Acc_length, EField = 15e5, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
         super().__init__(Curve=0,Length=Length,Name=Name)
         if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
         elif type(RefPart) is PCL.Particle: pass

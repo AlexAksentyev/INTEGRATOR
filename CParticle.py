@@ -155,9 +155,6 @@ class Particle:
             for i in range(len(ElementSeq)):
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]
-                if element.fLength == 0:
-                    print('Zero length element; skipping...')
-                    break
                 at = NP.linspace(0, element.fLength, self.fIntBrks)
                 
                 bERF = element.bSkip
@@ -221,12 +218,12 @@ class Particle:
     
     def __getitem__(self, name):
         return self.fStateLog[name]
+    
+    def resetIniState(self):
+        self.__fIniState = copy.deepcopy(self.__fState)
 
 
 class Ensemble:
-    """ Ensemble of particles; handles tracking of multiple particles. 
-    Create a bunch of worker nodes and call particle.track for the particles
-    """
     
     def __init__(self, ParticleList):
         self.__fParticle = {}
@@ -239,8 +236,6 @@ class Ensemble:
         return cls(pcls)
     
     def addParticles(self, ParticleList):
-#        names = [e for e in range(len(ParticleList))]
-#        self.__fParticle = {key:value for (key,value) in zip(names, ParticleList)}
         pid = 0
         for pcl in ParticleList:
            self.__fParticle.update({pid:pcl}) 
@@ -289,7 +284,7 @@ class Ensemble:
     def revFreq(self, Lat_len):
         return self.__fRefPart.revFreq(Lat_len)
     
-    def plot(self, inner=True):
+    def plot(self):
         
         pr = self.getReference()        
         th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
@@ -312,6 +307,7 @@ class Ensemble:
         
         return (Th, dK, PLT.gcf())
         
-        
+    def resetIniState(self):
+        for pcl in self.__fParticle.values(): pcl.resetIniState()
         
     

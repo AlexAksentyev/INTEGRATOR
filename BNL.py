@@ -49,8 +49,6 @@ BPM = ENT.Drift(15e-2,"BPM")
 
 R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
 
-
-#p_hold = ENT.Element(0,5e-4,'placeholder')
 #%%
 # lattice definition
 
@@ -113,37 +111,19 @@ if True:
     for i in range(1,E.count()):
         E[i].set(dK=3e-4-(i-1)*ddk)
 
-## prepping RF
-#lattice = [OD2, ORB, p_hold, OD2, BPM] # test lattice
-lattice = SSb1H2
-
+## adding RF
 tLat = ENT.Lattice(lattice,E)
 tLat.insertRF(14, 5e-4)
 
-#E_RF = 15e5
-#H_num = 50
-#Acc_len = sum([e.fLength for e in lattice])
-#ERF = ENT.ERF(p_hold.fLength,E,Acc_len,EField=E_RF,H_number=H_num)
-#
-#ERF.bSkip = False
-#
-#i=0
-#for e in lattice:
-#    if e.fName != 'placeholder':
-#        i += 1
-#    else: break
-#
-#lattice[i]=ERF
-
 #%%
 ## tracking
-#E.track(tLat, 10, inner=True, breaks = 101, FWD=True)
+E.track(tLat, 1000, inner=False, breaks = 101, FWD=True)
 
-#E.plot()
+E.plot()
 #%%
-#p = E[3]
-#PLT.figure()
-#p.plot('x','-r'); p.plot('y','-g')
-#PLT.xlabel('s[m]')
-#PLT.ylabel('cm')
-#PLT.legend()
+p = E[3]
+PLT.figure()
+p.plot('Sx','-r'); p.plot('Sy','-g')
+PLT.xlabel('s[m]')
+PLT.ylabel('cm')
+PLT.legend()
