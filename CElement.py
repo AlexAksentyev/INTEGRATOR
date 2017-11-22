@@ -287,6 +287,13 @@ class ERF(Element, HasCounter):
     
     def __init__(self, Length, RefPart, Acc_length, EField = 15e5, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
         super().__init__(Curve=0,Length=Length,Name=Name)
+        
+        if Length==0: 
+            self.bSkip = True
+            print("""!!! ATTENTION !!!\n 
+                  will be advancing the RF element; \n
+                  problematic for (Theta, dK) plot """)
+        
         if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
         elif type(RefPart) is PCL.Particle: pass
         else: raise ValueError('Wrong type Reference Particle')
@@ -336,23 +343,23 @@ class ERF(Element, HasCounter):
         arg['dK'] += u*NP.cos(w*arg['t']+self.fPhase)*1e-6/particle.fKinEn0
         arg['s'] += self.fLength
         gamma,beta = particle.GammaBeta(K)
-        arg['t'] += self.fLength/beta/particle.CLIGHT()
+        arg['t'] += self.fLength/beta/PCL.clight
         
         particle.setState(arg)
     
-#    def frontKick(self, particle):
-#        u = self.__fU
-#        Xk = particle.getState()
-#        Xk['dK'] -= u*1e-6/particle.fKinEn0
-##        print('Kick voltage {}'.format(u))
-#        particle.setState(Xk)
-#        
-#    def rearKick(self, particle):
-#        u = self.__fU
-#        Xk = particle.getState()
-#        Xk['dK'] += u*1e-6/particle.fKinEn0
-##        print('Kick voltage {}'.format(u))
-#        particle.setState(Xk)
+    def frontKick(self, particle):
+        u = self.__fU
+        Xk = particle.getState()
+        Xk['dK'] -= u*1e-6/particle.fKinEn0
+#        print('Kick voltage {}'.format(u))
+        particle.setState(Xk)
+        
+    def rearKick(self, particle):
+        u = self.__fU
+        Xk = particle.getState()
+        Xk['dK'] += u*1e-6/particle.fKinEn0
+#        print('Kick voltage {}'.format(u))
+        particle.setState(Xk)
         
 class Lattice:
     def __init__(self, ElSeq, RefPart):
