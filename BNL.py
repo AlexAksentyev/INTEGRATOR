@@ -13,13 +13,11 @@ import CElement as ENT
 import utilFunc as U
 from importlib import reload
 
+from time import clock
+
 reload(ENT)
 reload(PCL)
 reload(U)
-
-# hardware parameters
-GSFP = 0 
-GSDP = 0
 
 #%%
 # lattice elements
@@ -43,7 +41,7 @@ SFP = ENT.MSext(15e-2,2.76958,"SFP")
 SDN = ENT.MSext(15e-2,3.79311,"SDN")
 SFN = ENT.MSext(15e-2,2.09837,"SFN")
 
-BDA = ENT.MDipole(182.02463e-2, PCL.Particle(), BField=1.5)
+BDA = ENT.MDipole(182.02463e-2, PCL.Particle(), BField=1.5,Name="BDA")
 
 BPM = ENT.Drift(15e-2,"BPM")
 
@@ -109,21 +107,23 @@ if True:
     n = E.count()-1
     ddk = 2e-4/n
     for i in range(1,E.count()):
-        E[i].set(dK=3e-4-(i-1)*ddk)
+        E[i].set(dK=2.5e-4-(i-1)*ddk)
 
 ## adding RF
-tLat = ENT.Lattice(lattice,E)
-tLat.insertRF(14, 5e-4)
+tLat = ENT.Lattice(SSb1H1,E)
+tLat.insertRF(0, 5e-4,EField=15e7)
 
 #%%
 ## tracking
-E.track(tLat, 1000, inner=False, breaks = 101, FWD=True)
+start = clock()
+E.track(tLat, 100, inner=False, breaks = 101, FWD=True)
+print("Tracking took {:04.2f} seconds".format(clock()-start))
 
-E.plot()
+E.plot('Sx','s')
 #%%
-p = E[3]
-PLT.figure()
-p.plot('Sx','-r'); p.plot('Sy','-g')
-PLT.xlabel('s[m]')
-PLT.ylabel('cm')
-PLT.legend()
+#p = E[3]
+#PLT.figure()
+#p.plot('Sx','-r'); p.plot('Sy','-g')
+#PLT.xlabel('s[m]')
+#PLT.ylabel('cm')
+#PLT.legend()
