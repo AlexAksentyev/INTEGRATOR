@@ -290,9 +290,7 @@ class ERF(Element, HasCounter):
         
         if Length==0: 
             self.bSkip = True
-            print("""!!! ATTENTION !!!\n 
-                  will be advancing the RF element; \n
-                  problematic for (Theta, dK) plot """)
+            Length = 5e-4
         
         if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
         elif type(RefPart) is PCL.Particle: pass
@@ -307,7 +305,7 @@ class ERF(Element, HasCounter):
                        'Frequency':self.fFreq,'h-number': self.__fH_number, 
                        'Phase':self.fPhase},index=[self.fName]).T
             
-        self.__fU = self.fAmplitude*self.fLength
+        self.__fU = self.fAmplitude*Length # Length instead fLength for compatibility with Length 0
         
         RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
         
@@ -360,6 +358,9 @@ class ERF(Element, HasCounter):
         Xk['dK'] += u*1e-6/particle.fKinEn0
 #        print('Kick voltage {}'.format(u))
         particle.setState(Xk)
+        
+    def kickVolts(self):
+        return self.__fU
         
 class Lattice:
     def __init__(self, ElSeq, RefPart):

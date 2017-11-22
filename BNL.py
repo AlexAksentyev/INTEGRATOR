@@ -110,8 +110,8 @@ if True:
         E[i].set(dK=2.5e-4-(i-1)*ddk)
 
 ## adding RF
-tLat = ENT.Lattice(SSb1H1,E)
-tLat.insertRF(0, 5e-4,EField=15e7)
+tLat = ENT.Lattice(ARCb1H1,E)
+tLat.insertRF(0, 0,EField=15e7)
 
 #%%
 ## tracking
@@ -119,7 +119,7 @@ start = clock()
 E.track(tLat, 100, inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
-E.plot('Sx','s')
+E.plot('-D dK','-D Theta')
 #%%
 #p = E[3]
 #PLT.figure()
