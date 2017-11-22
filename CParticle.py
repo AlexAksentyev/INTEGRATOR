@@ -133,6 +133,7 @@ class Particle:
     
     def track(self, ElementSeq, ntimes, FWD = True, inner = True, breaks=101):
         if type(ElementSeq) == ENT.Lattice: ElementSeq = ElementSeq.fSequence
+        if isinstance(ElementSeq, ENT.Element): ElementSeq = [ElementSeq]
         
         self.fIntBrks = breaks
         self.__fState = copy.deepcopy(self.__fIniState)
@@ -239,7 +240,7 @@ class Ensemble:
         pid = 0
         for pcl in ParticleList:
            self.__fParticle.update({pid:pcl}) 
-           pcl.fPID = str(pid)
+           pcl.fPID = pid
            pid += 1
         
     def getParticles(self):
@@ -259,8 +260,15 @@ class Ensemble:
         
     def track(self, ElementSeq, ntimes, FWD = True, inner=True, breaks=101):
         if type(ElementSeq) == ENT.Lattice: ElementSeq = ElementSeq.fSequence
+        
+        pr = self.getReference()
+        th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
+        
+        from numpy.lib.recfunctions import append_fields
+        
         for pcl in self.__fParticle.values():
             pcl.track(ElementSeq, ntimes, FWD, inner, breaks)
+            pcl.fStateLog = append_fields(pcl.fStateLog, 'Theta', th(pcl['t']))
         
     def count(self):
         return len(self.__fParticle)
@@ -269,7 +277,7 @@ class Ensemble:
         df = PDS.DataFrame() 
         for name, pcl in self.getParticles().items(): 
             pdf = pcl.getDataFrame(inner)
-            pdf['PID'] = name
+            pdf['PID'] = str(name)
             df=df.append(pdf)
         return df
         
@@ -284,28 +292,43 @@ class Ensemble:
     def revFreq(self, Lat_len):
         return self.__fRefPart.revFreq(Lat_len)
     
-    def plot(self):
+    def plot(self, Ylab='-D dK', Xlab='-D Theta'):
+        import re
+        x_flags = re.findall('-.', Xlab)
+        y_flags = re.findall('-.', Ylab)
+        Xlab = re.subn('-.* ', '', Xlab)[0]
+        Ylab = re.subn('-.* ', '', Ylab)[0]
         
-        pr = self.getReference()        
-        th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
+        pr = self.getReference()   
+        pid0 = pr.fPID
         
         nr = self.count()
-        nc = len(pr.fStateLog.dK)
+        nc = len(self[0][Ylab])
         
-        dK = NP.empty([nr,nc])
-        Th = NP.empty([nr,nc])
+        Y = NP.empty([nr,nc])
+        X = NP.empty([nr,nc])
+        dX = NP.empty([nc])
+        dY = NP.empty([nc])
         
         from matplotlib import pyplot as PLT
         
-        PLT.figure()
+        PLT.figure()     
         
-        for i in range(nr):
-            dK[i] = self[i].fStateLog.dK
-            Th[i] = th(self[i].fStateLog.t)
-            PLT.plot(Th[i]-Th[0],dK[i]-dK[0], label=i)
+        names = self.listNames()
+        names.insert(0, names.pop(pid0))
+        
+        for i in names:
+            Y[i] = self[i][Ylab]
+            dY = copy.deepcopy(Y[i])
+            X[i] = self[i][Xlab]
+            dX = copy.deepcopy(X[i])
+            if '-D' in x_flags: dX -= X[pid0]
+            if '-D' in y_flags: dY -= Y[pid0]
+            PLT.plot(dX, dY, label=i)
             
-        
-        return (Th, dK, PLT.gcf())
+        PLT.legend()
+            
+        return (X, Y, PLT.gcf())
         
     def resetIniState(self):
         for pcl in self.__fParticle.values(): pcl.resetIniState()
