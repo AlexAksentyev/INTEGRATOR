@@ -7,7 +7,7 @@ from matplotlib import pyplot as PLT
 
 import CElement as ENT
 
-StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
+StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
 
 ezero = 1.602176462e-19 # Coulomb
 clight = 2.99792458e8 # m/s

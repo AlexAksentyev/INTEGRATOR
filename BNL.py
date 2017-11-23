@@ -116,7 +116,7 @@ tLat.insertRF(0, 0,EField=15e7)
 #%%
 ## tracking
 start = clock()
-E.track(tLat, 1000, inner=False, breaks = 101, FWD=True)
+E.track(tLat, 10, inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 E.plot('-D Sx','t','all', mark_special=None,marker='.')

@@ -21,10 +21,10 @@ Q = ax.quiver(0,0,0,0, angles='xy', scale_units='xy', scale=1,width=5e-3, color=
 PLT.xlabel('$S_z$')
 PLT.ylabel('$S_x$')
 
-#ax.set_xlim(-1.2, 1.2)
-#ax.set_ylim(-1.2, 1.2)
-ax.set_xlim(-2e-4, 2e-4)
-ax.set_ylim(-2e-4, 2e-4)
+ax.set_xlim(-1.2, 1.2)
+ax.set_ylim(-1.2, 1.2)
+#ax.set_xlim(-2e-4, 2e-4)
+#ax.set_ylim(-2e-4, 2e-4)
 
 def update_quiver(i, Q, E, pref, num = 1, diff=True):
     """updates the horizontal and vertical vector components by a
@@ -44,7 +44,7 @@ def update_quiver(i, Q, E, pref, num = 1, diff=True):
 
 # you need to set blit=False, or the first set of arrows never gets
 # cleared on subsequent frames
-anim = animation.FuncAnimation(fig, update_quiver, fargs=(Q, E, E.getReference(), 10, True),
+anim = animation.FuncAnimation(fig, update_quiver, fargs=(Q, E, E.getReference(), 10, False),
                                interval=1, blit=False)
 
 PLT.show()
