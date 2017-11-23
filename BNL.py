@@ -116,10 +116,10 @@ tLat.insertRF(0, 0,EField=15e7)
 #%%
 ## tracking
 start = clock()
-E.track(tLat, 100, inner=False, breaks = 101, FWD=True)
+E.track(tLat, 20, inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
-E.plot('-D dK','-D Theta')
+E.plot('dK','Theta',[0,1], mark_special=None,marker='.')
 #%%
 #p = E[3]
 #PLT.figure()

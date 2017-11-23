@@ -351,8 +351,25 @@ class Ensemble:
             plot(dX, dY, i, **kwargs)
             
         legend(names)
-        if '-D' in x_flags: Xlab = '${0} - {0}_0$'.format(Xlab)
-        if '-D' in y_flags: Ylab = '${0} - {0}_0$'.format(Ylab)
+        
+        sub_map = {'Theta':'\Theta','dK':'\Delta K'}
+        
+        def sub(*labels):
+            labels = list(labels)
+            for i in range(len(labels)):
+                for k,v in sub_map.items(): labels[i] = labels[i].replace(k,v)
+            return labels
+        
+        Xlab,Ylab = sub(Xlab,Ylab)
+        if '-D' in x_flags: 
+            Xlab = '${0} - {0}_0$'.format(Xlab)
+        else:
+            Xlab = '${0}$'.format(Xlab)
+        if '-D' in y_flags: 
+            Ylab = '${0} - {0}_0$'.format(Ylab)
+        else:
+            Ylab = '${0}$'.format(Ylab)
+        
         PLT.xlabel(Xlab)
         PLT.ylabel(Ylab)
         PLT.grid()

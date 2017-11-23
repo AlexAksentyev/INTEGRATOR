@@ -305,7 +305,7 @@ class ERF(Element, HasCounter):
                        'Frequency':self.fFreq,'h-number': self.__fH_number, 
                        'Phase':self.fPhase},index=[self.fName]).T
             
-        self.__fU = self.fAmplitude*Length # Length instead fLength for compatibility with Length 0
+        self.__fU = self.fAmplitude*Length # Length instead self.fLength for compatibility with Length 0
         
         RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
         
@@ -382,5 +382,12 @@ class Lattice:
         rf = ERF(length,self.fRefPart, full_acc_len, **ERF_pars)
         self.fSequence.insert(position, rf)
         
+    def listNames(self, full=False):
+        names = [e.fName for e in self.fSequence]
+        if full:
+            return names
+        else:
+            return NP.unique([re.sub('_.*','',e) for e in names])
+        
     def __repr__(self):
-        pass
+        return self.fSequence.__repr__()
