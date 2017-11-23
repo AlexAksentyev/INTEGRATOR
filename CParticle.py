@@ -3,6 +3,7 @@ import numpy as NP
 import pandas as PDS
 #import re
 import copy
+from matplotlib import pyplot as PLT
 
 import CElement as ENT
 
@@ -201,18 +202,14 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fStateLog = {}
         
-    def plot(self, Ylab, *args, Xlab='s', **kwargs):
-        from matplotlib import pyplot as PLT
-        
+    def plot(self, Ylab, *args, Xlab='s', **kwargs):        
         x = self[Xlab]
         y = self[Ylab]
         
         PLT.plot(x,y, *args, label=Ylab, **kwargs)
         PLT.xlabel(Xlab)
         
-        return PLT.gcf()
-        
-        
+        return PLT.gcf()        
         
     def __repr__(self):
         return str(PDS.DataFrame({'initial':self.__fIniState, 'current':self.__fState}).T)
@@ -262,7 +259,15 @@ class Ensemble:
         if type(ElementSeq) == ENT.Lattice: ElementSeq = ElementSeq.fSequence
         
         pr = self.getReference()
+        
+        try:
+            check = pr.fRF
+        except AttributeError:
+            print('\n \t \t Running w/o RF')
+            pr.fRF = {'Freq':0, 'Phase':0}
+        
         th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
+
         
         from numpy.lib.recfunctions import append_fields
         
@@ -283,6 +288,9 @@ class Ensemble:
         
     def __getitem__(self, index):
         return self.__fParticle[index]
+    
+    def __iter__(self):
+        return iter(self.__fParticle.values())
     
     def __repr__(self):
         IniStateDict = {key:value.getState() for (key,value) in self.__fParticle.items()}
