@@ -292,7 +292,9 @@ class Ensemble:
     def revFreq(self, Lat_len):
         return self.__fRefPart.revFreq(Lat_len)
     
-    def plot(self, Ylab='-D dK', Xlab='-D Theta'):
+    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, **kwargs):
+
+        ## reading how to plot data: diff variable with reference value, or otherwise
         import re
         x_flags = re.findall('-.', Xlab)
         y_flags = re.findall('-.', Ylab)
@@ -305,17 +307,39 @@ class Ensemble:
         nr = self.count()
         nc = len(self[0][Ylab])
         
+        Elt = [re.sub('_.*','',e) for e in self[0]['Element']]
+        
+        def cm(elist):
+            d = lambda e: 'red' if e == mark_special else 'black'
+            return [d(e) for e in elist]
+        
+        
         Y = NP.empty([nr,nc])
         X = NP.empty([nr,nc])
         dX = NP.empty([nc])
         dY = NP.empty([nc])
         
+        ## selecting only the required pids for plot
+        names = self.listNames()
+        names.insert(0, names.pop(pid0))
+        if pids != 'all':
+            pids = set(pids)
+            pids.add(pid0)
+            names = set(names)
+            not_found = names - pids
+            names = names - not_found
+            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
+        
         from matplotlib import pyplot as PLT
         
         PLT.figure()     
         
-        names = self.listNames()
-        names.insert(0, names.pop(pid0))
+        if mark_special is not None:
+            plot = lambda X, Y, lab, **kwargs: PLT.scatter(X,Y, label=mark_special, c=cm(Elt), **kwargs)
+            legend = lambda lab: PLT.legend([mark_special])
+        else:
+            plot = lambda X, Y, lab, **kwargs: PLT.plot(X,Y,label=lab, **kwargs)
+            legend = lambda lab: PLT.legend(lab)
         
         for i in names:
             Y[i] = self[i][Ylab]
@@ -324,9 +348,14 @@ class Ensemble:
             dX = copy.deepcopy(X[i])
             if '-D' in x_flags: dX -= X[pid0]
             if '-D' in y_flags: dY -= Y[pid0]
-            PLT.plot(dX, dY, label=i)
+            plot(dX, dY, i, **kwargs)
             
-        PLT.legend()
+        legend(names)
+        if '-D' in x_flags: Xlab = '${0} - {0}_0$'.format(Xlab)
+        if '-D' in y_flags: Ylab = '${0} - {0}_0$'.format(Ylab)
+        PLT.xlabel(Xlab)
+        PLT.ylabel(Ylab)
+        PLT.grid()
             
         return (X, Y, PLT.gcf())
         
@@ -334,3 +363,21 @@ class Ensemble:
         for pcl in self.__fParticle.values(): pcl.resetIniState()
         
     
+#%%
+class Plotter:
+    
+    def __init__(self, **kwargs):
+        for k,v in kwargs.items():
+            setattr(self,'f'+k.capitalize(),v)
+    
+    def plot(self, data, Xlab, Ylab, plot_type='plot',**kwargs):
+        from matplotlib import pyplot as PLT
+        
+        try:
+            plot = getattr(PLT, plot_type)
+        except AttributeError:
+            print('Defaulting to plot method')
+            plot = PLT.plot
+            
+        plot(data[Xlab], data[Ylab], **kwargs)
+        
