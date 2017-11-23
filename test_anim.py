@@ -18,11 +18,13 @@ colormap = cm.inferno
 norm = Normalize()
 norm.autoscale(colors)
 Q = ax.quiver(0,0,0,0, angles='xy', scale_units='xy', scale=1,width=5e-3, color=colormap(norm(colors)))
-PLT.xlabel('Ss')
-PLT.ylabel('Sx')
+PLT.xlabel('$S_z$')
+PLT.ylabel('$S_x$')
 
-ax.set_xlim(-1.2, 1.2)
-ax.set_ylim(-1.2, 1.2)
+#ax.set_xlim(-1.2, 1.2)
+#ax.set_ylim(-1.2, 1.2)
+ax.set_xlim(-2e-4, 2e-4)
+ax.set_ylim(-2e-4, 2e-4)
 
 def update_quiver(i, Q, E, pref, num = 1, diff=True):
     """updates the horizontal and vertical vector components by a
@@ -47,6 +49,8 @@ anim = animation.FuncAnimation(fig, update_quiver, fargs=(Q, E, E.getReference()
 
 PLT.show()
 PLT.grid()
+
+anim.save('./img/decoh.gif')
 
 #%%
 

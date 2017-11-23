@@ -95,12 +95,12 @@ SSb1H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
         QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
         QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2]
 
-lattice = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
+QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
     ARCb2H1 + SSe2H1 + SSe2H2 + ARCb1H2 + \
     SSb2H1 + SSb2H2 + ARCb1H1 + SSb1H1
 #%%
 ## prepping ensemble of states
-StateList = U.form_state_list((0e-3,1e-3),(-1e-3,0e-3),2,2)
+StateList = U.form_state_list((0e-3,0e-3),(0e-3,0e-3),2,2)
 E = PCL.Ensemble.from_state(StateList)
 E.setReference(0)
 if True:
@@ -110,13 +110,13 @@ if True:
         E[i].set(dK=2.5e-4-(i-1)*ddk)
 
 ## adding RF
-tLat = ENT.Lattice(ARCb1H1,E)
-tLat.insertRF(0, 0,EField=15e7*100,Phase=NP.pi/2)
+tLat = ENT.Lattice(QFS,E)
+tLat.insertRF(0, 0,EField=15e7)
 
 #%%
 ## tracking
 start = clock()
-E.track(tLat, 100, inner=False, breaks = 101, FWD=True)
+E.track(tLat, 1000, inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 E.plot('-D Sx','t','all', mark_special=None,marker='.')
