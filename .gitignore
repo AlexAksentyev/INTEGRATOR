@@ -3,3 +3,7 @@ __pycache__/
 dop853_temp/
 build/
 *.dat
+*.pyd
+*so
+img/
+data/

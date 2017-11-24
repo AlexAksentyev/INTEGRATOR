@@ -7,105 +7,123 @@ Created on Mon Sep 18 16:59:23 2017
 """
 #%%
 import pandas as PDS
+from matplotlib import pyplot as PLT
 import CParticle as PCL
 import CElement as ENT
 import utilFunc as U
 from importlib import reload
 
+from time import clock
+
 reload(ENT)
 reload(PCL)
 reload(U)
 
-# hardware parameters
-Lq = 5
-Ls = .15
-
-GSFP = 0 
-GSDP = 0
-
-Lw = 361.55403e-2
-B = .082439761
-E = -120e5
 #%%
 # lattice elements
 
-DL_25  = ENT.Drift(.25)
-DL_15 = ENT.Drift(.15)
-DL2_2 = ENT.Drift(2.2)
-BPM = ENT.Drift(15)
+OD1 = ENT.Drift(25e-2, "OD1")
+OD2 = ENT.Drift(25e-2, "OD2")
+ORE = ENT.Drift(2.17, "ORE")
+ORB = ENT.Drift(2.2, "ORB")
 
-QDS = ENT.MQuad(Lq, -.86)
-QFS = ENT.MQuad(Lq, .831)
+QDA1 = ENT.MQuad(5e-2,-11.71, 'QDA1')
+QFA1 = ENT.MQuad(5e-2, 13.38, 'QFA1')
+QDA2 = ENT.MQuad(5e-2,-10.3,'QDA2')
+QFA2 = ENT.MQuad(5e-2, 10.11,'QFA2')
 
-QDA = ENT.MQuad(Lq, -1.023)
-QFA = ENT.MQuad(Lq, 1.364)
 
-Sf = ENT.MSext(Ls, GSFP)
-Sd = ENT.MSext(Ls, GSDP)
+OSF = ENT.MSext(15e-2,0,"OSF")
+OSD = ENT.MSext(15e-2,0,"OSD")
 
-R3 = ENT.Wien(Lw,5e-2,PCL.Particle([0]),E,B)
+SDP = ENT.MSext(15e-2,3.39598,"SDP")
+SFP = ENT.MSext(15e-2,2.76958,"SFP")
+SDN = ENT.MSext(15e-2,3.79311,"SDN")
+SFN = ENT.MSext(15e-2,2.09837,"SFN")
+
+BDA = ENT.MDipole(182.02463e-2, PCL.Particle(), BField=1.5,Name="BDA")
+
+BPM = ENT.Drift(15e-2,"BPM")
+
+R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
 
 #%%
 # lattice definition
 
-SS1H2 = [QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , DL_15 , ENT.Element(0,0) , #  RF ,
-                                     DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS]
+SSb1H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
+        QFA2, OD1, OSF, OD2, ORB, OD2, BPM, OD1, QDA2,
+        QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2]
+    
+ARCb1H2 = [QFA1, OD1, OSF, OD2, BDA, OD2, BPM, OD1, QDA1,
+        QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1]
 
-ARC1 = [QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25] +\
- [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA , QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25]*7 +\
-  [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA]
+SSe1H1 = [QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDP, OD2, R3, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDN, OD2, R3, OD2, BPM, OD1, QFA2]
 
-SS2H1 = [QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , Sd , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25]
+SSe1H2 = [QFA2, OD1, SFN, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDN, OD2, R3, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDP, OD2, R3, OD2, BPM, OD1, QFA2]
 
-SS2H2 = [QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , DL_15 , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS]
+ARCb2H1 = [QFA1, OD1, SFP, OD2, BDA, OD2, BPM, OD1, QDA1,
+        QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1]
 
-ARC2 =  [QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25] +\
- [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA , QFA , DL_25 , Sf , DL_25 , R3 , DL_25 , BPM , DL_25]*7 +\
-  [QDA , QDA , DL_25 , Sd , DL_25 , R3 , DL_25 , BPM , DL_25 ,
-         QFA]
+SSe2H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2]
 
-SS1H1 = [QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS , QDS , DL_25 , Sd , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QFS , QFS , DL_25 , Sf , DL_25 , DL2_2 , DL_25 , BPM , DL_25 ,
-         QDS]
+SSe2H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, OSF, OD2, ORB, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2]
 
-lattice = SS1H2+ARC1+SS2H1+SS2H2+ARC2+SS1H1
+SSb2H1 = [QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDP, OD2, R3, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDN, OD2, R3, OD2, BPM, OD1, QFA2]
 
+SSb2H2 = [QFA2, OD1, SFN, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDN, OD2, R3, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDP, OD2, R3, OD2, BPM, OD1, QFA2]
+
+ARCb1H1 = [QFA1, OD1, SFP, OD2, BDA, OD2, BPM, OD1, QDA1,
+        QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1]
+
+SSb1H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
+        QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
+        QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2]
+
+QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
+    ARCb2H1 + SSe2H1 + SSe2H2 + ARCb1H2 + \
+    SSb2H1 + SSb2H2 + ARCb1H1 + SSb1H1
 #%%
 ## prepping ensemble of states
-StateList = U.form_state_list((0e-3,0e-3),(-0e-3,0e-3),3,1)
+StateList = U.form_state_list((0e-3,0e-3),(0e-3,0e-3),2,2)
 E = PCL.Ensemble.from_state(StateList)
 E.setReference(0)
-n = E.count()-1
-ddk = 2e-4/n
-for i in range(1,E.count()):
-    E[i].set(dK=3e-4-(i-1)*ddk)
+if True:
+    n = E.count()-1
+    ddk = 2e-4/n
+    for i in range(1,E.count()):
+        E[i].set(dK=2.5e-4-(i-1)*ddk)
 
-# inserting RF
-LRF = 5e-4
-E_RF = 15e5
-H_num = 50
-Acc_len = LRF + sum([e.fLength for e in lattice])
-ERF = ENT.ERF(LRF,E,Acc_len,EField=E_RF,H_number=H_num)
-
-
-lattice[12] = ERF
-
+## adding RF
+tLat = ENT.Lattice(QFS,E)
+tLat.insertRF(0, 0,EField=15e7)
 
 #%%
 ## tracking
-E.track(lattice,10,inner=True)
+start = clock()
+E.track(tLat, int(3e0), inner=False, breaks = 101, FWD=True)
+print("Tracking took {:04.2f} seconds".format(clock()-start))
 
-Th,dK, p = E.plot()
-    
+E.plot('-D Sz','s','all', mark_special=None,marker='.')
+#%%
+#p = E[3]
+#PLT.figure()
+#p.plot('Sx','-r'); p.plot('Sy','-g')
+#PLT.xlabel('s[m]')
+#PLT.ylabel('cm')
+#PLT.legend()
