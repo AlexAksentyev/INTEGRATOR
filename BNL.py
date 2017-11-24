@@ -119,6 +119,7 @@ start = clock()
 E.track(tLat, int(3e0), inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
+
 E.plot('-D Sz','s','all', mark_special=None,marker='.')
 #%%
 #p = E[3]
