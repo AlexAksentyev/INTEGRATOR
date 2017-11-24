@@ -29,8 +29,8 @@ class Particle:
         self.__fDataDict = {'Dir':'data/','Sep':',', 'Ext': '.csv'}
         self.__fDataBin = False
         
-    def setIOformat(self, ext):
-        binary_data = lambda fmt: True if ext == '.npy' else False
+    def setIOformat(self, ):
+        binary_data = lambda fmt: True if ext == 'bin' else False
         
         self.__fDataBin = binary_data(ext)
     
@@ -246,8 +246,8 @@ class Particle:
         if self.__fDataDict['Ext'] == '.npy':
             read = lambda file: NP.fromfile(file, dtype = self.__fDType)
         else:
-            read = lambda file: NP.loadtxt(file, dtype=self.__fDType,
-                                           delimiter=self.__fDataDict['Sep'],skiprows=1)
+            read = lambda file: NP.genfromtxt(file, dtype=self.__fDType,
+                                           delimiter=self.__fDataDict['Sep'],skip_header=1)
             
         self.__fDataDict.update({'Filename':filename})
         f = ''.join([self.__fDataDict[key] for key in ['Dir','Filename','Ext']])
