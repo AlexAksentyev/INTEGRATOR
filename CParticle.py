@@ -13,12 +13,6 @@ ezero = 1.602176462e-19 # Coulomb
 clight = 2.99792458e8 # m/s
 
 class Particle:
-        
-    
-#    fArgList = ['x','y','s','t','H','px','py','dK','Sx','Sy','Ss']
-    
-#    __ezero = 1.602176462e-19 # Coulomb
-#    __clight = 2.99792458e8 # m/s
     
     fMass0 = 1876.5592 # deuteron mass in MeV
     fKinEn0 = 270.11275 # deuteron magic energy
@@ -31,13 +25,14 @@ class Particle:
         self.__fState = copy.deepcopy(self.__fIniState)
         self.fGamma0, self.fBeta0 = self.GammaBeta(self.fKinEn0)
         
-#    @classmethod    
-#    def CLIGHT(cls):
-#        return cls.__clight
-    
-#    @classmethod
-#    def EZERO(cls):
-#        return cls.__ezero
+        ## for writing/reading data
+        self.__fDataDict = {'Dir':'data/','Sep':',', 'Ext': '.csv'}
+        self.__fDataBin = False
+        
+    def setIOformat(self, ext):
+        binary_data = lambda fmt: True if ext == '.npy' else False
+        
+        self.__fDataBin = binary_data(ext)
     
     def GammaBeta(self, NRG):
         gamma = NRG / self.fMass0 + 1
@@ -139,8 +134,19 @@ class Particle:
         self.fIntBrks = breaks
         self.__fState = copy.deepcopy(self.__fIniState)
         
-        vartype = [('Turn',int),('Element',object),('Point', object)]
+        names = ['START']+[e.fName for e in ElementSeq]
+        n = str(len(names[NP.argmax(names)]))
+        EType = 'U'+n
+        vartype = [('Turn',int),('Element',EType),('Point', int)]
         vartype += list(zip(StateVars, NP.repeat(float, len(StateVars))))
+        
+        self.__fLastPnt = -1
+        
+        ## prepare for writing/reading data
+        tf_map = {float:'%f',EType:'%s', int:'%d'}
+        self.__fFmtStr = self.__fDataDict['Sep'].join([tf_map[e[1]] for e in vartype]) #used for writing to file
+        self.__fHeader = self.__fDataDict['Sep'].join([e[0] for e in vartype])
+        self.__fDType = vartype[:]
         
         if inner: 
             nrow = ntimes*len(ElementSeq)*self.fIntBrks
@@ -149,12 +155,15 @@ class Particle:
         else: 
             nrow = ntimes*len(ElementSeq) + 1
             self.fStateLog = NP.recarray(nrow,dtype=vartype)
-            self.fStateLog[0] = 0,'START','last', *self.__fState.values()
+            self.fStateLog[0] = 0,names[0],self.__fLastPnt, *self.__fState.values()
             ind = 1
         
         
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
+                percent = int(ind/nrow*100)
+                if (percent%10==0):
+                    print('PID {}; complete {} %'.format(self.fPID, percent))
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]
                 at = NP.linspace(0, element.fLength, self.fIntBrks)
@@ -173,14 +182,17 @@ class Particle:
                         for k in range(self.fIntBrks-1):
                             self.fStateLog[ind] = n,element.fName,k, *vals[k]
                             ind += 1
-                    self.fStateLog[ind] = n,element.fName,'last', *self.__fState.values()
+                    self.fStateLog[ind] = n,element.fName,self.__fLastPnt, *self.__fState.values()
                     ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
                     for m in range(ind,len(self.fStateLog)):
-                        self.fStateLog[ind] = n, element.fName, 'last', *([NP.NaN]*(len(vartype)-3))
+                        self.fStateLog[ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
                         ind += 1
                     return
+                
+        print('PID {}; complete 100 %'.format(self.fPID))
+        self.saveData(binary=self.__fDataBin)
             
         
     def getDataFrame(self, inner=True):
@@ -188,7 +200,7 @@ class Particle:
         if inner:
             pd = PDS.DataFrame(self.fStateLog)
         else:
-            pd = PDS.DataFrame(self.fStateLog[self.fStateLog.Point =='last'])
+            pd = PDS.DataFrame(self.fStateLog[self.fStateLog.Point == self.__fLastPnt])
             
         
         pd[['x','y','s']] *= 100
@@ -200,7 +212,48 @@ class Particle:
     def set(self,**kwargs):
         self.__fIniState.update(**kwargs)
         self.__fState = copy.deepcopy(self.__fIniState)
-        self.fStateLog = {}
+        
+    def saveData(self, filename = None, binary=True):
+        if filename is None: 
+            try:
+                filename = 'P{}_data'.format(self.fPID)
+            except AttributeError:
+                print('Not part of an ensemble; need a ***FILENAME***')
+                return
+            
+        if binary:
+            self.__fDataDict['Ext'] = '.npy'
+            print('Saving as {} (binary) file'.format(self.__fDataDict['Ext']))
+            write = lambda file: self.fStateLog.tofile(file)
+        else:       
+            print('Saving as a {} file'.format(self.__fDataDict['Ext']))
+            write = lambda file: NP.savetxt(file, self.fStateLog, 
+                       delimiter=self.__fDataDict['Sep'], fmt=self.__fFmtStr,
+                       header = self.__fHeader)
+            
+        self.__fDataDict.update({'Filename': filename})
+        f = ''.join([self.__fDataDict[key] for key in ['Dir','Filename','Ext']])
+        write(f)
+        
+    def readData(self, filename = None):
+        if filename is None: 
+            try:
+                filename = 'P{}_data'.format(self.fPID)
+            except AttributeError:
+                print('Not part of an ensemble; need a ***FILENAME***')
+                return
+            
+        if self.__fDataDict['Ext'] == '.npy':
+            read = lambda file: NP.fromfile(file, dtype = self.__fDType)
+        else:
+            read = lambda file: NP.loadtxt(file, dtype=self.__fDType,
+                                           delimiter=self.__fDataDict['Sep'],skiprows=1)
+            
+        self.__fDataDict.update({'Filename':filename})
+        f = ''.join([self.__fDataDict[key] for key in ['Dir','Filename','Ext']])
+            
+        return read(f)
+        
         
     def plot(self, Ylab, *args, Xlab='s', **kwargs):        
         x = self[Xlab]
@@ -265,6 +318,8 @@ class Ensemble:
         except AttributeError:
             print('\n \t \t Running w/o RF')
             pr.fRF = {'Freq':0, 'Phase':0}
+            
+        del check
         
         th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
 
@@ -273,7 +328,8 @@ class Ensemble:
         
         for pcl in self.__fParticle.values():
             pcl.track(ElementSeq, ntimes, FWD, inner, breaks)
-            pcl.fStateLog = append_fields(pcl.fStateLog, 'Theta', th(pcl['t']))
+            pcl.fStateLog = append_fields(pcl.fStateLog, 'Theta', th(pcl['t']), 
+                                          dtypes=float, usemask=False, asrecarray=True)
         
     def count(self):
         return len(self.__fParticle)
