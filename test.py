@@ -27,7 +27,7 @@ class Ensemble:
         
         n = len(state)
         
-        return NP.reshape([y, k/m*x + NP.repeat(field.force(at), ic_num, axis=0)], n)
+        return NP.reshape([y, -k/m*x + NP.repeat(field.force(at), ic_num, axis=0)], n)
     
     def __getitem__(self, pid):
         return getattr(self, 'log'+str(pid))
@@ -97,7 +97,7 @@ if __name__ is '__main__':
     n = 10
     elist = NP.empty(n, dtype=Element)
     for i in range(10):
-        A = 1
+        A = 0
         w = 3
         phi = NP.pi/9*i
         L = 5
@@ -116,4 +116,5 @@ if __name__ is '__main__':
 
     E.track(elist, 5)
     E.plot('x')
+    E.plot('y','x')
     
