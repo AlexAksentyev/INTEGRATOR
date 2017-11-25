@@ -1,6 +1,9 @@
 import numpy as NP
 
 
+StateVars = ['x','y']
+SVM = {'x':0,'y':1}
+
 
 class Element:
     
@@ -8,26 +11,45 @@ class Element:
         self.name = Name
         self.length = Length
         self.force = force
+        
+    def frontKick(self, state):
+        i_y = SVM['y']
+        n = len(SVM)
+        i = NP.arange(i_y, len(state), n)
+        state[i] -= .1
+        
+    def rearKick(self, state):
+        i_y = SVM['y']
+        n = len(SVM)
+        i = NP.arange(i_y, len(state), n)
+        state[i] += .1
 
 
 
 class Ensemble:
     
     def __init__(self, state_list):
-        self.mass = 1
-        self.rigid = 1.13
+        self.w = 3.
+        
+        self.n_ics = len(state_list)
+        self.n_var = len(state_list[0])
         
         self.ics = dict(zip(range(len(state_list)), state_list))
         
-    def __RHS(self, state, at, field, ic_num):
-        x,y = state.reshape(2,ic_num)
+    def __RHS(self, state, at, field):
+        x,y = state.reshape(self.n_var,self.n_ics)
         
-        k = self.rigid
-        m = self.mass
+        n = len(SVM)
         
-        n = len(state)
+        i_x = NP.arange(SVM['x'], len(state), n)
+        i_y = NP.arange(SVM['y'], len(state), n)
+        state = {'x':state[i_x], 'y':state[i_y]}
         
-        return NP.reshape([y, -k/m*x + NP.repeat(field.force(at), ic_num, axis=0)], n)
+        w = self.w
+        
+        n = self.n_var*self.n_ics
+        
+        return NP.reshape([y, -w**2*x +field.force(at, state)], n)
     
     def __getitem__(self, pid):
         return getattr(self, 'log'+str(pid))
@@ -63,8 +85,8 @@ class Ensemble:
         ics = NP.array(ics)
         ind = 0
         
-        n_ics = len(ics)
-        n_var = len(ics[0])
+        n_ics = self.n_ics
+        n_var = self.n_var
         state = ics.reshape(n_ics*n_var)
         
         t0 = 0
@@ -79,8 +101,10 @@ class Ensemble:
                 at = NP.linspace(t0, t1, brks)
                 t0 = t1
                 
-                vals = odeint(self.__RHS, state, at, args=(element,n_ics))
+                element.frontKick(state)
+                vals = odeint(self.__RHS, state, at, args=(element,))
                 for k in range(brks):
+                    element.rearKick(vals[k])
                     valsk = vals[k].reshape(n_ics, n_var, order='F')
                     for pid in self.ics.keys():
                         log = self[pid]
@@ -97,24 +121,24 @@ if __name__ is '__main__':
     n = 10
     elist = NP.empty(n, dtype=Element)
     for i in range(10):
-        A = 1
+        A = 0
         w = 3
         phi = NP.pi/9*i
         L = 5
         Name = 'EL_'+str(i)
-        f = lambda t: A*NP.cos(w*t+phi)
+        f = lambda t, state: A*NP.cos(w*t+phi) - .0*state['y']
         elist[i] = Element(Name, L, f)
         
         
 #%%
 
-    state0 = NP.array([0,1])
-    state1 = NP.array([0,-1])
-    state2 = NP.array([0,0])
+    state0 = NP.array([0,1], float)
+    state1 = NP.array([0,-1], float)
+    state2 = NP.array([0,0], float)
     states = NP.array([state0, state1, state2])
     E = Ensemble(states)
 
-    E.track(elist, 50)
-#    E.plot('x')
-    E.plot('y','x',linewidth=.05)
+    E.track(elist, 5)
+    E.plot('y')
+#    E.plot('y','x',linewidth=.05)
     
