@@ -11,32 +11,41 @@ class Element:
 
 
 
-class Particle:
+class Ensemble:
     
-    def __init__(self, mass, rigid):
-        self.mass = mass
-        self.rigid = rigid
+    def __init__(self, state_list):
+        self.mass = 1
+        self.rigid = 1.13
         
-    def __RHS(self, state, at, field):
-        x,y = state
+        self.ics = dict(zip(range(len(state_list)), state_list))
+        
+    def __RHS(self, state, at, field, ic_num):
+        x,y = state.reshape(2,ic_num)
         
         k = self.rigid
         m = self.mass
         
-        return [y, k/m*x + field.force(at)]
+        n = len(state)
+        
+        return NP.reshape([y, k/m*x + NP.repeat(field.force(at), ic_num, axis=0)], n)
     
-    def __getitem__(self, name):
-        return self.log[name]
+    def __getitem__(self, pid):
+        return getattr(self, 'log'+str(pid))
     
-    def plot(self, Ylab, Xlab='t',**):
+    def plot(self, Ylab, Xlab='t',**kwargs):
         from matplotlib import pyplot as PLT
         
-        PLT.plot(self[Xlab], self[Ylab],**kwargs)
+        for pid in self.ics.keys():
+            PLT.plot(self[str(pid)][Xlab], self[str(pid)][Ylab],label=pid,**kwargs)
+            
         PLT.xlabel(Xlab)
         PLT.ylabel(Ylab)
+        PLT.legend()
 
-    def track(self, state0, FldSeq , ntimes):
+    def track(self, FldSeq , ntimes):
         brks = 101
+        
+        ics = list()
         
         names = ['START']+[e.name for e in FldSeq]
         n = str(len(names[NP.argmax(names)]))
@@ -46,8 +55,17 @@ class Particle:
         self.__fLastPnt = -1
         
         nrow = ntimes*len(FldSeq)*brks
-        self.log = NP.recarray(nrow,dtype=vartype)
+        
+        for pid, ic in self.ics.items():
+            setattr(self, 'log'+str(pid), NP.recarray(nrow,dtype=vartype))
+            ics.append(ic)
+        
+        ics = NP.array(ics)
         ind = 0
+        
+        n_ics = len(ics)
+        n_var = len(ics[0])
+        state = ics.reshape(n_ics*n_var)
         
         t0 = 0
         for n in range(1,ntimes+1):
@@ -61,9 +79,12 @@ class Particle:
                 at = NP.linspace(t0, t1, brks)
                 t0 = t1
                 
-                vals = odeint(self.__RHS, state0, at, args=(element,))
+                vals = odeint(self.__RHS, state, at, args=(element,n_ics))
                 for k in range(brks):
-                    self.log[ind] = n,element.name, at[k], *vals[k]
+                    valsk = vals[k].reshape(n_ics, n_var, order='F')
+                    for pid in self.ics.keys():
+                        log = self[pid]
+                        log[ind] = n,element.name, at[k], *valsk[pid]
                     ind += 1
                 
         print('Complete 100 %')
@@ -76,7 +97,7 @@ if __name__ is '__main__':
     n = 10
     elist = NP.empty(n, dtype=Element)
     for i in range(10):
-        A = 10
+        A = 1
         w = 3
         phi = NP.pi/9*i
         L = 5
@@ -84,27 +105,15 @@ if __name__ is '__main__':
         f = lambda t: A*NP.cos(w*t+phi)
         elist[i] = Element(Name, L, f)
         
-    
-    p = Particle(10, 1.13)
         
 #%%
-    p.track([0,.1],elist, 10)
-    p.plot('x')
+
+    state0 = NP.array([0,1])
+    state1 = NP.array([0,-1])
+    state2 = NP.array([0,0])
+    states = NP.array([state0, state1, state2])
+    E = Ensemble(states)
+
+    E.track(elist, 5)
+    E.plot('x')
     
-    
-    #%%
-    x = NP.arange(0,1e6,.1)
-    start = clock()
-    y = NP.sin(x)
-    ntime = clock() - start
-    print('Time passed {} sec'.format(ntime))
-    
-    start = clock()
-    y = NP.empty(len(x))
-    for i in range(len(x)):
-        y[i] = NP.sin(x[i])
-        
-    ntime_loop = clock() - start
-    print('Loop time {} sec'.format(ntime_loop))
-    
-    print('Ratio: {}'.format(ntime_loop/ntime))
