@@ -97,7 +97,7 @@ if __name__ is '__main__':
     n = 10
     elist = NP.empty(n, dtype=Element)
     for i in range(10):
-        A = 0
+        A = 1
         w = 3
         phi = NP.pi/9*i
         L = 5
@@ -114,7 +114,7 @@ if __name__ is '__main__':
     states = NP.array([state0, state1, state2])
     E = Ensemble(states)
 
-    E.track(elist, 5)
-    E.plot('x')
-    E.plot('y','x')
+    E.track(elist, 50)
+#    E.plot('x')
+    E.plot('y','x',linewidth=.05)
     
