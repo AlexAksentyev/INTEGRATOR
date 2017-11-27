@@ -454,7 +454,7 @@ class Plotter:
     def plot(self, data, Xlab, Ylab, plot_type='plot',**kwargs):
         from matplotlib import pyplot as PLT
         
-        try:s
+        try:
             plot = getattr(PLT, plot_type)
         except AttributeError:
             print('Defaulting to plot method')
