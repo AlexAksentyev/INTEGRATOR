@@ -38,9 +38,9 @@ clight = 2.99792458e8 # m/s
 class Ensemble:
     
     def __init__(self, Particle, state_list):
-        self.fParticle = copy.deepcopy(Particle)
+        self.fParticle = Particle
         
-        self.w = 3.
+        self.fLog = lambda: None 
         
         self.n_ics = len(state_list)
         self.n_var = len(state_list[0])
@@ -48,7 +48,7 @@ class Ensemble:
         self.ics = dict(zip(range(len(state_list)), state_list))
         
     def __RHS(self, state, at, element):
-        if any(NP.isnan(state)):  raise ValueError('NaN state variable(s)')
+        if NP.isnan(state).any():  raise ValueError('NaN state variable(s)')
         x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.reshape(self.n_var, self.n_ics,order='F')
         
         i_v = lambda name: NP.arange(SVM[name], len(state), n_SVM)
@@ -65,7 +65,7 @@ class Ensemble:
         Ex,Ey,Es = element.EField(state)
 # TESTING
         Exp,Eyp,Esp = element.Eprime_tp(state) #TESTING
-        assert not NP.any(t), 'NAN time'
+        assert not NP.isnan(t).any(), 'NAN time'
 #        print('Element {}, t = {}, Es = {}'.format(element.fName, t, Es))
         Bx,By,Bs = element.BField(state)
         
@@ -116,46 +116,37 @@ class Ensemble:
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
         
-        DX = [xp, yp, 1, tp, Hp, Pxp/P0c, Pyp/P0c, dEnp/self.fParticle.fKinEn0, Sxp, Syp, Ssp]
+        DX = [xp, yp, NP.repeat(1,self.n_ics), tp, Hp, Pxp/P0c, Pyp/P0c, dEnp/self.fParticle.fKinEn0, Sxp, Syp, Ssp]
         
-        return NP.reshape(DX, self.n_var*self.n_ics)
-        
-    def __RHS_wave(self, state, at, field):
-        x,y = state.reshape(self.n_var,self.n_ics)
-        
-        n = len(SVM)
-        
-        i_x = NP.arange(SVM['x'], len(state), n)
-        i_y = NP.arange(SVM['y'], len(state), n)
-        state = {'x':state[i_x], 'y':state[i_y]}
-        
-        w = self.w
-        
-        n = self.n_var*self.n_ics
-        
-        return NP.reshape([y, -w**2*x +field.force(at, state)], n)
+        return NP.reshape(DX, self.n_var*self.n_ics,order='F')
     
     def __getitem__(self, pid):
-        return getattr(self, 'log'+str(pid))
+        return getattr(self.fLog, 'P'+str(pid))
     
-    def plot(self, Ylab, Xlab='t',**kwargs):
+    def plot(self, Ylab, Xlab='s', pids='all',**kwargs):
         from matplotlib import pyplot as PLT
         
-        for pid in self.ics.keys():
+        names = set(self.ics.keys())
+        if pids != 'all':
+            pids = set(pids)
+            not_found = names - pids
+            names = names - not_found
+            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
+        
+        
+        for pid in names:
             PLT.plot(self[str(pid)][Xlab], self[str(pid)][Ylab],label=pid,**kwargs)
             
         PLT.xlabel(Xlab)
         PLT.ylabel(Ylab)
         PLT.legend()
 
-    def track(self, FldSeq , ntimes):
+    def track(self, ElementSeq , ntimes, FWD=True, inner = True):
         brks = 101
         
         self.fIntBrks = brks
         
-        ics = list()
-        
-        names = ['START']+[e.fName for e in FldSeq]
+        names = ['START']+[e.fName for e in ElementSeq]
         n = str(len(names[NP.argmax(names)]))
         EType = 'U'+n
         vartype = [('Turn',int),('Element',EType),('Point', int)]
@@ -163,40 +154,65 @@ class Ensemble:
         
         self.__fLastPnt = -1
         
-        nrow = ntimes*len(FldSeq)*brks
-        
-        for pid, ic in self.ics.items():
-            setattr(self, 'log'+str(pid), NP.recarray(nrow,dtype=vartype))
-            ics.append(ic)
+        ics = list()
+        if inner: 
+            nrow = ntimes*len(ElementSeq)*self.fIntBrks
+            for pid, ic in self.ics.items():
+                setattr(self.fLog, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+                ics.append(ic)
+            ind = 0
+        else: 
+            nrow = ntimes*len(ElementSeq) + 1
+            for pid, ic in self.ics.items():
+                setattr(self.fLog, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+                self[pid][0] = 0,names[0],self.__fLastPnt, *ic
+                ics.append(ic)
+            ind = 1
         
         ics = NP.array(ics)
-        ind = 0
         
         n_ics = self.n_ics
         n_var = self.n_var
         state = ics.reshape(n_ics*n_var)
         
-        t0 = 0
         for n in range(1,ntimes+1):
-            for i in range(len(FldSeq)):
+            for i in range(len(ElementSeq)):
                 percent = int(ind/nrow*100)
                 if (percent%10==0):
                     print('Complete {} %'.format(percent))
                     
-                element = FldSeq[i]
-                t1 = t0 + element.fLength
-                at = NP.linspace(t0, t1, brks)
-                t0 = t1
+                if FWD: element = ElementSeq[i]
+                else: element = ElementSeq[len(ElementSeq)-1-i]
                 
-                element.frontKick(state)
-                vals = odeint(self.__RHS, state, at, args=(element,))
-                for k in range(brks):
-                    element.rearKick(vals[k])
-                    valsk = vals[k].reshape(n_ics, n_var, order='F')
+                bERF = element.bSkip
+                
+                at = NP.linspace(0, element.fLength, brks)
+                
+                try:
+                    element.frontKick(state)
+                    if not bERF:
+                        vals = odeint(self.__RHS, state, at, args=(element,))
+                    else:
+                        element.advance(state)
+                    state = vals[brks-1]
+                    element.rearKick(state)
+                    if not bERF and inner:
+                        for k in range(brks-1):
+                            valsk = vals[k].reshape(n_ics, n_var, order='C')
+                            for pid in self.ics.keys():
+                                self[pid][ind] = n,element.fName, k, *valsk[pid]
+                            ind += 1
+                    valsk = vals[brks-1].reshape(n_ics, n_var, order='C')
                     for pid in self.ics.keys():
-                        log = self[pid]
-                        log[ind] = n,element.name, at[k], *valsk[pid]
+                        self[pid][ind] = n,element.fName, self.__fLastPnt, *valsk[pid]
                     ind += 1
+                except ValueError:
+                    print('NAN error at: Element {}, turn {}'.format(element.fName, n))
+                    for m in range(ind,len(self.P0Log)):
+                        for pid in self.ics.keys():
+                            self[pid][ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
+                        ind += 1
+                    return
                 
         print('Complete 100 %')
         
@@ -209,13 +225,13 @@ if __name__ is '__main__':
     QD1 = ENT.MQuad(5e-2,-.82,"QD")
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
-    elist = [QF1, OD1, QD1, OD1]
+    elist = [QF1]
         
 #%%
     states=[list(e.values()) for e in U.form_state_list(xint=(1e-3,1e-3),yint=(-1e-3,-1e-3))]
     E = Ensemble(PCL.Particle(), states)
 
-    E.track(elist, 5)
-#    E.plot('y')
-    E.plot('y','x',linewidth=.1)
+    E.track(elist, 100, inner=True)
+    E.plot('x','s',pids=[4])
+#    E.plot('y','x',linewidth=1)
     
