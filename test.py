@@ -42,7 +42,14 @@ class StateVec:
     
     def __init__(self, array):
         self.fArray = copy.deepcopy(array)
+        self.fLength = len(array)
+        self.i_v = lambda name: NP.arange(self.sSVM[name], self.fLength, self.sN_SVM)
+#        self.fArray = {key:array[i_v(key)] for key in self.sStateVars} # for passing into field functions
 
+    def __getitem__(self, name):
+        i = self.i_v(name)
+        self.fArray[i]
+    
     def reshape(self, newshape, order='C'):
         self.fArray.reshape(newshape, order = order)
 
