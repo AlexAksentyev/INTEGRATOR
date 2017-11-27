@@ -5,6 +5,10 @@ import collections as CLN
 import copy
 import re
 import math
+import test as TST
+
+SVM = TST.SVM
+n_SVM = len(SVM)
 
 class Element:
     
@@ -261,21 +265,17 @@ class Wien(Element, HasCounter, Bend):
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
         return (0, B1, 0)
     
-    def frontKick(self, particle):
-        x=particle.getState()['x']
-        u = self.__U(x)
-        Xk = particle.getState()
-        Xk['dK'] -= u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+    def frontKick(self, state):
+        i_x = NP.arange(SVM['x'], len(state), n_SVM)
+        u = self.__U(state[i_x])
+        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
+        state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
-    def rearKick(self, particle):
-        x=particle.getState()['x']
-        u = self.__U(x)
-        Xk = particle.getState()
-        Xk['dK'] += u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+    def rearKick(self, state):
+        i_x = NP.arange(SVM['x'], len(state), n_SVM)
+        u = self.__U(state[i_x])
+        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
+        state[i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self, x):
         return (self.__fVolt, self.__U(x))
@@ -345,19 +345,15 @@ class ERF(Element, HasCounter):
         
         particle.setState(arg)
     
-    def frontKick(self, particle):
+    def frontKick(self, state):
         u = self.__fU
-        Xk = particle.getState()
-        Xk['dK'] -= u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
+        state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
-    def rearKick(self, particle):
+    def rearKick(self, state):
         u = self.__fU
-        Xk = particle.getState()
-        Xk['dK'] += u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
+        state[i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self):
         return self.__fU

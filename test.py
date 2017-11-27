@@ -34,6 +34,18 @@ clight = 2.99792458e8 # m/s
 #        state[i] += .1
 
 
+class StateVec:
+    
+    sStateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
+    sSVM = dict(zip(StateVars, range(len(StateVars))))
+    sN_SVM = len(SVM)
+    
+    def __init__(self, array):
+        self.fArray = copy.deepcopy(array)
+
+    def reshape(self, newshape, order='C'):
+        self.fArray.reshape(newshape, order = order)
+
 
 class Ensemble:
     
@@ -208,7 +220,7 @@ class Ensemble:
                     ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
-                    for m in range(ind,len(self.P0Log)):
+                    for m in range(ind,len(self.fLog.P0)):
                         for pid in self.ics.keys():
                             self[pid][ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
                         ind += 1
@@ -224,8 +236,10 @@ if __name__ is '__main__':
     OD1 = ENT.Drift(.25, 'OD1')
     QD1 = ENT.MQuad(5e-2,-.82,"QD")
     QF1 = ENT.MQuad(5e-2,.736,"QF")
+    R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
+
     
-    elist = [QF1]
+    elist = [R3]
         
 #%%
     states=[list(e.values()) for e in U.form_state_list(xint=(1e-3,1e-3),yint=(-1e-3,-1e-3))]
