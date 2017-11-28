@@ -49,15 +49,38 @@ class Ensemble:
         self.Log = lambda: None 
         
         self.IniState = SV.StateVec(state_list, pids = list(range(len(state_list))))
+        self.varnum = self.IniState.varnum
+        self.pclnum = self.IniState.pclnum
         
         self.IntBrks = 101
         
         
     def __getitem__(self, pid):
         return getattr(self.Log, 'P'+str(pid))
+    
+    def plot(self, Ylab, Xlab='s', pids='all',**kwargs):
+        from matplotlib import pyplot as PLT
+        
+        names = set(self.IniState.metadata['pids'])
+        if pids != 'all':
+            pids = set(pids)
+            not_found = names - pids
+            names = names - not_found
+            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
+        
+        
+        for pid in names:
+            PLT.plot(self[str(pid)][Xlab], self[str(pid)][Ylab],label=pid,**kwargs)
+            
+        PLT.xlabel(Xlab)
+        PLT.ylabel(Ylab)
+        PLT.legend()
 
     def RHS(self, state, at, element):
-        if NP.isnan(state).any():  raise ValueError('NaN state variable(s)')
+        if NP.isnan(state).any(): 
+            print('here')
+            raise ValueError('NaN state variable(s)')
+        state = SV.StateVec(state.reshape((self.pclnum,self.varnum))) # A CRUTCH!!!
         x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.unpackValues() # for passing into field functions
         
         KinEn = self.Particle.KinEn0*(1+dEn) # dEn = (En - En0) / En0
@@ -122,7 +145,7 @@ class Ensemble:
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
         
-        DX = SV.StateVec([xp, yp, NP.repeat(1,state.pclnum), tp, Hp, Pxp/P0c, Pyp/P0c, dEnp/self.Particle.KinEn0, Sxp, Syp, Ssp])
+        DX = NP.array([xp, yp, NP.repeat(1,state.pclnum), tp, Hp, Pxp/P0c, Pyp/P0c, dEnp/self.Particle.KinEn0, Sxp, Syp, Ssp])
         
         return DX.flatten(order='F')
     
@@ -131,29 +154,30 @@ class Ensemble:
         
         self.IntBrks = brks
         
-        state0 = self.IniState
+        state = self.IniState
         
         names = ['START']+[e.fName for e in ElementSeq]
         n = str(len(names[NP.argmax(names)]))
         EType = 'U'+n
         vartype = [('Turn',int),('Element',EType),('Point', int)]
-        vartype += list(zip(state0.varname, NP.repeat(float, state0.varnum)))
+        vartype += list(zip(state.varname, NP.repeat(float, state.varnum)))
         
         self.__fLastPnt = -1
         
+        pids = state.metadata['pids']
         if inner: 
             nrow = ntimes*len(ElementSeq)*self.IntBrks
-            for pid in state0.metadata['pids']:
+            for pid in pids:
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
             ind = 0
         else: 
             nrow = ntimes*len(ElementSeq) + 1
-            for pid in state0.metadata['pids']:
+            for pid in pids:
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
-                self[pid][0] = 0,names[0],self.__fLastPnt, *state0[pid]
+                self[pid][0] = 0,names[0],self.__fLastPnt, *state[pid]
             ind = 1
             
-        state0.shape = (state0.varnum*state0.pclnum) 
+         
             
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
@@ -167,34 +191,34 @@ class Ensemble:
                 bERF = element.bSkip
                 
                 at = NP.linspace(0, element.fLength, brks)
+                state.shape = (state.varnum*state.pclnum)
                 
                 try:
-                    element.frontKick(state0)
+                    element.frontKick(state)
                     if not bERF:
-                        vals = odeint(self.RHS, state0, at, args=(element,))
+                        vals = odeint(self.RHS, state, at, args=(element,))
                     else:
-                        element.advance(state0)
-                    state = vals[brks-1]
+                        element.advance(state)
+                    state = SV.StateVec.from_flat_array(vals[brks-1])
                     element.rearKick(state)
                     if not bERF and inner:
                         for k in range(brks-1):
-                            valsk = vals[k].unpackStates()
-                            for pid in self.ics.keys():
+                            valsk = SV.StateVec.from_flat_array(vals[k])
+                            for pid in pids:
                                 self[pid][ind] = n,element.fName, k, *valsk[pid]
                             ind += 1
-                    valsk = vals[brks-1].unpackStates()
-                    for pid in self.ics.keys():
-                        self[pid][ind] = n,element.fName, self.__fLastPnt, *valsk[pid]
+                    for pid in pids:
+                        self[pid][ind] = n,element.fName, self.__fLastPnt, *state[pid]
                     ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
-                    for m in range(ind,len(self.fLog.P0)):
-                        for pid in self.ics.keys():
+                    for m in range(ind,len(self.Log.P0)):
+                        for pid in pids:
                             self[pid][ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
                         ind += 1
                     return
             
-    print('Complete 100 %')
+        print('Complete 100 %')
 
 #%%
 if __name__ is '__main__':
@@ -205,6 +229,6 @@ if __name__ is '__main__':
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
     
-    x=E.RHS(E.IniState,0,R3)
-    E.track([R3],10)
+    E.track([R3],100)
     
+    E.plot('x','s',pids='all')

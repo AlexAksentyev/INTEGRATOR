@@ -28,6 +28,11 @@ class StateVec(NP.ndarray):
         if obj is None: return
         self.metadata = getattr(obj, 'metadata', None)
         self.pclnum = getattr(obj, 'pclnum', None)
+        
+    @classmethod
+    def from_flat_array(cls, array):
+        array = array.reshape(-1, cls.varnum)
+        return StateVec(array)
 
     def __getitem__(self, name):
         if type(name) == str:
@@ -57,6 +62,7 @@ class StateVec(NP.ndarray):
         return flat.reshape(self.varnum, self.pclnum, order='F')
     
     def unpackStates(self):
+        """ deprecated """
         if len(self.shape) != 1:
             flat = self.flatten()
         else: flat = self
