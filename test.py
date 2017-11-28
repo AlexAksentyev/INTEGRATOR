@@ -5,13 +5,12 @@ import utilFunc as U
 import CParticle as PCL
 import CElement as ENT
 
-StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
-SVM = dict(zip(StateVars, range(len(StateVars))))
-n_SVM = len(SVM)
+#StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
+#SVM = dict(zip(StateVars, range(len(StateVars))))
+#n_SVM = len(SVM)
 
 ezero = 1.602176462e-19 # Coulomb
 clight = 2.99792458e8 # m/s
-
 
 
 #class Element:
@@ -33,25 +32,14 @@ clight = 2.99792458e8 # m/s
 #        i = NP.arange(i_y, len(state), n)
 #        state[i] += .1
 
-
-class StateVec:
+class StateMap:
+    StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
+    SVM = dict(zip(StateVars, range(len(StateVars))))
+    n_SVM = len(SVM)
     
-    sStateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
-    sSVM = dict(zip(StateVars, range(len(StateVars))))
-    sN_SVM = len(SVM)
-    
-    def __init__(self, array):
-        self.fArray = copy.deepcopy(array)
-        self.fLength = len(array)
-        self.i_v = lambda name: NP.arange(self.sSVM[name], self.fLength, self.sN_SVM)
-#        self.fArray = {key:array[i_v(key)] for key in self.sStateVars} # for passing into field functions
-
-    def __getitem__(self, name):
-        i = self.i_v(name)
-        self.fArray[i]
-    
-    def reshape(self, newshape, order='C'):
-        self.fArray.reshape(newshape, order = order)
+    @staticmethod
+    def get_var(name, array):
+        return array[NP.arange(SVM[name], len(array), StateMap.n_SVM)]
 
 
 class Ensemble:
@@ -68,10 +56,8 @@ class Ensemble:
         
     def __RHS(self, state, at, element):
         if NP.isnan(state).any():  raise ValueError('NaN state variable(s)')
-        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.reshape(self.n_var, self.n_ics,order='F')
-        
-        i_v = lambda name: NP.arange(SVM[name], len(state), n_SVM)
-        state = {key:state[i_v(key)] for key in StateVars} # for passing into field functions
+        state = state.reshape(self.n_var, self.n_ics,order='F') # for passing into field functions
+        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state
         
         KinEn = self.fParticle.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -253,6 +239,6 @@ if __name__ is '__main__':
     E = Ensemble(PCL.Particle(), states)
 
     E.track(elist, 100, inner=True)
-    E.plot('x','s',pids=[4])
+    E.plot('x','s',pids='all')
 #    E.plot('y','x',linewidth=1)
     

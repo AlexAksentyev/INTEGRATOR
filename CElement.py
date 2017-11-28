@@ -243,12 +243,14 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
-        x = arg['x']
+#        x = arg['x']
+        x = arg[SVM['x']]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
-        x =  arg['x']
+#        x =  arg['x']
+        x = arg[SVM['x']]
         
         e0 = self.fPardict['q']
         m0 = self.fPardict['m0']
