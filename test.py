@@ -1,5 +1,5 @@
 import numpy as NP
-import copy
+#import copy
 import utilFunc as U
 
 import CParticle as PCL
@@ -32,14 +32,35 @@ clight = 2.99792458e8 # m/s
 #        i = NP.arange(i_y, len(state), n)
 #        state[i] += .1
 
-class StateMap:
-    StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
-    SVM = dict(zip(StateVars, range(len(StateVars))))
-    n_SVM = len(SVM)
-    
-    @staticmethod
-    def get_var(name, array):
-        return array[NP.arange(SVM[name], len(array), StateMap.n_SVM)]
+#class StateMap:
+#    StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
+#    SVM = dict(zip(StateVars, range(len(StateVars))))
+#    n_SVM = len(SVM)
+#    
+#    @staticmethod
+#    def get_var(name, array):
+#        return array[NP.arange(SVM[name], len(array), StateMap.n_SVM)]     
+
+
+class StateVec(NP.ndarray):
+    varname = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
+    imap = dict(zip(varname, range(len(varname))))
+    nvar = len(varname)
+
+    def __new__(cls, array, dtype=None, order=None, **kwargs):
+        obj = NP.asarray(array, dtype=dtype, order=order).view(cls)                                 
+        obj.metadata = kwargs
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None: return
+        self.metadata = getattr(obj, 'metadata', None)
+
+    def get(self, name):
+        return self[NP.arange(self.mapping[name], len(self), self.n_var)]
+
+    def set(self, name, value):
+        self[NP.arange(self.mapping[name], len(self), self.n_var)] = value   
 
 
 class Ensemble:
@@ -155,7 +176,7 @@ class Ensemble:
         n = str(len(names[NP.argmax(names)]))
         EType = 'U'+n
         vartype = [('Turn',int),('Element',EType),('Point', int)]
-        vartype += list(zip(StateVars, NP.repeat(float, len(StateVars))))
+        vartype += list(zip(StateVec.varname, NP.repeat(float, len(StateVec.varname))))
         
         self.__fLastPnt = -1
         
