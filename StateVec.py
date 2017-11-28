@@ -55,6 +55,12 @@ class StateVec(NP.ndarray):
             flat = self.flatten()
         else: flat = self
         return flat.reshape(self.varnum, self.pclnum, order='F')
+    
+    def unpackStates(self):
+        if len(self.shape) != 1:
+            flat = self.flatten()
+        else: flat = self
+        return flat.reshape(self.pclnum, self.varnum, order='C')
 #%%
 if __name__ is '__main__':
     import utilFunc as U

@@ -5,7 +5,7 @@ Created on Tue Nov 28 15:04:54 2017
 
 @author: alexa
 """
-
+from scipy.integrate import odeint
 import StateVec as SV
 import numpy as NP
 import CElement as ENT
@@ -48,11 +48,15 @@ class Ensemble:
         
         self.Log = lambda: None 
         
-        self.IniState = SV.StateVec(state_list)
+        self.IniState = SV.StateVec(state_list, pids = list(range(len(state_list))))
         
-        self.IntBrks = 101 # move to Ensemble::track
+        self.IntBrks = 101
+        
+        
+    def __getitem__(self, pid):
+        return getattr(self.Log, 'P'+str(pid))
 
-    def RHS(self, at, state, element):
+    def RHS(self, state, at, element):
         if NP.isnan(state).any():  raise ValueError('NaN state variable(s)')
         x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.unpackValues() # for passing into field functions
         
@@ -121,6 +125,76 @@ class Ensemble:
         DX = SV.StateVec([xp, yp, NP.repeat(1,state.pclnum), tp, Hp, Pxp/P0c, Pyp/P0c, dEnp/self.Particle.KinEn0, Sxp, Syp, Ssp])
         
         return DX.flatten(order='F')
+    
+    def track(self, ElementSeq , ntimes, FWD=True, inner = True):
+        brks = 101
+        
+        self.IntBrks = brks
+        
+        state0 = self.IniState
+        
+        names = ['START']+[e.fName for e in ElementSeq]
+        n = str(len(names[NP.argmax(names)]))
+        EType = 'U'+n
+        vartype = [('Turn',int),('Element',EType),('Point', int)]
+        vartype += list(zip(state0.varname, NP.repeat(float, state0.varnum)))
+        
+        self.__fLastPnt = -1
+        
+        if inner: 
+            nrow = ntimes*len(ElementSeq)*self.IntBrks
+            for pid in state0.metadata['pids']:
+                setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+            ind = 0
+        else: 
+            nrow = ntimes*len(ElementSeq) + 1
+            for pid in state0.metadata['pids']:
+                setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+                self[pid][0] = 0,names[0],self.__fLastPnt, *state0[pid]
+            ind = 1
+            
+        state0.shape = (state0.varnum*state0.pclnum) 
+            
+        for n in range(1,ntimes+1):
+            for i in range(len(ElementSeq)):
+                percent = int(ind/nrow*100)
+                if (percent%10==0):
+                    print('Complete {} %'.format(percent))
+                    
+                if FWD: element = ElementSeq[i]
+                else: element = ElementSeq[len(ElementSeq)-1-i]
+                
+                bERF = element.bSkip
+                
+                at = NP.linspace(0, element.fLength, brks)
+                
+                try:
+                    element.frontKick(state0)
+                    if not bERF:
+                        vals = odeint(self.RHS, state0, at, args=(element,))
+                    else:
+                        element.advance(state0)
+                    state = vals[brks-1]
+                    element.rearKick(state)
+                    if not bERF and inner:
+                        for k in range(brks-1):
+                            valsk = vals[k].unpackStates()
+                            for pid in self.ics.keys():
+                                self[pid][ind] = n,element.fName, k, *valsk[pid]
+                            ind += 1
+                    valsk = vals[brks-1].unpackStates()
+                    for pid in self.ics.keys():
+                        self[pid][ind] = n,element.fName, self.__fLastPnt, *valsk[pid]
+                    ind += 1
+                except ValueError:
+                    print('NAN error at: Element {}, turn {}'.format(element.fName, n))
+                    for m in range(ind,len(self.fLog.P0)):
+                        for pid in self.ics.keys():
+                            self[pid][ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
+                        ind += 1
+                    return
+            
+    print('Complete 100 %')
 
 #%%
 if __name__ is '__main__':
@@ -131,4 +205,6 @@ if __name__ is '__main__':
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
     
-    E.RHS(0,E.IniState.flatten(),R3)
+    x=E.RHS(E.IniState,0,R3)
+    E.track([R3],10)
+    
