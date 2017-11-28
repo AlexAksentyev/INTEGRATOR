@@ -32,6 +32,7 @@ class StateVec(NP.ndarray):
     def __getitem__(self, name):
         if type(name) == str:
             if len(self.shape) != 1: flat = self.flatten()
+            else: flat = self
             i = flat.__get_indices(name)
             return super(StateVec, flat).__getitem__(i)
         else:
@@ -40,6 +41,7 @@ class StateVec(NP.ndarray):
     def __setitem__(self, name, value):
         if type(name) == str:
             if len(self.shape) != 1: flat = self.flatten()
+            else: flat = self
             i = flat.__get_indices(name)
             return super(StateVec, flat).__setitem__(i,value)
         else:
@@ -51,6 +53,7 @@ class StateVec(NP.ndarray):
     def unpackValues(self):
         if len(self.shape) != 1:
             flat = self.flatten()
+        else: flat = self
         return flat.reshape(self.varnum, self.pclnum, order='F')
 #%%
 if __name__ is '__main__':
@@ -59,7 +62,6 @@ if __name__ is '__main__':
     states=[list(e.values()) for e in U.form_state_list(xint=(1e-3,1e-3),yint=(-1e-3,-1e-3))]
     
     sv = StateVec(states)
-#    sv.shape = (99)
     
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
     
