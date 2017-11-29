@@ -1,4 +1,4 @@
-import CParticle as PCL
+import Ensemble as PCL
 import pandas as PDS
 import numpy as NP
 import collections as CLN
@@ -49,9 +49,9 @@ class Bend:
     def __init__(self,RefPart,**kwargs):
         q = PCL.ezero
         clight = PCL.clight
-        self.fPardict = {'KinEn0':RefPart.fKinEn0, 'Mass0':RefPart.fMass0,
+        self.fPardict = {'KinEn0':RefPart.KinEn0, 'Mass0':RefPart.Mass0,
                          'q':q, 'clight':clight,
-                         'm0':RefPart.fMass0/clight**2*1e6*q}
+                         'm0':RefPart.Mass0/clight**2*1e6*q}
         
         super().__init__(**kwargs)
         
@@ -130,7 +130,7 @@ class MDipole(Element, HasCounter, Bend):
         super().__init__(Curve=Crv, Length=Length, Name=Name, RefPart=RefPart)
         
         if Crv is None:
-             R = self.computeRadius(RefPart.fKinEn0, BField)
+             R = self.computeRadius(RefPart.KinEn0, BField)
              self.__fR = R
              self.fCurve = 1/self.__fR
              self._Element__fChars['Curve'] = self.fCurve
@@ -284,6 +284,7 @@ class ERF(Element, HasCounter):
             self.bSkip = True
             Length = 5e-4
         
+        print(type(RefPart))
         if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
         elif type(RefPart) is PCL.Particle: pass
         else: raise ValueError('Wrong type Reference Particle')
@@ -323,15 +324,15 @@ class ERF(Element, HasCounter):
         phi = self.fPhase
         return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
     
-    def advance(self, state):        
-        w = self.fFreq*2*NP.pi
-        u = self.__fU
-        K = particle.fKinEn0 * (1 + state[self.idK])
-        
-        state[self.i_dK] += u*NP.cos(w*state[self.i_t]+self.fPhase)*1e-6/particle.fKinEn0
-        state[self.i_s] += self.fLength
-        gamma,beta = particle.GammaBeta(K)
-        state[self.i_t] += self.fLength/beta/PCL.clight
+#    def advance(self, state):        
+#        w = self.fFreq*2*NP.pi
+#        u = self.__fU
+#        K = particle.fKinEn0 * (1 + state[self.idK])
+#        
+#        state[self.i_dK] += u*NP.cos(w*state[self.i_t]+self.fPhase)*1e-6/particle.fKinEn0
+#        state[self.i_s] += self.fLength
+#        gamma,beta = particle.GammaBeta(K)
+#        state[self.i_t] += self.fLength/beta/PCL.clight
     
     def frontKick(self, state):
         u = self.__fU
@@ -349,7 +350,7 @@ class Lattice:
         
         super().__init__()
         
-        if type(RefPart) is PCL.Ensemble: self.fRefPart = RefPart.getReference()
+        if type(RefPart) is PCL.Ensemble: self.fRefPart = RefPart.Particle
         elif type(RefPart) is PCL.Particle: self.fRefPart = RefPart
         else: raise ValueError('Wrong type Reference Particle')
         

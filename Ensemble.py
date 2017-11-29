@@ -10,7 +10,7 @@ import StateVec as SV
 import numpy as NP
 import CElement as ENT
 import CParticle as PCL
-
+import copy
 #%%
 ## particle.py
 
@@ -60,8 +60,9 @@ class SVM:
 
 class Ensemble:
     
-    def __init__(self, Particle, state_list):
+    def __init__(self, state_list, Particle=Particle()):
         self.Particle = Particle
+        self.__fRefPart = None
         
         self.Log = lambda: None 
         
@@ -71,6 +72,19 @@ class Ensemble:
         self.ics = dict(zip(range(len(state_list)), state_list))
         
         self.svm = SVM(self)
+        
+    def count(self):
+        return self.n_ics
+        
+    def setReference(self, name):
+        self.__fRefPart = getattr(self.Log, 'P'+str(name))
+        self.__fPID = name
+        
+    def getReference(self):
+        return self.__fRefPart
+    
+    def listNames(self):
+        return list(self.ics.keys())
         
     def __RHS(self, state, at, element):
         if NP.isnan(state).any(): raise ValueError('NaN state variable(s)')
@@ -145,7 +159,17 @@ class Ensemble:
     def __getitem__(self, pid):
         return getattr(self.Log, 'P'+str(pid))
     
-    def plot(self, Ylab, Xlab='s', pids='all',**kwargs):
+    def __setitem__(self, pid, name_value):
+        from numpy.lib.recfunctions import append_fields
+        
+        name = name_value[0]
+        value = name_value[1]
+        
+        log = self[pid]
+        setattr(self.Log, 'P'+str(pid), append_fields(log, name, value,
+                            dtypes=float, usemask=False, asrecarray=True))
+    
+    def plot_min(self, Ylab, Xlab='s', pids='all',**kwargs):
         from matplotlib import pyplot as PLT
         
         names = set(self.ics.keys())
@@ -162,9 +186,92 @@ class Ensemble:
         PLT.xlabel(Xlab)
         PLT.ylabel(Ylab)
         PLT.legend()
+        
+    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, **kwargs):
 
-    def track(self, ElementSeq , ntimes, FWD=True, inner = True):
-        brks = 101
+        ## reading how to plot data: diff variable with reference value, or otherwise
+        import re
+        x_flags = re.findall('-.', Xlab)
+        y_flags = re.findall('-.', Ylab)
+        Xlab = re.subn('-.* ', '', Xlab)[0]
+        Ylab = re.subn('-.* ', '', Ylab)[0]
+        
+        pid0 = self.__fPID
+        
+        nr = self.count()
+        nc = len(self[0][Ylab])
+        
+        Elt = [re.sub('_.*','',e) for e in self[0]['Element']]
+        
+        def cm(elist):
+            d = lambda e: 'red' if e == mark_special else 'black'
+            return [d(e) for e in elist]
+        
+        
+        Y = NP.empty([nr,nc])
+        X = NP.empty([nr,nc])
+        dX = NP.empty([nc])
+        dY = NP.empty([nc])
+        
+        ## selecting only the required pids for plot
+        names = self.listNames()
+        names.insert(0, names.pop(pid0))
+        if pids != 'all':
+            pids = set(pids)
+            pids.add(pid0)
+            names = set(names)
+            not_found = names - pids
+            names = names - not_found
+            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
+        
+        from matplotlib import pyplot as PLT
+        
+        PLT.figure()     
+        
+        if mark_special is not None:
+            plot = lambda X, Y, lab, **kwargs: PLT.scatter(X,Y, label=mark_special, c=cm(Elt), **kwargs)
+            legend = lambda lab: PLT.legend([mark_special])
+        else:
+            plot = lambda X, Y, lab, **kwargs: PLT.plot(X,Y,label=lab, **kwargs)
+            legend = lambda lab: PLT.legend(lab)
+        
+        for i in names:
+            Y[i] = self[i][Ylab]
+            dY = copy.deepcopy(Y[i])
+            X[i] = self[i][Xlab]
+            dX = copy.deepcopy(X[i])
+            if '-D' in x_flags: dX -= X[pid0]
+            if '-D' in y_flags: dY -= Y[pid0]
+            plot(dX, dY, i, **kwargs)
+            
+        legend(names)
+        
+        sub_map = {'Theta':'\Theta','dK':'\Delta K'}
+        
+        def sub(*labels):
+            labels = list(labels)
+            for i in range(len(labels)):
+                for k,v in sub_map.items(): labels[i] = labels[i].replace(k,v)
+            return labels
+        
+        Xlab,Ylab = sub(Xlab,Ylab)
+        if '-D' in x_flags: 
+            Xlab = '${0} - {0}_0$'.format(Xlab)
+        else:
+            Xlab = '${0}$'.format(Xlab)
+        if '-D' in y_flags: 
+            Ylab = '${0} - {0}_0$'.format(Ylab)
+        else:
+            Ylab = '${0}$'.format(Ylab)
+        
+        PLT.xlabel(Xlab)
+        PLT.ylabel(Ylab)
+        PLT.grid()
+            
+        return (X, Y, PLT.gcf())
+
+    def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101):
+        brks = breaks
         
         self.fIntBrks = brks
         
@@ -240,6 +347,11 @@ class Ensemble:
                             self[pid][ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
                         ind += 1
                     return
+                
+        pr = self.Particle
+        th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
+        for pid in self.ics.keys():
+            self[pid] = ('Theta', th(self[pid].t))
                 
         print('Complete 100 %')
 #%%
