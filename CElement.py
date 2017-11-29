@@ -103,8 +103,8 @@ class MQuad(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        x = arg['x']
-        y = arg['y']
+        x = arg[self.i_x]
+        y = arg[self.i_y]
         return (self.__fGrad*y, self.__fGrad*x,0)
         
 
@@ -176,8 +176,8 @@ class MSext(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        x = arg['x']
-        y = arg['y']
+        x = arg[self.i_x]
+        y = arg[self.i_y]
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
 class Wien(Element, HasCounter, Bend):
@@ -239,14 +239,12 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
-#        x = arg['x']
-        x = arg[self.ix]
+        x = arg[self.i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
-#        x =  arg['x']
-        x = arg[self.ix]
+        x = arg[self.i_x]
         
         e0 = self.fPardict['q']
         m0 = self.fPardict['m0']
@@ -264,20 +262,12 @@ class Wien(Element, HasCounter, Bend):
         return (0, B1, 0)
     
     def frontKick(self, state):
-#        i_x = NP.arange(SVM['x'], len(state), n_SVM)
-#        u = self.__U(state[i_x])
-        u = self.__U(state[self.ix])
-#        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
-#        state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
-        state[self.idK] -= u*1e-6/self.fPardict['KinEn0']
+        u = self.__U(state[self.i_x])
+        state[self.i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
     def rearKick(self, state):
-#        i_x = NP.arange(SVM['x'], len(state), n_SVM)
-#        u = self.__U(state[i_x])
-        u = self.__U(state[self.ix])
-#        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
-#        state[i_dK] += u*1e-6/self.fPardict['KinEn0']
-        state[self.idK] += u*1e-6/self.fPardict['KinEn0']
+        u = self.__U(state[self.i_x])
+        state[self.i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self, x):
         return (self.__fVolt, self.__U(x))
@@ -312,14 +302,14 @@ class ERF(Element, HasCounter):
         RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
         
     def EField(self, arg):
-        t = arg['t']
+        t = arg[self.i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         return (0, 0, A*NP.cos(w*t+phi))
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
-        t = arg['t']
+        t = arg[self.i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
@@ -333,29 +323,23 @@ class ERF(Element, HasCounter):
         phi = self.fPhase
         return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
     
-    def advance(self, particle):
-        arg = particle.getState()
-        
+    def advance(self, state):        
         w = self.fFreq*2*NP.pi
         u = self.__fU
-        K = particle.fKinEn0 * (1 + arg['dK'])
+        K = particle.fKinEn0 * (1 + state[self.idK])
         
-        arg['dK'] += u*NP.cos(w*arg['t']+self.fPhase)*1e-6/particle.fKinEn0
-        arg['s'] += self.fLength
+        state[self.i_dK] += u*NP.cos(w*state[self.i_t]+self.fPhase)*1e-6/particle.fKinEn0
+        state[self.i_s] += self.fLength
         gamma,beta = particle.GammaBeta(K)
-        arg['t'] += self.fLength/beta/PCL.clight
-        
-        particle.setState(arg)
+        state[self.i_t] += self.fLength/beta/PCL.clight
     
     def frontKick(self, state):
         u = self.__fU
-        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
-        state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
+        state[self.i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
     def rearKick(self, state):
         u = self.__fU
-        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
-        state[i_dK] += u*1e-6/self.fPardict['KinEn0']
+        state[self.i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self):
         return self.__fU
