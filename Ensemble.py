@@ -171,7 +171,7 @@ class Ensemble:
         ## passing index map to elements
         for e in ElementSeq:
             for key, value in self.svm.__dict__.items():
-                setattr(e, 'i'+key, value)
+                setattr(e, 'i_'+key, value)
         
         names = ['START']+[e.fName for e in ElementSeq]
         n = str(len(names[NP.argmax(names)]))
@@ -250,7 +250,10 @@ if __name__ is '__main__':
     
     E = Ensemble(Particle(), states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
+    OD1 = ENT.Drift(.25, 'OD1')
+    QD1 = ENT.MQuad(5e-2,-.82,"QD")
+    QF1 = ENT.MQuad(5e-2,.736,"QF")
     
-    E.track([R3],100)
+    E.track([QF1, OD1, OD1, OD1],100)
     
-    E.plot('x','s',pids='all')
+    E.plot('x','s')
