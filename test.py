@@ -32,35 +32,18 @@ clight = 2.99792458e8 # m/s
 #        i = NP.arange(i_y, len(state), n)
 #        state[i] += .1
 
-#class StateMap:
-#    StateVars = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
-#    SVM = dict(zip(StateVars, range(len(StateVars))))
-#    n_SVM = len(SVM)
-#    
-#    @staticmethod
-#    def get_var(name, array):
-#        return array[NP.arange(SVM[name], len(array), StateMap.n_SVM)]     
-
-
-class StateVec(NP.ndarray):
+class SVM:
     varname = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
     imap = dict(zip(varname, range(len(varname))))
-    nvar = len(varname)
-
-    def __new__(cls, array, dtype=None, order=None, **kwargs):
-        obj = NP.asarray(array, dtype=dtype, order=order).view(cls)                                 
-        obj.metadata = kwargs
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None: return
-        self.metadata = getattr(obj, 'metadata', None)
-
-    def get(self, name):
-        return self[NP.arange(self.mapping[name], len(self), self.n_var)]
-
-    def set(self, name, value):
-        self[NP.arange(self.mapping[name], len(self), self.n_var)] = value   
+    varnum = len(varname)
+    pclnum = None
+    
+    def __init__(self, Ensemble):
+        SVM.pclnum = len(Ensemble.ics)
+        falen = SVM.varnum*SVM.pclnum
+        for vn in SVM.varname:
+            setattr(self, vn, NP.arange(SVM.imap[vn], falen, SVM.varnum))
+        
 
 
 class Ensemble:
@@ -75,10 +58,11 @@ class Ensemble:
         
         self.ics = dict(zip(range(len(state_list)), state_list))
         
+        self.svm = SVM(self)
+        
     def __RHS(self, state, at, element):
-        if NP.isnan(state).any():  raise ValueError('NaN state variable(s)')
-        state = state.reshape(self.n_var, self.n_ics,order='F') # for passing into field functions
-        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state
+        if NP.isnan(state).any(): raise ValueError('NaN state variable(s)')
+        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.reshape(self.n_var, self.n_ics,order='F')
         
         KinEn = self.fParticle.fKinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -172,11 +156,16 @@ class Ensemble:
         
         self.fIntBrks = brks
         
+        ## passing index map to elements
+        for e in ElementSeq:
+            for key, value in self.svm.__dict__.items():
+                setattr(e, 'i'+key, value)
+        
         names = ['START']+[e.fName for e in ElementSeq]
         n = str(len(names[NP.argmax(names)]))
         EType = 'U'+n
         vartype = [('Turn',int),('Element',EType),('Point', int)]
-        vartype += list(zip(StateVec.varname, NP.repeat(float, len(StateVec.varname))))
+        vartype += list(zip(self.svm.varname, NP.repeat(float, self.svm.varnum)))
         
         self.__fLastPnt = -1
         

@@ -5,10 +5,6 @@ import collections as CLN
 import copy
 import re
 import math
-#import test as TST
-
-#SVM = TST.SVM
-#n_SVM = len(SVM)
 
 class Element:
     
@@ -243,12 +239,14 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
-        x = arg['x']
+#        x = arg['x']
+        x = arg[self.ix]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
-        x =  arg['x']
+#        x =  arg['x']
+        x = arg[self.ix]
         
         e0 = self.fPardict['q']
         m0 = self.fPardict['m0']
@@ -268,18 +266,18 @@ class Wien(Element, HasCounter, Bend):
     def frontKick(self, state):
 #        i_x = NP.arange(SVM['x'], len(state), n_SVM)
 #        u = self.__U(state[i_x])
-        u = self.__U(state['x'])
+        u = self.__U(state[self.ix])
 #        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
 #        state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
-        state['dK'] -= u*1e-6/self.fPardict['KinEn0']
+        state[self.idK] -= u*1e-6/self.fPardict['KinEn0']
         
     def rearKick(self, state):
 #        i_x = NP.arange(SVM['x'], len(state), n_SVM)
 #        u = self.__U(state[i_x])
-        u = self.__U(state['x'])
+        u = self.__U(state[self.ix])
 #        i_dK = NP.arange(SVM['dK'], len(state), n_SVM)
 #        state[i_dK] += u*1e-6/self.fPardict['KinEn0']
-        state['dK'] += u*1e-6/self.fPardict['KinEn0']
+        state[self.idK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self, x):
         return (self.__fVolt, self.__U(x))
