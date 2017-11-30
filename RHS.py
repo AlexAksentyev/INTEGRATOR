@@ -7,12 +7,11 @@ Created on Thu Nov 30 09:29:22 2017
 """
 import numpy as NP
 import Particle as PCL
-import utilFunc as U
 
 ezero = PCL.ezero
 clight = PCL.clight
 
-varname = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
+varname = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz'] # this defines the dictionary order of variables
 imap = dict(zip(varname, range(len(varname))))
 varnum = len(varname)
 def index(array, *names):
@@ -100,6 +99,7 @@ class RHS:
     
     
 if __name__ is '__main__':
+    import utilFunc as U
     states=[list(e.values()) for e in U.form_state_list(xint=(1e-3,1e-3),yint=(-1e-3,-1e-3))]
     
     E = PCL.Ensemble(states)
