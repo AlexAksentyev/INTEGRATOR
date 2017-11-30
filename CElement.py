@@ -1,4 +1,5 @@
-import Ensemble as PCL
+import Particle as PCL
+import Ensemble as ENS
 import pandas as PDS
 import numpy as NP
 import collections as CLN
@@ -20,6 +21,9 @@ class Element:
         
         self.__fChars = PDS.DataFrame({'Curve':self.fCurve, 'Length':self.fLength}, 
                                             index=[self.fName])
+        
+        from Ensemble import SVM
+        self.SVM = SVM
         
         super().__init__(**kwargs)
     
@@ -103,8 +107,10 @@ class MQuad(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        x = arg[self.i_x]
-        y = arg[self.i_y]
+        i_x = self.SVM.index('x',arg)
+        i_y = self.SVM.index('y',arg)
+        x = arg[i_x]
+        y = arg[i_y]
         return (self.__fGrad*y, self.__fGrad*x,0)
         
 
@@ -176,8 +182,10 @@ class MSext(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        x = arg[self.i_x]
-        y = arg[self.i_y]
+        i_x = self.SVM.index('x',arg)
+        i_y = self.SVM.index('y',arg)
+        x = arg[i_x]
+        y = arg[i_y]
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
 class Wien(Element, HasCounter, Bend):
@@ -239,12 +247,14 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
-        x = arg[self.i_x]
+        i_x = self.SVM.index('x',arg)
+        x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
-        x = arg[self.i_x]
+        i_x = self.SVM.index('x',arg)
+        x = arg[i_x]
         
         e0 = self.fPardict['q']
         m0 = self.fPardict['m0']
@@ -262,12 +272,16 @@ class Wien(Element, HasCounter, Bend):
         return (0, B1, 0)
     
     def frontKick(self, state):
-        u = self.__U(state[self.i_x])
-        state[self.i_dK] -= u*1e-6/self.fPardict['KinEn0']
+        i_x = self.SVM.index('x',state)
+        u = self.__U(state[i_x])
+        i_dK = self.SVM.index('dK',state)
+        state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
     def rearKick(self, state):
-        u = self.__U(state[self.i_x])
-        state[self.i_dK] += u*1e-6/self.fPardict['KinEn0']
+        i_x = self.SVM.index('x',state)
+        u = self.__U(state[i_x])
+        i_dK = self.SVM.index('dK',state)
+        state[i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self, x):
         return (self.__fVolt, self.__U(x))
@@ -277,17 +291,14 @@ class ERF(Element, HasCounter):
     """ RF element
     """
     
-    def __init__(self, Length, RefPart, Acc_length, EField = 15e5, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
+    def __init__(self, Length, Ensemble, Acc_length, EField = 15e5, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
         super().__init__(Curve=0,Length=Length,Name=Name)
         
         if Length==0: 
             self.bSkip = True
             Length = 5e-4
         
-        print(type(RefPart))
-        if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
-        elif type(RefPart) is PCL.Particle: pass
-        else: raise ValueError('Wrong type Reference Particle')
+        RefPart = Ensemble.Particle
         
         self.fAmplitude = EField
         self.fPhase = Phase
@@ -303,14 +314,16 @@ class ERF(Element, HasCounter):
         RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
         
     def EField(self, arg):
-        t = arg[self.i_t]
+        i_t = self.SVM.index('t',arg)
+        t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         return (0, 0, A*NP.cos(w*t+phi))
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
-        t = arg[self.i_t]
+        i_t = self.SVM.index('t',arg)
+        t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
@@ -336,23 +349,23 @@ class ERF(Element, HasCounter):
     
     def frontKick(self, state):
         u = self.__fU
-        state[self.i_dK] -= u*1e-6/self.fPardict['KinEn0']
+        i_dK = self.SVM.index('dK',state)
+        state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
     def rearKick(self, state):
         u = self.__fU
-        state[self.i_dK] += u*1e-6/self.fPardict['KinEn0']
+        i_dK = self.SVM.index('dK',state)
+        state[i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self):
         return self.__fU
         
 class Lattice:
-    def __init__(self, ElSeq, RefPart):
+    def __init__(self, ElSeq, Ensemble):
         
         super().__init__()
         
-        if type(RefPart) is PCL.Ensemble: self.fRefPart = RefPart.Particle
-        elif type(RefPart) is PCL.Particle: self.fRefPart = RefPart
-        else: raise ValueError('Wrong type Reference Particle')
+        self.Ensemble = Ensemble
         
         self.fSequence = ElSeq[:]
         
@@ -362,7 +375,7 @@ class Lattice:
         
     def insertRF(self, position, length, **ERF_pars):
         full_acc_len = self.fLength + length
-        rf = ERF(length,self.fRefPart, full_acc_len, **ERF_pars)
+        rf = ERF(length,self.Ensemble, full_acc_len, **ERF_pars)
         self.fSequence.insert(position, rf)
         
     def listNames(self, full=False):
