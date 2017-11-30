@@ -53,6 +53,19 @@ class Ensemble:
         setattr(self.Log, 'P'+str(pid), append_fields(log, name, value,
                             dtypes=float, usemask=False, asrecarray=True))
         
+    def __iter__(self):
+        self.current_pid = 0
+        return self
+    
+    def __next__(self):
+        last_pid = self.count()-1
+        if self.current_pid <= last_pid:
+            result = self[self.current_pid]
+            self.current_pid +=1
+            return result
+        else:
+            raise StopIteration
+        
     def __repr__(self):
         from pandas import DataFrame
         
