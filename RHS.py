@@ -12,6 +12,12 @@ import utilFunc as U
 ezero = PCL.ezero
 clight = PCL.clight
 
+varname = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
+imap = dict(zip(varname, range(len(varname))))
+varnum = len(varname)
+def index(array, *names):
+    return [NP.arange(imap[name], len(array), varnum) for name in names]
+
 class RHS:
     
     def __init__(self, Ensemble):

@@ -7,7 +7,7 @@ Created on Thu Oct 19 12:53:58 2017
 """
 
 import numpy as NP
-import Ensemble as ENS
+import RHS
 
 def phi(operation,*w):
     s = '('
@@ -31,7 +31,7 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
     xs = NP.linspace(xint[0],xint[1],Nx)
     ys = NP.linspace(yint[0],yint[1],Ny)
     
-    names = ENS.SVM.varname
+    names = RHS.varname
     
     StateList = list()
     for x in xs:
@@ -63,8 +63,8 @@ class StateList:
             ntot *= num
             argDict.update({key: NP.linspace(lb,ub,num)})
             
-        vartype = list(zip(ENS.SVM.varname, NP.repeat(float, ENS.SVM.varnum)))
-        self.SL = NP.empty([ntot, ENS.SVM.varnum], dtype=vartype)
+        vartype = list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
+        self.SL = NP.empty([ntot, RHS.varnum], dtype=vartype)
         
         for key in keys:
             self.SL[key] = getattr()

@@ -7,35 +7,9 @@ Created on Tue Nov 28 15:04:54 2017
 """
 from scipy.integrate import odeint
 import numpy as NP
-import CElement as ENT
 import Particle as PCL
 import RHS
 import copy
-
-#%%
-## ensemble.py
-
-class SVM:
-    """ object keeping state variable mappings;
-        created w/ esemble
-        passed to elements at tracking
-    """
-    varname = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz']
-    imap = dict(zip(varname, range(len(varname))))
-    varnum = len(varname)
-    pclnum = None
-    
-    def __init__(self, Ensemble):
-        SVM.pclnum = len(Ensemble.ics)
-        falen = SVM.varnum*SVM.pclnum
-        for vn in SVM.varname:
-            setattr(self, 'i_'+vn, NP.arange(SVM.imap[vn], falen, SVM.varnum))     
-            
-    @classmethod
-    def index(self, array, *names):
-        return [NP.arange(SVM.imap[name], len(array), SVM.varnum) for name in names]
-        
-
 
 class Ensemble:
     
@@ -50,10 +24,11 @@ class Ensemble:
         
         self.ics = dict(zip(range(len(state_list)), state_list))
         
-        self.svm = SVM(self)
-        
     def count(self):
         return self.n_ics
+    
+    def set(self, pid, **kwargs):
+        self.ics[pid].update(**kwargs)
         
     def setReference(self, name):
         self.__fRefPart = getattr(self.Log, 'P'+str(name))
@@ -77,6 +52,12 @@ class Ensemble:
         log = self[pid]
         setattr(self.Log, 'P'+str(pid), append_fields(log, name, value,
                             dtypes=float, usemask=False, asrecarray=True))
+        
+    def __repr__(self):
+        from pandas import DataFrame
+        
+        return str(DataFrame(self.ics).T)
+        
     
     def plot_min(self, Ylab, Xlab='s', pids='all',**kwargs):
         from matplotlib import pyplot as PLT
@@ -185,6 +166,10 @@ class Ensemble:
         return (X, Y, PLT.gcf())
 
     def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101):
+        from Element import Lattice
+        if type(ElementSeq == Lattice):
+            ElementSeq = ElementSeq.fSequence
+        
         brks = breaks
         
         self.fIntBrks = brks
@@ -193,7 +178,7 @@ class Ensemble:
         n = str(len(names[NP.argmax(names)]))
         EType = 'U'+n
         vartype = [('Turn',int),('Element',EType),('Point', int)]
-        vartype += list(zip(self.svm.varname, NP.repeat(float, self.svm.varnum)))
+        vartype += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
         
         self.__fLastPnt = -1
         
@@ -202,21 +187,21 @@ class Ensemble:
             nrow = ntimes*len(ElementSeq)*self.fIntBrks
             for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
-                ics.append(ic)
+                ics.append(list(ic.values()))
             ind = 0
         else: 
             nrow = ntimes*len(ElementSeq) + 1
             for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+                ic = list(ic.values())
                 self[pid][0] = 0,names[0],self.__fLastPnt, *ic
                 ics.append(ic)
             ind = 1
         
-        ics = NP.array(ics)
+        state = NP.array(ics)
         
         n_ics = self.n_ics
         n_var = self.n_var
-        state = ics.reshape(n_ics*n_var)
         
         rhs = RHS.RHS(self)
         
@@ -237,11 +222,13 @@ class Ensemble:
                 
                 try:
                     element.frontKick(state)
+                    state = state.reshape(n_ics*n_var)
                     if not bERF:
                         vals = odeint(rhs, state, at, args=(element,))
+                        state = vals[brks-1]
                     else:
                         element.advance(state)
-                    state = vals[brks-1]
+                    state = state.reshape(n_ics,n_var)
                     element.rearKick(state)
                     if not bERF and inner:
                         for k in range(brks-1):
@@ -249,9 +236,9 @@ class Ensemble:
                             for pid in self.ics.keys():
                                 self[pid][ind] = n,element.fName, k, *valsk[pid]
                             ind += 1
-                    valsk = vals[brks-1].reshape(n_ics, n_var, order='C')
+#                    valsk = vals[brks-1].reshape(n_ics, n_var, order='C')
                     for pid in self.ics.keys():
-                        self[pid][ind] = n,element.fName, self.__fLastPnt, *valsk[pid]
+                        self[pid][ind] = n,element.fName, self.__fLastPnt, *state[pid]
                     ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
@@ -277,6 +264,7 @@ class Ensemble:
 #%%
 if __name__ is '__main__':
     import utilFunc as U
+    import Element as ENT
     
     states=[list(e.values()) for e in U.form_state_list(xint=(1e-3,1e-3),yint=(-1e-3,-1e-3))]
     
