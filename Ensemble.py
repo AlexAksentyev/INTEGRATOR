@@ -32,8 +32,8 @@ class SVM:
             setattr(self, 'i_'+vn, NP.arange(SVM.imap[vn], falen, SVM.varnum))     
             
     @classmethod
-    def index(self, name, array):
-        return NP.arange(SVM.imap[name], len(array), SVM.varnum)
+    def index(self, array, *names):
+        return [NP.arange(SVM.imap[name], len(array), SVM.varnum) for name in names]
         
 
 
@@ -220,11 +220,13 @@ class Ensemble:
         
         rhs = RHS.RHS(self)
         
+        old_percent = -1
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 percent = int(ind/nrow*100)
-                if (percent%10==0):
+                if percent%10 == 0 and percent != old_percent:
                     print('Complete {} %'.format(percent))
+                    old_percent = percent
                     
                 if FWD: element = ElementSeq[i]
                 else: element = ElementSeq[len(ElementSeq)-1-i]

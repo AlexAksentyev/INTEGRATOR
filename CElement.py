@@ -107,8 +107,7 @@ class MQuad(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        i_x = self.SVM.index('x',arg)
-        i_y = self.SVM.index('y',arg)
+        i_x, i_y = self.SVM.index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
         return (self.__fGrad*y, self.__fGrad*x,0)
@@ -182,8 +181,7 @@ class MSext(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        i_x = self.SVM.index('x',arg)
-        i_y = self.SVM.index('y',arg)
+        i_x, i_y = self.SVM.index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
@@ -247,13 +245,13 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
-        i_x = self.SVM.index('x',arg)
+        i_x = self.SVM.index(arg,'x')
         x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
-        i_x = self.SVM.index('x',arg)
+        i_x = self.SVM.index(arg,'x')
         x = arg[i_x]
         
         e0 = self.fPardict['q']
@@ -272,15 +270,13 @@ class Wien(Element, HasCounter, Bend):
         return (0, B1, 0)
     
     def frontKick(self, state):
-        i_x = self.SVM.index('x',state)
+        i_x, i_dK = self.SVM.index(state, 'x','dK')
         u = self.__U(state[i_x])
-        i_dK = self.SVM.index('dK',state)
         state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
     def rearKick(self, state):
-        i_x = self.SVM.index('x',state)
+        i_x, i_dK = self.SVM.index(state, 'x','dK')
         u = self.__U(state[i_x])
-        i_dK = self.SVM.index('dK',state)
         state[i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self, x):
@@ -298,11 +294,11 @@ class ERF(Element, HasCounter):
             self.bSkip = True
             Length = 5e-4
         
-        RefPart = Ensemble.Particle
+        self.RefPart = Ensemble.Particle
         
         self.fAmplitude = EField
         self.fPhase = Phase
-        self.fFreq = RefPart.revFreq(Acc_length) * H_number
+        self.fFreq = self.RefPart.revFreq(Acc_length) * H_number
         self.__fH_number = H_number
         
         self._Element__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
@@ -311,10 +307,10 @@ class ERF(Element, HasCounter):
             
         self.__fU = self.fAmplitude*Length # Length instead self.fLength for compatibility with Length 0
         
-        RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
+        self.RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
         
     def EField(self, arg):
-        i_t = self.SVM.index('t',arg)
+        i_t = self.SVM.index(arg, 't')
         t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
@@ -322,7 +318,7 @@ class ERF(Element, HasCounter):
         return (0, 0, A*NP.cos(w*t+phi))
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
-        i_t = self.SVM.index('t',arg)
+        i_t = self.SVM.index(arg, 't')
         t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
@@ -337,24 +333,25 @@ class ERF(Element, HasCounter):
         phi = self.fPhase
         return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
     
-#    def advance(self, state):        
-#        w = self.fFreq*2*NP.pi
-#        u = self.__fU
-#        K = particle.fKinEn0 * (1 + state[self.idK])
-#        
-#        state[self.i_dK] += u*NP.cos(w*state[self.i_t]+self.fPhase)*1e-6/particle.fKinEn0
-#        state[self.i_s] += self.fLength
-#        gamma,beta = particle.GammaBeta(K)
-#        state[self.i_t] += self.fLength/beta/PCL.clight
+    def advance(self, state):        
+        w = self.fFreq*2*NP.pi
+        u = self.__fU
+        i_dK, i_s, i_t = self.SVM.index(state, 'dK','s','t')
+        K = self.RefPart.KinEn0 * (1 + state[i_dK])
+        
+        state[i_dK] += u*NP.cos(w*state[self.i_t]+self.fPhase)*1e-6/self.RefPart.KinEn0
+        state[i_s] += self.fLength
+        gamma,beta = self.RefPart.GammaBeta(K)
+        state[i_t] += self.fLength/beta/PCL.clight
     
     def frontKick(self, state):
         u = self.__fU
-        i_dK = self.SVM.index('dK',state)
+        i_dK = self.SVM.index(state, 'dK')
         state[i_dK] -= u*1e-6/self.fPardict['KinEn0']
         
     def rearKick(self, state):
         u = self.__fU
-        i_dK = self.SVM.index('dK',state)
+        i_dK = self.SVM.index(state, 'dK')
         state[i_dK] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self):
@@ -384,6 +381,9 @@ class Lattice:
             return names
         else:
             return NP.unique([re.sub('_.*','',e) for e in names])
+        
+    def __getitem__(self, idx):
+        return self.fSequence[idx]
         
     def __repr__(self):
         return self.fSequence.__repr__()
