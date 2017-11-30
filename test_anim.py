@@ -12,6 +12,7 @@ import numpy as NP
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 #%%
+# whole ensemble
 fig, ax = PLT.subplots(1,1)
 colors = list(range(E.count()))
 colormap = cm.inferno
@@ -32,19 +33,19 @@ def update_quiver(i, Q, E, pref, num = 1, diff=True):
     """
     
     if diff:
-        Ss = [p['Ss'][num*i] - pref['Ss'][num*i] for p in E]
+        Sz = [p['Sz'][num*i] - pref['Sz'][num*i] for p in E]
         Sx = [p['Sx'][num*i] - pref['Sx'][num*i] for p in E]
     else:
-        Ss = [p['Ss'][num*i] for p in E]
+        Sz = [p['Sz'][num*i] for p in E]
         Sx = [p['Sx'][num*i] for p in E]
 
-    Q.set_UVC(Ss,Sx)
+    Q.set_UVC(Sz,Sx)
 
     return Q,
 
 # you need to set blit=False, or the first set of arrows never gets
 # cleared on subsequent frames
-anim = animation.FuncAnimation(fig, update_quiver, fargs=(Q, E, E.getReference(), 10, False),
+anim = animation.FuncAnimation(fig, update_quiver, fargs=(Q, E, E.getReference(), 1, False),
                                interval=1, blit=False)
 
 PLT.show()
@@ -53,11 +54,12 @@ PLT.grid()
 anim.save('./img/decoh.gif')
 
 #%%
+# single particle case
 
 p=E[3]
 
 fig, ax = PLT.subplots(1,1)
-Q = ax.quiver(0,0,p['Ss'][0],p['Sx'][0],angles='xy', scale_units='xy', scale=1)
+Q = ax.quiver(0,0,p['Sz'][0],p['Sx'][0],angles='xy', scale_units='xy', scale=1)
 
 ax.set_xlim(-1.2, 1.2)
 ax.set_ylim(-1.2, 1.2)
@@ -67,7 +69,7 @@ def update_quiver(i, Q, p):
     fixed increment on each frame
     """
 
-    Q.set_UVC(p['Ss'][i],p['Sx'][i])
+    Q.set_UVC(p['Sz'][i],p['Sx'][i])
 
     return Q,
 

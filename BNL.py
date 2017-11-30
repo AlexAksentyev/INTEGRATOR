@@ -102,13 +102,10 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
 #%%
 ## prepping ensemble of states
 #StateList = U.form_state_list((0e-3,0e-3),(0e-3,0e-3),2,2)
-StateList = U.StateList(dK=(0e-3,2.5e-4,5))
+StateList = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
 E = ENS.Ensemble(StateList)
-if False:
-    n = E.count()-1
-    ddk = 2e-4/n
-    for i in range(1,E.count()):
-        E.set(i, dK=2.5e-4-(i-1)*ddk)
+for i in range(E.count()):
+    E.set(i,Sz = 1)
 
 ## adding RF
 tLat = ENT.Lattice(QFS,E)
@@ -117,14 +114,14 @@ tLat.insertRF(0, 0,EField=15e7)
 #%%
 ## tracking
 start = clock()
-E.track(tLat, int(1e1), inner=False, breaks = 101, FWD=True)
+E.track(tLat, int(5e0), inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 #%%
 #plotting
-E.setReference(2)
+E.setReference(0)
 #E.plot_min('dK')
-E.plot('-D dK','-D s','all', mark_special=None,marker='.')
+E.plot('-D dK','-D Theta',[0,1,2,3], mark_special=None,marker='.')
 #%%
 #p = E[3]
 #PLT.figure()
