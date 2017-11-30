@@ -8,8 +8,9 @@ Created on Mon Sep 18 16:59:23 2017
 #%%
 import pandas as PDS
 from matplotlib import pyplot as PLT
-import CParticle as PCL
-import CElement as ENT
+import Particle as PCL
+import Ensemble as ENS
+import Element as ENT
 import utilFunc as U
 from importlib import reload
 
@@ -101,13 +102,12 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
 #%%
 ## prepping ensemble of states
 StateList = U.form_state_list((0e-3,0e-3),(0e-3,0e-3),2,2)
-E = PCL.Ensemble.from_state(StateList)
-E.setReference(0)
+E = ENS.Ensemble(StateList)
 if True:
     n = E.count()-1
     ddk = 2e-4/n
     for i in range(1,E.count()):
-        E[i].set(dK=2.5e-4-(i-1)*ddk)
+        E.set(i, dK=2.5e-4-(i-1)*ddk)
 
 ## adding RF
 tLat = ENT.Lattice(QFS,E)
@@ -116,10 +116,12 @@ tLat.insertRF(0, 0,EField=15e7)
 #%%
 ## tracking
 start = clock()
-E.track(tLat, int(3e0), inner=False, breaks = 101, FWD=True)
+E.track(tLat, int(1e1), inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
-E.plot('-D Sz','s','all', mark_special=None,marker='.')
+E.setReference(0)
+#E.plot_min('dK')
+E.plot('-D dK','-D t','all', mark_special=None,marker='.')
 #%%
 #p = E[3]
 #PLT.figure()
