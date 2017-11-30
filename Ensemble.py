@@ -236,7 +236,6 @@ class Ensemble:
                             for pid in self.ics.keys():
                                 self[pid][ind] = n,element.fName, k, *valsk[pid]
                             ind += 1
-#                    valsk = vals[brks-1].reshape(n_ics, n_var, order='C')
                     for pid in self.ics.keys():
                         self[pid][ind] = n,element.fName, self.__fLastPnt, *state[pid]
                     ind += 1
