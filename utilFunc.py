@@ -49,11 +49,10 @@ def read_optim_data(where = '/home/alexa/REPOS/data/', name = 'StrSec.txt'):
 
 class StateList:
     def __init__(self, **kwargs):
-        import itertools
         
-#        product = list(itertools.product(*itrs))
-
         keys = kwargs.keys()
+        
+        # create defined variables
         ntot = 1
         argDict = dict()
         for key, val in kwargs.items():
@@ -61,16 +60,33 @@ class StateList:
             ub = val[1]
             num = val[2]
             ntot *= num
-            argDict.update({key: NP.linspace(lb,ub,num)})
+            argDict.update({RHS.imap[key]: NP.linspace(lb,ub,num)})
+            
+        # make mesh
+        mesh = dict(zip(keys, NP.meshgrid(*list(argDict.values()))))
             
         vartype = list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
-        self.SL = NP.empty([ntot, RHS.varnum], dtype=vartype)
+        self.SL = NP.zeros(ntot, dtype=vartype)
         
-        for key in keys:
-            self.SL[key] = getattr()
+        #write data
+        for key, value in mesh.items():
+            self.SL[key] = value.reshape(ntot)
             
+        # convert to list of dicts for use with ensemble
+        self.SL = [dict(zip(self.SL.dtype.names, x)) for x in self.SL]
+            
+    def __len__(self):
+        return len(self.SL)
+    
+    def __getitem__(self, pid):
+        return self.SL[pid]
+    
+    def __repr__(self):
+        from pandas import DataFrame
         
-            
+        return str(DataFrame(self.SL))
+        
+
 if __name__ is '__main__':
-    s = StateList(x=(-1,1,2),y=(-5e-3,3e-3,2))
+    s = StateList(x=(-1e-3,-1e-3,3),y=(-2e-3,-2e-3,2))
             

@@ -101,9 +101,10 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
     SSb2H1 + SSb2H2 + ARCb1H1 + SSb1H1
 #%%
 ## prepping ensemble of states
-StateList = U.form_state_list((0e-3,0e-3),(0e-3,0e-3),2,2)
+#StateList = U.form_state_list((0e-3,0e-3),(0e-3,0e-3),2,2)
+StateList = U.StateList(dK=(0e-3,2.5e-4,5))
 E = ENS.Ensemble(StateList)
-if True:
+if False:
     n = E.count()-1
     ddk = 2e-4/n
     for i in range(1,E.count()):
@@ -119,9 +120,11 @@ start = clock()
 E.track(tLat, int(1e1), inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
-E.setReference(0)
+#%%
+#plotting
+E.setReference(2)
 #E.plot_min('dK')
-E.plot('-D dK','-D t','all', mark_special=None,marker='.')
+E.plot('-D dK','-D s','all', mark_special=None,marker='.')
 #%%
 #p = E[3]
 #PLT.figure()
