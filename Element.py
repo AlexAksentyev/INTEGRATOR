@@ -1,10 +1,12 @@
-import CParticle as PCL
+import Particle as PCL
 import pandas as PDS
 import numpy as NP
 import collections as CLN
 import copy
 import re
 import math
+
+from RHS import imap, index
 
 class Element:
     
@@ -49,9 +51,9 @@ class Bend:
     def __init__(self,RefPart,**kwargs):
         q = PCL.ezero
         clight = PCL.clight
-        self.fPardict = {'KinEn0':RefPart.fKinEn0, 'Mass0':RefPart.fMass0,
+        self.fPardict = {'KinEn0':RefPart.KinEn0, 'Mass0':RefPart.Mass0,
                          'q':q, 'clight':clight,
-                         'm0':RefPart.fMass0/clight**2*1e6*q}
+                         'm0':RefPart.Mass0/clight**2*1e6*q}
         
         super().__init__(**kwargs)
         
@@ -103,8 +105,9 @@ class MQuad(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        x = arg['x']
-        y = arg['y']
+        i_x, i_y = index(arg, 'x','y')
+        x = arg[i_x]
+        y = arg[i_y]
         return (self.__fGrad*y, self.__fGrad*x,0)
         
 
@@ -130,7 +133,7 @@ class MDipole(Element, HasCounter, Bend):
         super().__init__(Curve=Crv, Length=Length, Name=Name, RefPart=RefPart)
         
         if Crv is None:
-             R = self.computeRadius(RefPart.fKinEn0, BField)
+             R = self.computeRadius(RefPart.KinEn0, BField)
              self.__fR = R
              self.fCurve = 1/self.__fR
              self._Element__fChars['Curve'] = self.fCurve
@@ -176,8 +179,9 @@ class MSext(Element, HasCounter):
         self._Element__fChars['Grad'] = self.__fGrad
         
     def BField(self, arg):
-        x = arg['x']
-        y = arg['y']
+        i_x, i_y = index(arg, 'x','y')
+        x = arg[i_x]
+        y = arg[i_y]
         return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
         
 class Wien(Element, HasCounter, Bend):
@@ -239,12 +243,14 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
-        x = arg['x']
+        i_x = index(arg,'x')
+        x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         return (Ex, 0, 0)
     
     def BField(self, arg):
-        x =  arg['x']
+        i_x = index(arg,'x')
+        x = arg[i_x]
         
         e0 = self.fPardict['q']
         m0 = self.fPardict['m0']
@@ -261,21 +267,13 @@ class Wien(Element, HasCounter, Bend):
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
         return (0, B1, 0)
     
-    def frontKick(self, particle):
-        x=particle.getState()['x']
-        u = self.__U(x)
-        Xk = particle.getState()
-        Xk['dK'] -= u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+    def frontKick(self, state):
+        u = self.__U(state[:,imap['x']])
+        state[:,imap['dK']] -= u*1e-6/self.fPardict['KinEn0']
         
-    def rearKick(self, particle):
-        x=particle.getState()['x']
-        u = self.__U(x)
-        Xk = particle.getState()
-        Xk['dK'] += u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+    def rearKick(self, state):
+        u = self.__U(state[:,imap['x']])
+        state[:,imap['dK']] += u*1e-6/self.fPardict['KinEn0']
         
     def kickVolts(self, x):
         return (self.__fVolt, self.__U(x))
@@ -285,20 +283,18 @@ class ERF(Element, HasCounter):
     """ RF element
     """
     
-    def __init__(self, Length, RefPart, Acc_length, EField = 15e5, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
+    def __init__(self, Length, Ensemble, Acc_length, EField = 15e5, Phase = 1.5*NP.pi, H_number = 50, Name = "RF"):
         super().__init__(Curve=0,Length=Length,Name=Name)
         
         if Length==0: 
             self.bSkip = True
             Length = 5e-4
         
-        if type(RefPart) is PCL.Ensemble: RefPart = RefPart.getReference()
-        elif type(RefPart) is PCL.Particle: pass
-        else: raise ValueError('Wrong type Reference Particle')
+        self.RefPart = Ensemble.Particle
         
         self.fAmplitude = EField
         self.fPhase = Phase
-        self.fFreq = RefPart.revFreq(Acc_length) * H_number
+        self.fFreq = self.RefPart.revFreq(Acc_length) * H_number
         self.__fH_number = H_number
         
         self._Element__fChars = PDS.DataFrame({'Amplitude':self.fAmplitude, 
@@ -307,17 +303,19 @@ class ERF(Element, HasCounter):
             
         self.__fU = self.fAmplitude*Length # Length instead self.fLength for compatibility with Length 0
         
-        RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
+        self.RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
         
     def EField(self, arg):
-        t = arg['t']
+        i_t = index(arg, 't')
+        t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         return (0, 0, A*NP.cos(w*t+phi))
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
-        t = arg['t']
+        i_t = index(arg, 't')
+        t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
@@ -331,45 +329,34 @@ class ERF(Element, HasCounter):
         phi = self.fPhase
         return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
     
-    def advance(self, particle):
-        arg = particle.getState()
-        
+    def advance(self, state):        
         w = self.fFreq*2*NP.pi
         u = self.__fU
-        K = particle.fKinEn0 * (1 + arg['dK'])
+        i_dK, i_s, i_t = index(state, 'dK','s','t')
+        K = self.RefPart.KinEn0 * (1 + state[i_dK])
         
-        arg['dK'] += u*NP.cos(w*arg['t']+self.fPhase)*1e-6/particle.fKinEn0
-        arg['s'] += self.fLength
-        gamma,beta = particle.GammaBeta(K)
-        arg['t'] += self.fLength/beta/PCL.clight
-        
-        particle.setState(arg)
+        state[i_dK] += u*NP.cos(w*state[i_t]+self.fPhase)*1e-6/self.RefPart.KinEn0
+        state[i_s] += self.fLength
+        gamma,beta = self.RefPart.GammaBeta(K)
+        state[i_t] += self.fLength/beta/PCL.clight
     
-    def frontKick(self, particle):
+    def frontKick(self, state):
         u = self.__fU
-        Xk = particle.getState()
-        Xk['dK'] -= u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+        state[:,imap['dK']] -= u*1e-6/self.RefPart.KinEn0
         
-    def rearKick(self, particle):
+    def rearKick(self, state):
         u = self.__fU
-        Xk = particle.getState()
-        Xk['dK'] += u*1e-6/particle.fKinEn0
-#        print('Kick voltage {}'.format(u))
-        particle.setState(Xk)
+        state[:,imap['dK']] += u*1e-6/self.RefPart.KinEn0
         
     def kickVolts(self):
         return self.__fU
         
 class Lattice:
-    def __init__(self, ElSeq, RefPart):
+    def __init__(self, ElSeq, Ensemble):
         
         super().__init__()
         
-        if type(RefPart) is PCL.Ensemble: self.fRefPart = RefPart.getReference()
-        elif type(RefPart) is PCL.Particle: self.fRefPart = RefPart
-        else: raise ValueError('Wrong type Reference Particle')
+        self.Ensemble = Ensemble
         
         self.fSequence = ElSeq[:]
         
@@ -379,7 +366,7 @@ class Lattice:
         
     def insertRF(self, position, length, **ERF_pars):
         full_acc_len = self.fLength + length
-        rf = ERF(length,self.fRefPart, full_acc_len, **ERF_pars)
+        rf = ERF(length,self.Ensemble, full_acc_len, **ERF_pars)
         self.fSequence.insert(position, rf)
         
     def listNames(self, full=False):
@@ -388,6 +375,9 @@ class Lattice:
             return names
         else:
             return NP.unique([re.sub('_.*','',e) for e in names])
+        
+    def __getitem__(self, idx):
+        return self.fSequence[idx]
         
     def __repr__(self):
         return self.fSequence.__repr__()

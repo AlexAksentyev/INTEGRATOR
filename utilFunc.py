@@ -7,7 +7,7 @@ Created on Thu Oct 19 12:53:58 2017
 """
 
 import numpy as NP
-import CParticle as PCL
+import RHS
 
 def phi(operation,*w):
     s = '('
@@ -31,7 +31,7 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
     xs = NP.linspace(xint[0],xint[1],Nx)
     ys = NP.linspace(yint[0],yint[1],Ny)
     
-    names = PCL.StateVars
+    names = RHS.varname
     
     StateList = list()
     for x in xs:
@@ -45,3 +45,32 @@ def read_optim_data(where = '/home/alexa/REPOS/data/', name = 'StrSec.txt'):
     import pandas as PDS
     d = PDS.read_table(where+name,delim_whitespace=True)
     return d
+
+
+class StateList:
+    def __init__(self, **kwargs):
+        import itertools
+        
+#        product = list(itertools.product(*itrs))
+
+        keys = kwargs.keys()
+        ntot = 1
+        argDict = dict()
+        for key, val in kwargs.items():
+            lb = val[0]
+            ub = val[1]
+            num = val[2]
+            ntot *= num
+            argDict.update({key: NP.linspace(lb,ub,num)})
+            
+        vartype = list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
+        self.SL = NP.empty([ntot, RHS.varnum], dtype=vartype)
+        
+        for key in keys:
+            self.SL[key] = getattr()
+            
+        
+            
+if __name__ is '__main__':
+    s = StateList(x=(-1,1,2),y=(-5e-3,3e-3,2))
+            
