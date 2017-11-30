@@ -317,11 +317,9 @@ class Ensemble:
             check = pr.fRF
         except AttributeError:
             print('\n \t \t Running w/o RF')
-            pr.fRF = {'Freq':0, 'Phase':0}
-            
-        del check
+            check = {'Freq':0, 'Phase':0}
         
-        th = lambda t: 2*NP.pi*pr.fRF['Freq']*t + pr.fRF['Phase']
+        th = lambda t: 2*NP.pi*check['Freq']*t + check['Phase']
 
         
         from numpy.lib.recfunctions import append_fields
