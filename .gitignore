@@ -1,4 +1,7 @@
-dop853_temp/
 __pycache__/
-build/
-radau5_temp/
+*.pyc
+*.dat
+*.pyd
+*so
+img/
+data/

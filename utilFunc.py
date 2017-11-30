@@ -7,6 +7,7 @@ Created on Thu Oct 19 12:53:58 2017
 """
 
 import numpy as NP
+import RHS
 
 def phi(operation,*w):
     s = '('
@@ -30,56 +31,61 @@ def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
     xs = NP.linspace(xint[0],xint[1],Nx)
     ys = NP.linspace(yint[0],yint[1],Ny)
     
+    names = RHS.varname
     
     StateList = list()
     for x in xs:
         for y in ys:
-            StateList.append([x,y]+[0]*6+[0, 0, 1])
+            StateList.append(dict(zip(names, [x,y]+[0]*6+[0, 0, 1])))
     
     return StateList
 
-
-def GammaBeta(fPardict):
-        Mass0 = fPardict['Mass0']
-        K0 = fPardict['KinEn0']
-        gamma = K0 / Mass0 + 1
-        beta = float(NP.sqrt(gamma**2-1)/gamma)
-        return (gamma, beta)
-    
-def Pc(fPardict, KNRG):
-    return float(NP.sqrt((fPardict['Mass0'] + KNRG)**2 - fPardict['Mass0']**2))
+def read_optim_data(where = '/home/alexa/REPOS/data/', name = 'StrSec.txt'):
+    import pandas as PDS
+    d = PDS.read_table(where+name,delim_whitespace=True)
+    return d
 
 
-def ThDKplot(Ensemble, ERF, **kwargs):#unfinished
-    import re 
-    
-    trajs = []
-    for name,traj in Ensemble.fLattices['lattice'].fDSModel.trajectories.items():
-        if re.sub('_.*','',name) == 'Ref':
-            traj0 = traj
-        else:
-            trajs.append(traj)
+class StateList:
+    def __init__(self, **kwargs):
+        
+        keys = kwargs.keys()
+        
+        # create defined variables
+        ntot = 1
+        argDict = dict()
+        for key, val in kwargs.items():
+            lb = val[0]
+            ub = val[1]
+            num = val[2]
+            ntot *= num
+            argDict.update({RHS.imap[key]: NP.linspace(lb,ub,num)})
             
-    t = traj0.underlyingMesh(['ts'])['ts']
+        # make mesh
+        mesh = dict(zip(keys, NP.meshgrid(*list(argDict.values()))))
+            
+        vartype = list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
+        self.SL = NP.zeros(ntot, dtype=vartype)
+        
+        #write data
+        for key, value in mesh.items():
+            self.SL[key] = value.reshape(ntot)
+            
+        # convert to list of dicts for use with ensemble
+        self.SL = [dict(zip(self.SL.dtype.names, x)) for x in self.SL]
+            
+    def __len__(self):
+        return len(self.SL)
+    
+    def __getitem__(self, pid):
+        return self.SL[pid]
+    
+    def __repr__(self):
+        from pandas import DataFrame
+        
+        return str(DataFrame(self.SL))
+        
 
-    df = PDS.DataFrame()
-    for traj in trajs:
-        
-    
-    df0 = df[df['PID']=='Ref0']
-    df = df[df['PID'] != 'Ref0']
-    
-    th = lambda t: 2*NP.pi*ERF.fFreq*t + ERF.fPhase
-    df['Theta'] = df['ts'].apply(th)
-    df0['Theta'] = df0['ts'].apply(th)
-    
-    n = len(NP.unique(df['PID']))
-    df0 = df0.iloc[NP.tile(NP.arange(len(df0)),n)]
-    
-    df[['Theta','dK']] = df[['Theta','dK']].sub(df0[['Theta','dK']], axis=0)
-    
-    df.PID = df.PID.apply(lambda x: str(x))
-        
-    from ggplot import ggplot,aes, theme_bw, geom_point
-    
-    return ggplot(df, aes(x='Theta',y='dK',color='PID')) + geom_point(**kwargs) + theme_bw()
+if __name__ is '__main__':
+    s = StateList(x=(-1e-3,-1e-3,3),y=(-2e-3,-2e-3,2))
+
