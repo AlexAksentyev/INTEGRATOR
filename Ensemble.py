@@ -58,25 +58,6 @@ class Ensemble:
         
         return str(DataFrame(self.ics).T)
         
-    
-    def plot_min(self, Ylab, Xlab='s', pids='all',**kwargs):
-        from matplotlib import pyplot as PLT
-        
-        names = set(self.ics.keys())
-        if pids != 'all':
-            pids = set(pids)
-            not_found = names - pids
-            names = names - not_found
-            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
-        
-        
-        for pid in names:
-            PLT.plot(self[str(pid)][Xlab], self[str(pid)][Ylab],label=pid,**kwargs)
-            
-        PLT.xlabel(Xlab)
-        PLT.ylabel(Ylab)
-        PLT.legend()
-        
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, **kwargs):
 
         ## reading how to plot data: diff variable with reference value, or otherwise
