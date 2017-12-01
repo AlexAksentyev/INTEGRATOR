@@ -33,11 +33,11 @@ def update_quiver(i, Q, E, pref, num = 1, diff=True):
     """
     
     if diff:
-        Sz = [p['Sz'][num*i] - pref['Sz'][num*i] for p in E]
-        Sx = [p['Sx'][num*i] - pref['Sx'][num*i] for p in E]
+        Sz = [p.Log['Sz'][num*i] - pref.Log['Sz'][num*i] for p in E]
+        Sx = [p.Log['Sx'][num*i] - pref.Log['Sx'][num*i] for p in E]
     else:
-        Sz = [p['Sz'][num*i] for p in E]
-        Sx = [p['Sx'][num*i] for p in E]
+        Sz = [p.Log['Sz'][num*i] for p in E]
+        Sx = [p.Log['Sx'][num*i] for p in E]
 
     Q.set_UVC(Sz,Sx)
 
