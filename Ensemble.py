@@ -37,9 +37,6 @@ class Ensemble:
         
     def count(self):
         return self.n_ics
-    
-#    def set(self, pid, **kwargs):
-#        self.ics[pid].update(**kwargs)
         
     def setReference(self, name):
         self.__fRefPart = self.__bundle_up(name)
@@ -51,23 +48,8 @@ class Ensemble:
         return list(self.ics.keys())
     
     def __getitem__(self, pid):
-#        return getattr(self.Log, 'P'+str(pid))
         return self.__bundle_up(pid)
     
-#    def __setitem__(self, pid, name_value):
-#        from numpy.lib.recfunctions import append_fields
-#        
-#        name = name_value[0]
-#        value = name_value[1]
-#        
-#        try:       
-#            log = self[pid]
-#            setattr(self.Log, 'P'+str(pid), append_fields(log, name, value,
-#                                dtypes=float, usemask=False, asrecarray=True))
-#        except AttributeError:
-#            print('No log yet')                
-#            return
-        
     def __iter__(self):
         self.current_pid = 0
         return self
@@ -258,19 +240,6 @@ class Ensemble:
                 
         print('Complete 100 %')
         
-#        pr = self.Particle
-#        
-#        try:
-#            check = pr.fRF
-#        except AttributeError:
-#            print('\n \t \t System w/o RF')
-#            check = {'Freq':0, 'Phase':0}
-#        
-#        from numpy.lib.recfunctions import append_fields
-#        th = lambda t: 2*NP.pi*check['Freq']*t + check['Phase']
-#        for pid in self.ics.keys():
-#            self[pid].Log = append_fields(self[pid].Log, 'Theta', th(self[pid].Log.t),
-#                                dtypes=float, usemask=False, asrecarray=True)
 #%%
 if __name__ is '__main__':
     import utilFunc as U
