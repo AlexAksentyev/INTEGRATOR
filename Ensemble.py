@@ -79,7 +79,7 @@ class Ensemble:
         
         filename = './data/{}.h5'.format(filename)
         with tables.open_file(filename, mode='w') as f:
-            for p in E: f.create_table(f.root, 'P'+str(p.PID), p.Log)
+            for p in self: f.create_table(f.root, 'P'+str(p.PID), p.Log)
         
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot = True, **kwargs):
 
@@ -165,8 +165,8 @@ class Ensemble:
     def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101):
         from Element import Lattice
         if type(ElementSeq) == Lattice:
-            ElementSeq = ElementSeq.fSequence
             filename = ElementSeq.Name # for saving data
+            ElementSeq = ElementSeq.fSequence
         else: filename = 'Unnanmed_sequence'
         
         brks = breaks
