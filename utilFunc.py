@@ -55,11 +55,13 @@ class StateList:
         ntot = 1
         argDict = dict()
         for key, val in kwargs.items():
-            lb = val[0]
-            ub = val[1]
-            num = val[2]
+            try: 
+                lb, ub, num = val
+                val = NP.linspace(lb,ub,num)
+            except TypeError: # if key = value, set value for all pcls
+                num = 1
             ntot *= num
-            argDict.update({RHS.imap[key]: NP.linspace(lb,ub,num)})
+            argDict.update({RHS.imap[key]: val})
             
         # make mesh
         mesh = dict(zip(keys, NP.meshgrid(*list(argDict.values()))))
@@ -85,7 +87,7 @@ class StateList:
         
         return str(DataFrame(self.SL))
         
-
+#%%
 if __name__ is '__main__':
-    s = StateList(x=(-1e-3,-1e-3,3),y=(-2e-3,-2e-3,2))
+    s = StateList(x=(0e-3,1e-3,3),y=(-1e-3,0e-3,2), Sz=1)
 
