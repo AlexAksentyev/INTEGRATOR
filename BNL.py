@@ -101,7 +101,6 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
     SSb2H1 + SSb2H2 + ARCb1H1 + SSb1H1
 #%%
 ## prepping ensemble of states
-#StateList = U.form_state_list((0e-3,0e-3),(0e-3,0e-3),2,2)
 StateList = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
 E = ENS.Ensemble(StateList)
 for i in range(E.count()):
