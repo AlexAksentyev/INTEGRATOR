@@ -12,7 +12,7 @@ import RHS
 import copy
 
 class Bundle(dict):
-    """Bunch serves asan interface for easy access 
+    """Bunch serves as an interface for easy access 
     to a bundle of data of a particle from ensemble
     """
     def __init__(self,**kw):
@@ -33,7 +33,12 @@ class Ensemble:
         self.ics = dict(zip(range(len(state_list)), state_list))
         
     def __bundle_up(self, pid):
-        return Bundle(PID = pid, ics = self.ics[pid], Log = getattr(self.Log, 'P'+str(pid), None))
+        log = getattr(self.Log, 'P'+str(pid), None)
+        lst_i = len(log)-1
+        return Bundle(PID = pid, 
+                      ics = self.ics[pid], 
+                      current_state = log[lst_i],
+                      Log = log)
         
     def count(self):
         return self.n_ics
@@ -94,44 +99,37 @@ class Ensemble:
             names = names - not_found
             print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
         
-        
-        Elt = [re.sub('_.*','',e) for e in self[0].Log['Element']]
-        
-        def cm(elist):
-            d = lambda e: 'red' if e == mark_special else 'black'
-            return [d(e) for e in elist]
-        
-        
-        nr = self.count()
-        nc = len(self[0].Log[Ylab])
-                
-        Y = NP.empty([nr,nc])
-        X = NP.empty([nr,nc])
-        dX = NP.empty([nc])
-        dY = NP.empty([nc])
-        
+        ## creating plot
         from matplotlib import pyplot as PLT
         
         PLT.figure()     
         
         if mark_special is not None:
+            Elt = [re.sub('_.*','',e) for e in self[0].Log['Element']]
+            def cm(elist):
+                d = lambda e: 'red' if e == mark_special else 'black'
+                return [d(e) for e in elist]
+            
             plot = lambda X, Y, lab, **kwargs: PLT.scatter(X,Y, label=mark_special, c=cm(Elt), **kwargs)
             legend = lambda lab: PLT.legend([mark_special])
         else:
             plot = lambda X, Y, lab, **kwargs: PLT.plot(X,Y,label=lab, **kwargs)
             legend = lambda lab: PLT.legend(lab)
+                
+        nc = len(self[0].Log[Ylab])
+        dX = NP.empty([nc])
+        dY = NP.empty([nc])
         
         for i in names:
-            Y[i] = self[i].Log[Ylab]
-            dY = copy.deepcopy(Y[i])
-            X[i] = self[i].Log[Xlab]
-            dX = copy.deepcopy(X[i])
-            if '-D' in x_flags: dX -= X[pid0]
-            if '-D' in y_flags: dY -= Y[pid0]
+            dY = copy.deepcopy(self[i].Log[Ylab])
+            dX = copy.deepcopy(self[i].Log[Xlab])
+            if '-D' in x_flags: dX -= self[pid0].Log[Xlab]
+            if '-D' in y_flags: dY -= self[pid0].Log[Ylab]
             plot(dX, dY, i, **kwargs)
             
         legend(names)
         
+        ## creating pretty labels
         sub_map = {'Theta':'\Theta','dK':'\Delta K'}
         
         def sub(*labels):
@@ -154,7 +152,7 @@ class Ensemble:
         PLT.ylabel(Ylab)
         PLT.grid()
             
-        return (X, Y, PLT.gcf())
+        return PLT.gcf()
 
     def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101):
         from Element import Lattice
