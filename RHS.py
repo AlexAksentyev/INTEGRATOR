@@ -11,7 +11,7 @@ import Particle as PCL
 ezero = PCL.ezero
 clight = PCL.clight
 
-varname = ['x','y','s','t','H','px','py','dK','Sx','Sy','Sz'] # this defines the dictionary order of variables
+varname = ['x','y','s','t','Theta','H','px','py','dK','Sx','Sy','Sz'] # this defines the dictionary order of variables
 imap = dict(zip(varname, range(len(varname))))
 varnum = len(varname)
 def index(array, *names):
@@ -24,11 +24,18 @@ class RHS:
         self.n_var = Ensemble.n_var
         self.Particle = Ensemble.Particle
         
+        try:
+            check = self.Particle.fRF
+        except AttributeError:
+            print('\n \t \t System w/o RF')
+            check = {'Freq':0, 'Phase':0}
+        
+        self.WFreq = 2*NP.pi*check['Freq']
         
     
     def __call__(self, state, at, element):
         if NP.isnan(state).any(): raise ValueError('NaN state variable(s)')
-        x,y,s,t,H,px,py,dEn,Sx,Sy,Ss = state.reshape(self.n_var, self.n_ics,order='F')
+        x,y,s,t,theta,H,px,py,dEn,Sx,Sy,Ss = state.reshape(self.n_var, self.n_ics,order='F')
         
         KinEn = self.Particle.KinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -93,7 +100,11 @@ class RHS:
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - (Py * Es - Ps * Ey) * Ss) + (sp1*Bs+sp2*Ps)*Sx-(sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - (Ps * Ex - Px * Es) * Sx) + (sp1*Bx+sp2*Px)*Sy-(sp1*By+sp2*Py)*Sx
         
-        DX = [xp, yp, NP.repeat(1,self.n_ics), tp, Hp, Pxp/P0c, Pyp/P0c, dEnp/self.Particle.KinEn0, Sxp, Syp, Ssp]
+        DX = [xp, yp, NP.repeat(1,self.n_ics), #xp, yp, sp
+              tp, self.WFreq*tp, Hp, #tp, Thetap, Hp
+              Pxp/P0c, Pyp/P0c, dEnp/self.Particle.KinEn0, #pxp, pyp, dKp
+              Sxp, Syp, Ssp] #Sxp, Syp, Ssp
+              # Theta 
         
         return NP.reshape(DX, self.n_var*self.n_ics,order='F')
     
