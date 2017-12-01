@@ -17,6 +17,7 @@ from importlib import reload
 from time import clock
 
 reload(ENT)
+reload(ENS)
 reload(PCL)
 reload(U)
 
@@ -101,10 +102,10 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
     SSb2H1 + SSb2H2 + ARCb1H1 + SSb1H1
 #%%
 ## prepping ensemble of states
-StateList = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
+StateList = U.StateList(dK=(0e-3,3e-4,4))
 E = ENS.Ensemble(StateList)
-for i in range(E.count()):
-    E.set(i,Sz = 1)
+for p in E:
+    p.ics['Sz'] = 1
 
 ## adding RF
 tLat = ENT.Lattice(QFS,E)
@@ -113,7 +114,7 @@ tLat.insertRF(0, 0,EField=15e7)
 #%%
 ## tracking
 start = clock()
-E.track(tLat, int(5e0), inner=False, breaks = 101, FWD=True)
+E.track(tLat, int(1e2), inner=False, breaks = 101, FWD=True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 #%%
