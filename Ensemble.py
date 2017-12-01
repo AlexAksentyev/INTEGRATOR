@@ -73,6 +73,13 @@ class Ensemble:
         from pandas import DataFrame
         
         return str(DataFrame(self.ics).T)
+    
+    def saveData(self, filename):
+        import tables
+        
+        filename = './data/{}.h5'.format(filename)
+        with tables.open_file(filename, mode='w') as f:
+            for p in E: f.create_table(f.root, 'P'+str(p.PID), p.Log)
         
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot = True, **kwargs):
 
@@ -159,6 +166,8 @@ class Ensemble:
         from Element import Lattice
         if type(ElementSeq) == Lattice:
             ElementSeq = ElementSeq.fSequence
+            filename = ElementSeq.Name # for saving data
+        else: filename = 'Unnanmed_sequence'
         
         brks = breaks
         
@@ -194,8 +203,9 @@ class Ensemble:
         n_var = self.n_var
         
         rhs = RHS.RHS(self)
-        
+
         old_percent = -1
+        ## tracking
         for n in range(1,ntimes+1):
             for i in range(len(ElementSeq)):
                 percent = int(ind/nrow*100)
