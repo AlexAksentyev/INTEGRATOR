@@ -11,6 +11,14 @@ import Particle as PCL
 import RHS
 import copy
 
+class Bundle(dict):
+    """Bunch serves asan interface for easy access 
+    to a bundle of data of a particle from ensemble
+    """
+    def __init__(self,**kw):
+        dict.__init__(self,kw)
+        self.__dict__ = self
+
 class Ensemble:
     
     def __init__(self, state_list, Particle=PCL.Particle()):
@@ -24,15 +32,17 @@ class Ensemble:
         
         self.ics = dict(zip(range(len(state_list)), state_list))
         
+    def __bundle_up(self, pid):
+        return Bundle(PID = pid, ics = self.ics[pid], Log = getattr(self.Log, 'P'+str(pid), None))
+        
     def count(self):
         return self.n_ics
     
-    def set(self, pid, **kwargs):
-        self.ics[pid].update(**kwargs)
+#    def set(self, pid, **kwargs):
+#        self.ics[pid].update(**kwargs)
         
     def setReference(self, name):
-        self.__fRefPart = getattr(self.Log, 'P'+str(name))
-        self.__fPID = name
+        self.__fRefPart = self.__bundle_up(name)
         
     def getReference(self):
         return self.__fRefPart
@@ -41,17 +51,22 @@ class Ensemble:
         return list(self.ics.keys())
     
     def __getitem__(self, pid):
-        return getattr(self.Log, 'P'+str(pid))
+#        return getattr(self.Log, 'P'+str(pid))
+        return self.__bundle_up(pid)
     
-    def __setitem__(self, pid, name_value):
-        from numpy.lib.recfunctions import append_fields
-        
-        name = name_value[0]
-        value = name_value[1]
-        
-        log = self[pid]
-        setattr(self.Log, 'P'+str(pid), append_fields(log, name, value,
-                            dtypes=float, usemask=False, asrecarray=True))
+#    def __setitem__(self, pid, name_value):
+#        from numpy.lib.recfunctions import append_fields
+#        
+#        name = name_value[0]
+#        value = name_value[1]
+#        
+#        try:       
+#            log = self[pid]
+#            setattr(self.Log, 'P'+str(pid), append_fields(log, name, value,
+#                                dtypes=float, usemask=False, asrecarray=True))
+#        except AttributeError:
+#            print('No log yet')                
+#            return
         
     def __iter__(self):
         self.current_pid = 0
@@ -81,7 +96,7 @@ class Ensemble:
         Ylab = re.subn('-.* ', '', Ylab)[0]
         
         try:
-            pid0 = self.__fPID
+            pid0 = self.getReference().PID
         except AttributeError:
             print('Reference not set')
             return
@@ -98,7 +113,7 @@ class Ensemble:
             print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
         
         
-        Elt = [re.sub('_.*','',e) for e in self[0]['Element']]
+        Elt = [re.sub('_.*','',e) for e in self[0].Log['Element']]
         
         def cm(elist):
             d = lambda e: 'red' if e == mark_special else 'black'
@@ -106,7 +121,7 @@ class Ensemble:
         
         
         nr = self.count()
-        nc = len(self[0][Ylab])
+        nc = len(self[0].Log[Ylab])
                 
         Y = NP.empty([nr,nc])
         X = NP.empty([nr,nc])
@@ -125,9 +140,9 @@ class Ensemble:
             legend = lambda lab: PLT.legend(lab)
         
         for i in names:
-            Y[i] = self[i][Ylab]
+            Y[i] = self[i].Log[Ylab]
             dY = copy.deepcopy(Y[i])
-            X[i] = self[i][Xlab]
+            X[i] = self[i].Log[Xlab]
             dX = copy.deepcopy(X[i])
             if '-D' in x_flags: dX -= X[pid0]
             if '-D' in y_flags: dY -= Y[pid0]
@@ -161,7 +176,7 @@ class Ensemble:
 
     def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101):
         from Element import Lattice
-        if type(ElementSeq == Lattice):
+        if type(ElementSeq) == Lattice:
             ElementSeq = ElementSeq.fSequence
         
         brks = breaks
@@ -188,7 +203,7 @@ class Ensemble:
             for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
                 ic = list(ic.values())
-                self[pid][0] = 0,names[0],self.__fLastPnt, *ic
+                self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic
                 ics.append(ic)
             ind = 1
         
@@ -228,38 +243,40 @@ class Ensemble:
                         for k in range(brks-1):
                             valsk = vals[k].reshape(n_ics, n_var, order='C')
                             for pid in self.ics.keys():
-                                self[pid][ind] = n,element.fName, k, *valsk[pid]
+                                self[pid].Log[ind] = n,element.fName, k, *valsk[pid]
                             ind += 1
                     for pid in self.ics.keys():
-                        self[pid][ind] = n,element.fName, self.__fLastPnt, *state[pid]
+                        self[pid].Log[ind] = n,element.fName, self.__fLastPnt, *state[pid]
                     ind += 1
                 except ValueError:
                     print('NAN error at: Element {}, turn {}'.format(element.fName, n))
                     for m in range(ind,len(self.Log.P0)):
                         for pid in self.ics.keys():
-                            self[pid][ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
+                            self[pid].Log[ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
                         ind += 1
                     return
                 
         print('Complete 100 %')
         
-        pr = self.Particle
-        
-        try:
-            check = pr.fRF
-        except AttributeError:
-            print('\n \t \t System w/o RF')
-            check = {'Freq':0, 'Phase':0}
-        
-        th = lambda t: 2*NP.pi*check['Freq']*t + check['Phase']
-        for pid in self.ics.keys():
-            self[pid] = ('Theta', th(self[pid].t))
+#        pr = self.Particle
+#        
+#        try:
+#            check = pr.fRF
+#        except AttributeError:
+#            print('\n \t \t System w/o RF')
+#            check = {'Freq':0, 'Phase':0}
+#        
+#        from numpy.lib.recfunctions import append_fields
+#        th = lambda t: 2*NP.pi*check['Freq']*t + check['Phase']
+#        for pid in self.ics.keys():
+#            self[pid].Log = append_fields(self[pid].Log, 'Theta', th(self[pid].Log.t),
+#                                dtypes=float, usemask=False, asrecarray=True)
 #%%
 if __name__ is '__main__':
     import utilFunc as U
     import Element as ENT
     
-    states=[list(e.values()) for e in U.form_state_list(xint=(1e-3,1e-3),yint=(-1e-3,-1e-3))]
+    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
     
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
@@ -269,4 +286,5 @@ if __name__ is '__main__':
     
     E.track([QF1, OD1, OD1, OD1],100)
     
-    E.plot_min('x','s')
+    E.setReference(0)
+    E.plot('x','s')
