@@ -352,21 +352,21 @@ class ERF(Element, HasCounter):
         return self.__fU
         
 class Lattice:
-    def __init__(self, ElSeq, Ensemble):
+    def __init__(self, ElSeq, Name):
         
         super().__init__()
         
-        self.Ensemble = Ensemble
-        
         self.fSequence = ElSeq[:]
+        
+        self.Name = Name
         
         self.fCount = len(ElSeq)
         self.fLength = 0
         for e in ElSeq: self.fLength += e.fLength
         
-    def insertRF(self, position, length, **ERF_pars):
+    def insertRF(self, position, length, Ensemble, **ERF_pars):
         full_acc_len = self.fLength + length
-        rf = ERF(length,self.Ensemble, full_acc_len, **ERF_pars)
+        rf = ERF(length,Ensemble, full_acc_len, **ERF_pars)
         self.fSequence.insert(position, rf)
         
     def listNames(self, full=False):
