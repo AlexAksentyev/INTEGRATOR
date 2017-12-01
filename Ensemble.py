@@ -18,6 +18,7 @@ class Bundle(dict):
     def __init__(self,**kw):
         dict.__init__(self,kw)
         self.__dict__ = self
+        
 
 class Ensemble:
     
@@ -73,7 +74,7 @@ class Ensemble:
         
         return str(DataFrame(self.ics).T)
         
-    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, **kwargs):
+    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot = True, **kwargs):
 
         ## reading how to plot data: diff variable with reference value, or otherwise
         import re
@@ -102,7 +103,7 @@ class Ensemble:
         ## creating plot
         from matplotlib import pyplot as PLT
         
-        PLT.figure()     
+        if new_plot: PLT.figure()     
         
         if mark_special is not None:
             Elt = [re.sub('_.*','',e) for e in self[0].Log['Element']]
@@ -242,8 +243,9 @@ class Ensemble:
 if __name__ is '__main__':
     import utilFunc as U
     import Element as ENT
+    from matplotlib import pyplot as PLT
     
-    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
+    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,-1e-3,2), y=(-1e-3,1e-3,2), Sz=1)
     
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
@@ -253,5 +255,11 @@ if __name__ is '__main__':
     
     E.track([QF1, OD1, OD1, OD1],100)
     
+    #%%
     E.setReference(0)
-    E.plot('x','s')
+    pids = [1,4,5]
+    n=1
+    for pid in pids:
+        PLT.subplot(3,1,n); n += 1
+        E.plot('-D y','s', pids=[E.getReference().PID, pid], new_plot=False)
+        
