@@ -17,6 +17,9 @@ class Particle:
         self.KinEn0 = KinEn
         self.G = G
         
+    def getParams(self):
+        return NP.array([(self.Mass0, self.KinEn0, self.G)],dtype=[('Mass0',float),('KinEn0',float),('G',float)])
+        
     def GammaBeta(self, NRG):
         gamma = NRG / self.Mass0 + 1
         beta = NP.sqrt(gamma**2-1)/gamma

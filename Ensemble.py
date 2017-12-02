@@ -32,14 +32,30 @@ class Ensemble:
         
         self.ics = dict(zip(range(len(state_list)), state_list))
         
+    @classmethod
+    def from_file(cls, filename):
+        import tables as TBL
+        
+        with TBL.open_file(filename) as f:
+            pcl = f.root.Particle[0]
+            pcl = PCL.Particle(pcl['Mass0'], pcl['KinEn0'], pcl['G'])
+            Log = lambda: None
+            ics = list()
+            for tbl in f.root.Logs:
+                setattr(Log, tbl.name, tbl.read())
+                ic = list(tbl[0])[3:]
+                ics.append(dict(zip(RHS.varname, ic)))
+                
+            ens = cls(ics, pcl)
+            ens.Log = Log
+            
+        return ens
+        
     def __bundle_up(self, pid):
         return Bundle(PID = pid, ics = self.ics[pid], Log = getattr(self.Log, 'P'+str(pid), None))
         
     def count(self):
         return self.n_ics
-    
-#    def set(self, pid, **kwargs):
-#        self.ics[pid].update(**kwargs)
         
     def setReference(self, name):
         self.__fRefPart = self.__bundle_up(name)
@@ -51,22 +67,7 @@ class Ensemble:
         return list(self.ics.keys())
     
     def __getitem__(self, pid):
-#        return getattr(self.Log, 'P'+str(pid))
         return self.__bundle_up(pid)
-    
-#    def __setitem__(self, pid, name_value):
-#        from numpy.lib.recfunctions import append_fields
-#        
-#        name = name_value[0]
-#        value = name_value[1]
-#        
-#        try:       
-#            log = self[pid]
-#            setattr(self.Log, 'P'+str(pid), append_fields(log, name, value,
-#                                dtypes=float, usemask=False, asrecarray=True))
-#        except AttributeError:
-#            print('No log yet')                
-#            return
         
     def __iter__(self):
         self.current_pid = 0
@@ -83,7 +84,6 @@ class Ensemble:
         
     def __repr__(self):
         from pandas import DataFrame
-        
         return str(DataFrame(self.ics).T)
         
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, **kwargs):
@@ -113,7 +113,7 @@ class Ensemble:
             print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
         
         
-        Elt = [re.sub('_.*','',e) for e in self[0].Log['Element']]
+        Elt = [re.sub('_.*','',str(e)).replace("b'",'') for e in self[0].Log['Element']]
         
         def cm(elist):
             d = lambda e: 'red' if e == mark_special else 'black'
@@ -180,10 +180,10 @@ class Ensemble:
         """
         from Element import Lattice
         if type(ElementSeq) == Lattice:
-            filename = ElementSeq.Name
+            latname = ElementSeq.Name
             ElementSeq = ElementSeq.fSequence
         else:
-            filename = 'Unnamed_sequence'
+            latname = 'Unnamed_sequence'
         
         brks = breaks
         self.fIntBrks = brks
@@ -225,27 +225,34 @@ class Ensemble:
         
         rhs = RHS.RHS(self)
         
-        filename = './data/{}.h5'.format(filename)
-        with TBL.open_file(filename, 'w', 'Particle logs') as f:        
+        filename = './data/{}.h5'.format(latname)
+        with TBL.open_file(filename, 'w', latname) as f: 
+            ppar = self.Particle.getParams()
+            f.create_table('/','Particle',ppar)
+            f.create_group('/','Logs', 'Particle logs')
             for p in self: # creating data tables
-                f.create_table(f.root, 'P'+str(p.PID), p.Log.dtype)
+                f.create_table(f.root.Logs, 'P'+str(p.PID), p.Log.dtype)
             
             old_percent = -1
             cnt = 0
             cnt_tot = n_elem*ntimes
             for n in range(1,ntimes+1):
-                for i in range(len(ElementSeq)):                    
+                for i in range(len(ElementSeq)):       
+                    # pick element
                     if FWD: element = ElementSeq[i]
                     else: element = ElementSeq[len(ElementSeq)-1-i]
                     
+                    # print computation progress
                     percent = int(cnt/cnt_tot*100)
                     if percent%10 == 0 and percent != old_percent:
                         print('Complete {} %'.format(percent))
                         old_percent = percent
                     cnt += 1
                     
+                    # choose if integrate or otherwise advance the state vector
                     bERF = element.bSkip
                     
+                    #integrate at these points
                     at = NP.linspace(0, element.fLength, brks)
                     
                     try:
@@ -260,7 +267,7 @@ class Ensemble:
                         element.rearKick(state)
                         if not bERF and inner:
                             for k in range(brks-1):
-                                valsk = vals[k].reshape(n_ics, n_var, order='C')
+                                valsk = vals[k].reshape(n_ics, n_var)
                                 for pid in self.ics.keys():
                                     self[pid].Log[ind] = n,element.fName, k, *valsk[pid]
                                 ind += 1
@@ -277,10 +284,11 @@ class Ensemble:
                     
                 # write data to file
                 for p in self:
-                    tbl = getattr(f.root, 'P'+str(p.PID))
+                    tbl = getattr(f.root.Logs, 'P'+str(p.PID))
                     tbl.append(p.Log)
                     tbl.flush()
-                if cut: ind = 0
+                if cut: ind = 0 # if cut, logs can only keep data for one turn => overwrite
+                                # otherwise, keep writing log
                     
         print('Complete 100 %')
         
@@ -290,7 +298,7 @@ if __name__ is '__main__':
     import utilFunc as U
     import Element as ENT
     
-    states = U.StateList(dK=(0e-3,3e-4,2))
+    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
     
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
@@ -298,5 +306,7 @@ if __name__ is '__main__':
     QD1 = ENT.MQuad(5e-2,-.82,"QD")
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
-    E.track([QF1, OD1, OD1, OD1],100,cut=True)
+    E.track([QF1, OD1, OD1, OD1],100,cut=False)
     
+    E.setReference(0)
+    E.plot('x','s')

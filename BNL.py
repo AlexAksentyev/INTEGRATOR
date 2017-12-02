@@ -108,13 +108,13 @@ for p in E:
     p.ics['Sz'] = 1
 
 ## adding RF
-tLat = ENT.Lattice(QFS,E)
-tLat.insertRF(0, 0,EField=15e7)
+tLat = ENT.Lattice(QFS,'E+B')
+tLat.insertRF(0, 0, E, EField=15e7)
 
 #%%
 ## tracking
 start = clock()
-E.track(tLat, int(1e2), inner=False, breaks = 101, FWD=True)
+E.track(tLat, int(1e2), inner=False, breaks = 101, FWD=True, cut = True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 #%%
