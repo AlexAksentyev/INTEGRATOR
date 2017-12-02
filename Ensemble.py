@@ -174,36 +174,47 @@ class Ensemble:
             
         return (X, Y, PLT.gcf())
 
-    def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101):
+    def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101, cut=False):
+        """ if cut is true, particle logs keep only the values relevant for the current turn,
+            else keep all values in RAM
+        """
         from Element import Lattice
         if type(ElementSeq) == Lattice:
+            filename = ElementSeq.Name
             ElementSeq = ElementSeq.fSequence
+        else:
+            filename = 'Unnamed_sequence'
         
         brks = breaks
-        
         self.fIntBrks = brks
         
+        import tables as TBL
+        
         names = ['START']+[e.fName for e in ElementSeq]
-        n = str(len(names[NP.argmax(names)]))
-        EType = 'U'+n
+        n = len(names[NP.argmax(names)])
+        EType = TBL.StringCol(n)
         vartype = [('Turn',int),('Element',EType),('Point', int)]
         vartype += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
         
         self.__fLastPnt = -1
         
         ics = list()
+        n_elem = len(ElementSeq)
         if inner: 
-            nrow = ntimes*len(ElementSeq)*self.fIntBrks
+            nrow = n_elem*self.fIntBrks
+            if not cut:  nrow *= ntimes
             for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
                 ics.append(list(ic.values()))
             ind = 0
         else: 
-            nrow = ntimes*len(ElementSeq) + 1
+            nrow = n_elem
+            if not cut: nrow *= ntimes
+            nrow += 1 # for injection values
             for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
                 ic = list(ic.values())
-                self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic
+                self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values
                 ics.append(ic)
             ind = 1
         
@@ -214,69 +225,72 @@ class Ensemble:
         
         rhs = RHS.RHS(self)
         
-        old_percent = -1
-        for n in range(1,ntimes+1):
-            for i in range(len(ElementSeq)):
-                percent = int(ind/nrow*100)
-                if percent%10 == 0 and percent != old_percent:
-                    print('Complete {} %'.format(percent))
-                    old_percent = percent
+        filename = './data/{}.h5'.format(filename)
+        with TBL.open_file(filename, 'w', 'Particle logs') as f:        
+            for p in self: # creating data tables
+                f.create_table(f.root, 'P'+str(p.PID), p.Log.dtype)
+            
+            old_percent = -1
+            cnt = 0
+            cnt_tot = n_elem*ntimes
+            for n in range(1,ntimes+1):
+                for i in range(len(ElementSeq)):                    
+                    if FWD: element = ElementSeq[i]
+                    else: element = ElementSeq[len(ElementSeq)-1-i]
                     
-                if FWD: element = ElementSeq[i]
-                else: element = ElementSeq[len(ElementSeq)-1-i]
-                
-                bERF = element.bSkip
-                
-                at = NP.linspace(0, element.fLength, brks)
-                
-                try:
-                    element.frontKick(state)
-                    state = state.reshape(n_ics*n_var)
-                    if not bERF:
-                        vals = odeint(rhs, state, at, args=(element,))
-                        state = vals[brks-1]
-                    else:
-                        element.advance(state)
-                    state = state.reshape(n_ics,n_var)
-                    element.rearKick(state)
-                    if not bERF and inner:
-                        for k in range(brks-1):
-                            valsk = vals[k].reshape(n_ics, n_var, order='C')
-                            for pid in self.ics.keys():
-                                self[pid].Log[ind] = n,element.fName, k, *valsk[pid]
-                            ind += 1
-                    for pid in self.ics.keys():
-                        self[pid].Log[ind] = n,element.fName, self.__fLastPnt, *state[pid]
-                    ind += 1
-                except ValueError:
-                    print('NAN error at: Element {}, turn {}'.format(element.fName, n))
-                    for m in range(ind,len(self.Log.P0)):
+                    percent = int(cnt/cnt_tot*100)
+                    if percent%10 == 0 and percent != old_percent:
+                        print('Complete {} %'.format(percent))
+                        old_percent = percent
+                    cnt += 1
+                    
+                    bERF = element.bSkip
+                    
+                    at = NP.linspace(0, element.fLength, brks)
+                    
+                    try:
+                        element.frontKick(state)
+                        state = state.reshape(n_ics*n_var)
+                        if not bERF:
+                            vals = odeint(rhs, state, at, args=(element,))
+                            state = vals[brks-1]
+                        else:
+                            element.advance(state)
+                        state = state.reshape(n_ics,n_var)
+                        element.rearKick(state)
+                        if not bERF and inner:
+                            for k in range(brks-1):
+                                valsk = vals[k].reshape(n_ics, n_var, order='C')
+                                for pid in self.ics.keys():
+                                    self[pid].Log[ind] = n,element.fName, k, *valsk[pid]
+                                ind += 1
                         for pid in self.ics.keys():
-                            self[pid].Log[ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
+                            self[pid].Log[ind] = n,element.fName, self.__fLastPnt, *state[pid]
                         ind += 1
-                    return
-                
+                    except ValueError:
+                        print('NAN error at: Element {}, turn {}'.format(element.fName, n))
+                        for m in range(ind,len(self.Log.P0)):
+                            for pid in self.ics.keys():
+                                self[pid].Log[ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
+                            ind += 1
+                        return
+                    
+                # write data to file
+                for p in self:
+                    tbl = getattr(f.root, 'P'+str(p.PID))
+                    tbl.append(p.Log)
+                    tbl.flush()
+                if cut: ind = 0
+                    
         print('Complete 100 %')
         
-#        pr = self.Particle
-#        
-#        try:
-#            check = pr.fRF
-#        except AttributeError:
-#            print('\n \t \t System w/o RF')
-#            check = {'Freq':0, 'Phase':0}
-#        
-#        from numpy.lib.recfunctions import append_fields
-#        th = lambda t: 2*NP.pi*check['Freq']*t + check['Phase']
-#        for pid in self.ics.keys():
-#            self[pid].Log = append_fields(self[pid].Log, 'Theta', th(self[pid].Log.t),
-#                                dtypes=float, usemask=False, asrecarray=True)
+
 #%%
 if __name__ is '__main__':
     import utilFunc as U
     import Element as ENT
     
-    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
+    states = U.StateList(dK=(0e-3,3e-4,2))
     
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
@@ -284,7 +298,5 @@ if __name__ is '__main__':
     QD1 = ENT.MQuad(5e-2,-.82,"QD")
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
-    E.track([QF1, OD1, OD1, OD1],100)
+    E.track([QF1, OD1, OD1, OD1],100,cut=True)
     
-    E.setReference(0)
-    E.plot('x','s')
