@@ -96,35 +96,23 @@ class Ensemble:
         Ylab = re.subn('-.* ', '', Ylab)[0]
         
         try:
-            pid0 = self.getReference().PID
+            pr = self.getReference()
         except AttributeError:
             print('Reference not set')
             return
         
         ## selecting only the required pids for plot
         names = self.listNames()
-        names.insert(0, names.pop(pid0))
+        names.insert(0, names.pop(pr.PID))
         if pids != 'all':
             pids = set(pids)
-            pids.add(pid0)
+            pids.add(pr.PID)
             names = set(names)
             not_found = names - pids
             names = names - not_found
             print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
         
-        
-        Elt = [re.sub('_.*','',str(e)).replace("b'",'') for e in self[0].Log['Element']]
-        
-        def cm(elist):
-            d = lambda e: 'red' if e == mark_special else 'black'
-            return [d(e) for e in elist]
-        
-        
-        nr = self.count()
         nc = len(self[0].Log[Ylab])
-                
-        Y = NP.empty([nr,nc])
-        X = NP.empty([nr,nc])
         dX = NP.empty([nc])
         dY = NP.empty([nc])
         
@@ -133,6 +121,12 @@ class Ensemble:
         PLT.figure()     
         
         if mark_special is not None:
+            Elt = [re.sub('_.*','',str(e)).replace("b'",'') for e in self[0].Log['Element']]
+        
+            def cm(elist):
+                d = lambda e: 'red' if e == mark_special else 'black'
+                return [d(e) for e in elist]
+            
             plot = lambda X, Y, lab, **kwargs: PLT.scatter(X,Y, label=mark_special, c=cm(Elt), **kwargs)
             legend = lambda lab: PLT.legend([mark_special])
         else:
@@ -140,12 +134,10 @@ class Ensemble:
             legend = lambda lab: PLT.legend(lab)
         
         for i in names:
-            Y[i] = self[i].Log[Ylab]
-            dY = copy.deepcopy(Y[i])
-            X[i] = self[i].Log[Xlab]
-            dX = copy.deepcopy(X[i])
-            if '-D' in x_flags: dX -= X[pid0]
-            if '-D' in y_flags: dY -= Y[pid0]
+            dY = copy.deepcopy(self[i].Log[Ylab])
+            dX = copy.deepcopy(self[i].Log[Xlab])
+            if '-D' in x_flags: dX -= pr.Log[Xlab]
+            if '-D' in y_flags: dY -= pr.Log[Ylab]
             plot(dX, dY, i, **kwargs)
             
         legend(names)
@@ -172,7 +164,7 @@ class Ensemble:
         PLT.ylabel(Ylab)
         PLT.grid()
             
-        return (X, Y, PLT.gcf())
+        return PLT.gcf()
 
     def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101, cut=False):
         """ if cut is true, particle logs keep only the values relevant for the current turn,
@@ -236,6 +228,7 @@ class Ensemble:
             old_percent = -1
             cnt = 0
             cnt_tot = n_elem*ntimes
+            old_ind=0
             for n in range(1,ntimes+1):
                 for i in range(len(ElementSeq)):       
                     # pick element
@@ -285,10 +278,11 @@ class Ensemble:
                 # write data to file
                 for p in self:
                     tbl = getattr(f.root.Logs, 'P'+str(p.PID))
-                    tbl.append(p.Log)
+                    tbl.append(p.Log[old_ind:ind])
                     tbl.flush()
                 if cut: ind = 0 # if cut, logs can only keep data for one turn => overwrite
                                 # otherwise, keep writing log
+                old_ind = ind
                     
         print('Complete 100 %')
         
@@ -307,6 +301,7 @@ if __name__ is '__main__':
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
     E.track([QF1, OD1, OD1, OD1],100,cut=False)
-    
-    E.setReference(0)
-    E.plot('x','s')
+
+#%%    
+    E.setReference(1)
+    E.plot('x','s',pids=[0,2])
