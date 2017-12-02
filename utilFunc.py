@@ -55,11 +55,12 @@ class StateList:
         ntot = 1
         argDict = dict()
         for key, val in kwargs.items():
-            lb = val[0]
-            ub = val[1]
-            num = val[2]
+            try: 
+                lb, ub, num = val # format: (from, to, number of points)
+                val = NP.linspace(lb,ub,num)
+            except TypeError: num = 1 # shared value; don't increase ensemble size
             ntot *= num
-            argDict.update({RHS.imap[key]: NP.linspace(lb,ub,num)})
+            argDict.update({RHS.imap[key]: val})
             
         # make mesh
         mesh = dict(zip(keys, NP.meshgrid(*list(argDict.values()))))
@@ -87,5 +88,5 @@ class StateList:
         
 
 if __name__ is '__main__':
-    s = StateList(x=(-1e-3,-1e-3,3),y=(-2e-3,-2e-3,2))
+    s = StateList(x=(-1e-3,-1e-3,2),y=(-2e-3,-2e-3,2), Sz=1)
 
