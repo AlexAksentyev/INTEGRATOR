@@ -292,7 +292,7 @@ if __name__ is '__main__':
     import utilFunc as U
     import Element as ENT
     
-    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2))
+    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2), Sz=1)
     
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
@@ -300,8 +300,11 @@ if __name__ is '__main__':
     QD1 = ENT.MQuad(5e-2,-.82,"QD")
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
-    E.track([QF1, OD1, OD1, OD1],100,cut=False)
+    FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
+    FODO.insertRF(0,0,E,EField=15e7)
+    
+    E.track(FODO,100,cut=False)
 
 #%%    
-    E.setReference(1)
-    E.plot('x','s',pids=[0,2])
+    E.setReference(0)
+    E.plot('-D dK','s')

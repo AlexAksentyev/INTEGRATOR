@@ -112,18 +112,11 @@ tLat.insertRF(0, 0, E, EField=15e7)
 #%%
 ## tracking
 start = clock()
-E.track(tLat, int(1e2), inner=False, breaks = 101, FWD=True, cut = True)
+E.track(tLat, int(1e1), inner=False, cut = False)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 #%%
 #plotting
 E.setReference(0)
-#E.plot_min('dK')
 E.plot('-D dK','-D Theta',[0,1,2,3], mark_special=None,marker='.')
-#%%
-#p = E[3]
-#PLT.figure()
-#p.plot('Sx','-r'); p.plot('Sy','-g')
-#PLT.xlabel('s[m]')
-#PLT.ylabel('cm')
-#PLT.legend()
+
