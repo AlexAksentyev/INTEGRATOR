@@ -215,6 +215,8 @@ class Ensemble:
         
         for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+                self[pid].Log.fill(NP.nan) # in case we later get a NaN error in tracking, 
+                                        # pre-fill the log with nans
                 ic = list(ic.values())
                 self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values
                 ics.append(ic)
@@ -277,11 +279,7 @@ class Ensemble:
                             self[pid].Log[ind] = n,element.fName, self.__fLastPnt, *state[pid]
                         ind += 1
                     except ValueError:
-                        print('NAN error at: Element {}, turn {}'.format(element.fName, n))
-                        for m in range(ind,len(self.Log.P0)):
-                            for pid in self.ics.keys():
-                                self[pid].Log[ind] = n, element.fName, self.__fLastPnt, *([NP.NaN]*(len(vartype)-3))
-                            ind += 1
+                        print('NAN error at: Element {}, turn {}, log index {}'.format(element.fName, n, ind))
                         return
                     
                 # write data to file
@@ -301,7 +299,7 @@ if __name__ is '__main__':
     import utilFunc as U
     import Element as ENT
     
-    states = U.StateList(dK=(0e-3,3e-4,2), x=(-1e-3,1e-3,2), Sz=1)
+    states = U.StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
     
     E = Ensemble(states)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
@@ -310,7 +308,7 @@ if __name__ is '__main__':
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
     FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
-    FODO.insertRF(0,0,E,EField=15e6)
+    FODO.insertRF(0,0,E,EField=15e4)
     
     E.track(FODO,int(1e2),cut=False)
 
