@@ -133,11 +133,13 @@ class Ensemble:
             plot = lambda X, Y, lab, **kwargs: PLT.plot(X,Y,label=lab, **kwargs)
             legend = lambda lab: PLT.legend(lab)
         
+        not_nan = [not e for e in NP.isnan(pr.Log['Turn'])]
+        
         for i in names:
-            dY = copy.deepcopy(self[i].Log[Ylab])
-            dX = copy.deepcopy(self[i].Log[Xlab])
-            if '-D' in x_flags: dX -= pr.Log[Xlab]
-            if '-D' in y_flags: dY -= pr.Log[Ylab]
+            dY = copy.deepcopy(self[i].Log[Ylab][not_nan])
+            dX = copy.deepcopy(self[i].Log[Xlab][not_nan])
+            if '-D' in x_flags: dX -= pr.Log[Xlab][not_nan]
+            if '-D' in y_flags: dY -= pr.Log[Ylab][not_nan]
             plot(dX, dY, i, **kwargs)
             
         legend(names)
@@ -310,7 +312,7 @@ if __name__ is '__main__':
     FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
     FODO.insertRF(0,0,E,EField=15e4)
     
-    E.track(FODO,int(1e2),cut=False)
+    E.track(FODO,int(1e3),cut=False)
 
 #%%    
     E.setReference(0)
