@@ -195,20 +195,29 @@ class Ensemble:
         if inner: 
             nrow = n_elem*self.fIntBrks
             if not cut:  nrow *= ntimes
-            for pid, ic in self.ics.items():
-                setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
-                ics.append(list(ic.values()))
-            ind = 0
+            ind = 0 # odeint will return injection values
         else: 
             nrow = n_elem
             if not cut: nrow *= ntimes
-            nrow += 1 # for injection values
-            for pid, ic in self.ics.items():
+            nrow += 1 # +1 for injection values
+            ind = 1 # odeint won't return injection values; set them manually
+        
+        # check for memory error
+        # if so, split log into chunks
+        try: NP.recarray(nrow*self.n_ics,dtype=vartype)
+        except MemoryError:
+            cut = True
+            print('Too much memory required; cutting logs')
+            if inner: nrow /= ntimes
+            else: nrow -=1; nrow /= ntimes; nrow += 1
+        
+        nrow = int(nrow)
+        
+        for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
                 ic = list(ic.values())
                 self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values
                 ics.append(ic)
-            ind = 1
         
         state = NP.array(ics)
         
@@ -301,10 +310,10 @@ if __name__ is '__main__':
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
     FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
-    FODO.insertRF(0,0,E,EField=15e7)
+    FODO.insertRF(0,0,E,EField=15e6)
     
-    E.track(FODO,100,cut=False)
+    E.track(FODO,int(1e2),cut=False)
 
 #%%    
     E.setReference(0)
-    E.plot('-D dK','s')
+    E.plot()
