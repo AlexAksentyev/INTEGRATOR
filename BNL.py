@@ -117,6 +117,6 @@ print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 #%%
 #plotting
-E.setReference(0)
-E.plot('-D dK','-D Theta',[0,1,2,3], mark_special=None,marker='.')
+E.setReference(2)
+E.plot('-D dK','-D Theta',[0,1,2,3])
 
