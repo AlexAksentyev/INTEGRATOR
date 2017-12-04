@@ -27,14 +27,23 @@ class Element:
         
         super().__init__(**kwargs)
     
-    def EField(self,arg):
-        return self.__tilt_field(self._Element__fEField)
+    def __vectorize(self,field,arg):
+        n = len(index(arg,'x'))
+#        fx,fy,fs = field
+        return NP.repeat(field, n).reshape(3,n)
+#        return (NP.repeat(fx,n), NP.repeat(fy,n), NP.repeat(fs,n))
+    
+    def EField(self,arg):        
+        fld = self.__vectorize(self.__fEField, arg)
+        return self.__tilt_field(fld)
     
     def Eprime_tp(self, arg): # added for testing with ERF
-        return self.__tilt_field(self.__fEField)
+        fld = self.__vectorize(self.__fEField, arg)
+        return self.__tilt_field(fld)
     
     def BField(self,arg):
-        return self.__tilt_field(self.__fBField)
+        fld = self.__vectorize(self.__fBField, arg)
+        return self.__tilt_field(fld)
                 
     def frontKick(self,particle):
         pass # do nothing
@@ -50,7 +59,7 @@ class Element:
         return str(self._Element__fChars)
     
     def __tilt_field(self, field):
-        return self.TiltMatrix.dot(field).tolist()[0]
+        return self.TiltMatrix.dot(field).A
     
     def tilt(self, order, X=0, Y=0, S=0):
         a_x, a_y, a_s = -NP.radians([X,Y,S])
@@ -136,7 +145,7 @@ class MQuad(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        fld = (self.__fGrad*y, self.__fGrad*x,0)
+        fld = NP.array([self.__fGrad*y, self.__fGrad*x, NP.zeros(len(x))])
         return self._Element__tilt_field(fld)
         
 
@@ -211,7 +220,7 @@ class MSext(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        fld = (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
+        fld = NP.array([self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), NP.zeros(len(x))])
         return self._Element__tilt_field(fld)
         
 class Wien(Element, HasCounter, Bend):
@@ -276,7 +285,8 @@ class Wien(Element, HasCounter, Bend):
         i_x = index(arg,'x')
         x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
-        fld = (Ex, 0, 0)
+        z = NP.zeros(len(x))
+        fld = (Ex, z, z)
         return self._Element__tilt_field(fld)
     
     def BField(self, arg):
@@ -296,7 +306,8 @@ class Wien(Element, HasCounter, Bend):
         
         B0 = self._Element__fBField[1]
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
-        fld = (0, B1, 0)
+        z = NP.zeros(len(x))
+        fld = (z, B1, z)
         return self._Element__tilt_field(fld)
     
     def frontKick(self, state):
@@ -343,7 +354,8 @@ class ERF(Element, HasCounter):
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
-        fld = (0, 0, A*NP.cos(w*t+phi))
+        z = NP.zeros(len(t))
+        fld = (z, z, A*NP.cos(w*t+phi))
         return self._Element__tilt_field(fld)
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
@@ -352,7 +364,8 @@ class ERF(Element, HasCounter):
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
-        fld = (0, 0, -A*w*NP.sin(w*t+phi))
+        z = NP.zeros(len(t))
+        fld = (z, z, -A*w*NP.sin(w*t+phi))
         return self._Element__tilt_field(fld)
     
     def advance(self, state):  
@@ -393,6 +406,26 @@ class Lattice:
         self.fLength = 0
         for e in ElSeq: self.fLength += e.fLength
         
+    def __getitem__(self, idx):
+        return self.fSequence[idx]
+        
+    def __repr__(self):
+        return self.fSequence.__repr__()
+    
+    def __iter__(self):
+        self.__current_id=0
+        return self
+    
+    def __next__(self):
+        last_id = self.fCount - 1
+        if self.__current_id <= last_id:
+            result = self[self.__current_id]
+            self.__current_id += 1
+            return result
+        else:
+            raise StopIteration
+            
+        
     def insertRF(self, position, length, Ensemble, **ERF_pars):
         full_acc_len = self.fLength + length
         rf = ERF(length,Ensemble, full_acc_len, **ERF_pars)
@@ -403,37 +436,30 @@ class Lattice:
         if full:
             return names
         else:
-            return NP.unique([re.sub('_.*','',e) for e in names])
+            return NP.unique([re.sub('_.*','',e) for e in names])        
         
-    def __getitem__(self, idx):
-        return self.fSequence[idx]
-        
-    def __repr__(self):
-        return self.fSequence.__repr__()
-    
+    def tiltS(self, mean_angle, sigma):
+        angle = NP.random.normal(mean_angle, sigma, self.fCount)
+        i=0
+        for element in self:
+            element.tilt('S',S=angle[i])
+            i +=1
     
 #%%
 if __name__ is '__main__':
-    import utilFunc as U
-    state = NP.array(U.StateList(x=3e-3,y=-3e-3,Sz=1).as_list()[0])
+    import Ensemble as ENS
+    import Element as ENT
     
-    dip = MDipole(5, PCL.Particle(), BField=.86)
-    wa = Wien(5,5e-2,PCL.Particle(),EField = -120e5)
-    mq = MQuad(5,8.6)
+    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,3))
+    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,3)).as_list()).flatten()
     
-    untilted = wa
-    tilted = wa.copy()
-    tilted.tilt('S',S=90)
+    el = R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
     
-    B0 = untilted.BField(state)
-    E0 = untilted.EField(state)
-    B1 = tilted.BField(state)
-    E1 = tilted.EField(state)
+#    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
+#    lFODO = ENT.Lattice(FODO,'FODO')
+    lat = ENT.Lattice([R3],'R3')
     
-    x = lambda a,b: NP.dot(a,b)/NP.sqrt(NP.dot(a,a)+NP.dot(b,b))
-    
-    print(x(B0,B1))
-    print(x(E0,E1))
-    print(x(B0,E0))
-    print(x(B1,E1))
-    
+    E.track(lat, 100)
+    E.setReference(0)
+    E.plot('x','s')
+

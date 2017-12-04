@@ -111,7 +111,7 @@ tLat.insertRF(0, 0, E, EField=15e7)
 #%%
 ## tracking
 start = clock()
-E.track(tLat, int(1e3), inner=False, cut = True)
+E.track(tLat, int(1e2), inner=False, cut = True)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 #%%
