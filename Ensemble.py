@@ -57,8 +57,12 @@ class StateList:
     
     def __repr__(self):
         from pandas import DataFrame
-        
         return str(DataFrame(self.SL))
+    
+    def as_list(self):
+        states = list()
+        for d in self.SL: states.append(list(d.values()))
+        return states
 
 class Ensemble:
     
@@ -122,14 +126,14 @@ class Ensemble:
         return self.__bundle_up(pid)
 
     def __iter__(self):
-        self.current_pid = 0
+        self.__current_pid = 0
         return self
     
     def __next__(self):
         last_pid = self.count()-1
-        if self.current_pid <= last_pid:
-            result = self[self.current_pid]
-            self.current_pid +=1
+        if self.__current_pid <= last_pid:
+            result = self[self.__current_pid]
+            self.__current_pid +=1
             return result
         else:
             raise StopIteration
