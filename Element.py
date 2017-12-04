@@ -18,6 +18,8 @@ class Element:
         self.__fEField = (0,0,0)
         self.__fBField = (0,0,0)
         
+        self.TiltMatrix = NP.matrix(NP.identity(3))
+        
         self.bSkip = False # for testing ERF.advance()
         
         self.__fChars = PDS.DataFrame({'Curve':self.fCurve, 'Length':self.fLength}, 
@@ -26,14 +28,14 @@ class Element:
         super().__init__(**kwargs)
     
     def EField(self,arg):
-        return self._Element__fEField
+        return self.__tilt_field(self._Element__fEField)
     
     def Eprime_tp(self, arg): # added for testing with ERF
-        return self.__fEField
+        return self.__tilt_field(self.__fEField)
     
     def BField(self,arg):
-        return self.__fBField
-
+        return self.__tilt_field(self.__fBField)
+                
     def frontKick(self,particle):
         pass # do nothing
     
@@ -46,6 +48,33 @@ class Element:
     
     def __repr__(self):
         return str(self._Element__fChars)
+    
+    def __tilt_field(self, field):
+        return self.TiltMatrix.dot(field).tolist()[0]
+    
+    def tilt(self, order, X=0, Y=0, S=0):
+        a_x, a_y, a_s = -NP.radians([X,Y,S])
+        
+        cx, cy, cs = NP.cos([a_x, a_y, a_s])
+        sx, sy, ss = NP.sin([a_x, a_y, a_s])
+    
+        Rx = NP.matrix([[1, 0,  0], 
+                        [0, cx, sx],
+                        [0,-sx, cx]])
+        Ry = NP.matrix([[cy, 0,-sy],
+                        [0,  1, 0],
+                        [sy, 0, cy]])
+        Rs = NP.matrix([[ cs, ss, 0],
+                        [-ss, cs, 0],
+                        [ 0,  0,  1]])
+        
+        R = {'X':Rx, 'Y':Ry, 'S':Rs}
+        res = NP.identity(3)
+        for ax in order:
+            ax = ax.upper()
+            res = R[ax].dot(res)
+            
+        self.TiltMatrix = res
         
 class Bend:
     def __init__(self,RefPart,**kwargs):
@@ -107,7 +136,8 @@ class MQuad(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        return (self.__fGrad*y, self.__fGrad*x,0)
+        fld = (self.__fGrad*y, self.__fGrad*x,0)
+        return self._Element__tilt_field(fld)
         
 
 class MDipole(Element, HasCounter, Bend):
@@ -181,7 +211,8 @@ class MSext(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        return (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
+        fld = (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), 0)
+        return self._Element__tilt_field(fld)
         
 class Wien(Element, HasCounter, Bend):
     """ wien filter
@@ -245,7 +276,8 @@ class Wien(Element, HasCounter, Bend):
         i_x = index(arg,'x')
         x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
-        return (Ex, 0, 0)
+        fld = (Ex, 0, 0)
+        return self._Element__tilt_field(fld)
     
     def BField(self, arg):
         i_x = index(arg,'x')
@@ -264,7 +296,8 @@ class Wien(Element, HasCounter, Bend):
         
         B0 = self._Element__fBField[1]
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
-        return (0, B1, 0)
+        fld = (0, B1, 0)
+        return self._Element__tilt_field(fld)
     
     def frontKick(self, state):
         u = self.__U(state[:,imap['x']])
@@ -310,7 +343,8 @@ class ERF(Element, HasCounter):
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
-        return (0, 0, A*NP.cos(w*t+phi))
+        fld = (0, 0, A*NP.cos(w*t+phi))
+        return self._Element__tilt_field(fld)
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
         i_t = index(arg, 't')
@@ -318,17 +352,13 @@ class ERF(Element, HasCounter):
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
-        return (0, 0, -A*w*NP.sin(w*t+phi))
+        fld = (0, 0, -A*w*NP.sin(w*t+phi))
+        return self._Element__tilt_field(fld)
     
-    def EField_vec(self, time_vec):
-        time_vec = NP.array(time_vec)
-        z = NP.zeros(len(time_vec))
-        A = self.fAmplitude
-        w = self.fFreq*2*NP.pi
-        phi = self.fPhase
-        return list(zip(z,z, A*NP.cos(w*time_vec+phi)))
-    
-    def advance(self, state):        
+    def advance(self, state):  
+        """ alternative to integration,
+            supposed to mimick a discrete kick
+        """
         w = self.fFreq*2*NP.pi
         u = self.__fU
         i_dK, i_s, i_t = index(state, 'dK','s','t')
@@ -380,3 +410,30 @@ class Lattice:
         
     def __repr__(self):
         return self.fSequence.__repr__()
+    
+    
+#%%
+if __name__ is '__main__':
+    import utilFunc as U
+    state = NP.array(U.StateList(x=3e-3,y=-3e-3,Sz=1).as_list()[0])
+    
+    dip = MDipole(5, PCL.Particle(), BField=.86)
+    wa = Wien(5,5e-2,PCL.Particle(),EField = -120e5)
+    mq = MQuad(5,8.6)
+    
+    untilted = wa
+    tilted = wa.copy()
+    tilted.tilt('S',S=90)
+    
+    B0 = untilted.BField(state)
+    E0 = untilted.EField(state)
+    B1 = tilted.BField(state)
+    E1 = tilted.EField(state)
+    
+    x = lambda a,b: NP.dot(a,b)/NP.sqrt(NP.dot(a,a)+NP.dot(b,b))
+    
+    print(x(B0,B1))
+    print(x(E0,E1))
+    print(x(B0,E0))
+    print(x(B1,E1))
+    
