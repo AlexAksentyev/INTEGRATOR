@@ -19,6 +19,46 @@ class Bundle(dict):
         dict.__init__(self,kw)
         self.__dict__ = self
         
+class StateList:
+    def __init__(self, **kwargs):
+        
+        keys = kwargs.keys()
+        
+        # create defined variables
+        ntot = 1
+        argDict = dict()
+        for key, val in kwargs.items():
+            try: 
+                lb, ub, num = val
+                val = NP.linspace(lb,ub,num)
+            except TypeError: # if key = value, set value for all pcls
+                num = 1
+            ntot *= num
+            argDict.update({RHS.imap[key]: val})
+            
+        # make mesh
+        mesh = dict(zip(keys, NP.meshgrid(*list(argDict.values()))))
+            
+        vartype = list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
+        self.SL = NP.zeros(ntot, dtype=vartype)
+        
+        #write data
+        for key, value in mesh.items():
+            self.SL[key] = value.reshape(ntot)
+            
+        # convert to list of dicts for use with ensemble
+        self.SL = [dict(zip(self.SL.dtype.names, x)) for x in self.SL]
+            
+    def __len__(self):
+        return len(self.SL)
+    
+    def __getitem__(self, pid):
+        return self.SL[pid]
+    
+    def __repr__(self):
+        from pandas import DataFrame
+        
+        return str(DataFrame(self.SL))
 
 class Ensemble:
     
@@ -35,8 +75,7 @@ class Ensemble:
         
     @classmethod
     def populate(cls, Particle, **kwargs):
-        import utilFunc as U
-        sl = U.StateList(**kwargs)
+        sl = StateList(**kwargs)
         return cls(sl, Particle)
     
     @classmethod
