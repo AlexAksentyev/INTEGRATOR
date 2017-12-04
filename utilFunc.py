@@ -9,23 +9,23 @@ Created on Thu Oct 19 12:53:58 2017
 import numpy as NP
 import RHS
 
-def phi(operation,*w):
-    s = '('
-    for e in w: 
-        try: 
-            e1 = float(e)
-            e = str(e)
-            if e1 < 0: e = '('+e+')'
-        except ValueError:
-            pass
-        s += e+operation
-    s = s[0:len(s)-1] + ')'
-    return s
-
-sadd = lambda *w: phi('+',*w)
-smult = lambda *w: phi('*',*w)
-ssub = lambda *w: phi('-',*w)
-sdiv = lambda *w: phi('/',*w)
+#def phi(operation,*w):
+#    s = '('
+#    for e in w: 
+#        try: 
+#            e1 = float(e)
+#            e = str(e)
+#            if e1 < 0: e = '('+e+')'
+#        except ValueError:
+#            pass
+#        s += e+operation
+#    s = s[0:len(s)-1] + ')'
+#    return s
+#
+#sadd = lambda *w: phi('+',*w)
+#smult = lambda *w: phi('*',*w)
+#ssub = lambda *w: phi('-',*w)
+#sdiv = lambda *w: phi('/',*w)
 
 def form_state_list(xint = (-5e-3,5e-3), yint=(-5e-3,5e-3), Nx = 3,Ny = 3):
     xs = NP.linspace(xint[0],xint[1],Nx)
