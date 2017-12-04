@@ -12,8 +12,8 @@ import RHS
 import copy
 
 class Bundle(dict):
-    """Bunch serves as an interface for easy access 
-    to a bundle of data of a particle from ensemble
+    """ Bunndle serves as an interface for easy access 
+        to a bundle of ensemble particle data
     """
     def __init__(self,**kw):
         dict.__init__(self,kw)
@@ -34,9 +34,16 @@ class Ensemble:
         self.ics = dict(zip(range(len(state_list)), state_list))
         
     @classmethod
-    def from_file(cls, filename):
+    def populate(cls, Particle, **kwargs):
+        import utilFunc as U
+        sl = U.StateList(**kwargs)
+        return cls(sl, Particle)
+    
+    @classmethod
+    def from_file(cls, filename, directory = './data/'):
         import tables as TBL
         
+        filename = '{}{}.h5'.format(directory, filename)
         with TBL.open_file(filename) as f:
             pcl = f.root.Particle[0]
             pcl = PCL.Particle(pcl['Mass0'], pcl['KinEn0'], pcl['G'])
@@ -92,12 +99,20 @@ class Ensemble:
         from pandas import DataFrame
         return str(DataFrame(self.ics).T)
     
-    def saveData(self, filename):
+    def __setup_file(self, file_handle):
+        # write particle parameters (Mass0, KinEn0, G)
+        ppar = self.Particle.getParams() 
+        file_handle.create_table('/','Particle',ppar)
+        # separate group to write p-logs in
+        file_handle.create_group('/','Logs', 'Particle logs')
+    
+    def saveData(self, filename, directory='./data/'):
         import tables
         
-        filename = './data/{}.h5'.format(filename)
+        filename = '{}{}.h5'.format(directory, filename)
         with tables.open_file(filename, mode='w') as f:
-            for p in self: f.create_table(f.root, 'P'+str(p.PID), p.Log)
+            self.__setup_file(f)
+            for p in self: f.create_table(f.root.Logs, 'P'+str(p.PID), p.Log)
         
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot = True, **kwargs):
 
@@ -255,9 +270,7 @@ class Ensemble:
         # write particle logs
         filename = './data/{}.h5'.format(latname)
         with TBL.open_file(filename, 'w', latname) as f: 
-            ppar = self.Particle.getParams()
-            f.create_table('/','Particle',ppar)
-            f.create_group('/','Logs', 'Particle logs')
+            self.__setup_file(f)
             for p in self: # creating data tables to fill
                 f.create_table(f.root.Logs, 'P'+str(p.PID), p.Log.dtype)
             
@@ -321,12 +334,13 @@ class Ensemble:
 if __name__ is '__main__':
     import utilFunc as U
     import Element as ENT
+    import Particle as PCL
     from matplotlib import pyplot as PLT
     
 
-    states = U.StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
+#    states = U.StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
     
-    E = Ensemble(states)
+    E = Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
     OD1 = ENT.Drift(.25, 'OD1')
     QD1 = ENT.MQuad(5e-2,-.82,"QD")
@@ -336,7 +350,7 @@ if __name__ is '__main__':
     FODO.insertRF(0,0,E,EField=15e4)
     
 #%%
-    E.track(FODO,int(1e9),cut=False)
+    E.track(FODO,int(1e3),cut=False)
     
 #%%
     E.setReference(0)
