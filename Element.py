@@ -478,13 +478,11 @@ if __name__ is '__main__':
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5))
     state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,2), y=(2e-3,4e-3,2)).as_list()).flatten()
     
-    el = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
+    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
+    lFODO = ENT.Lattice(FODO,'FODO')
     
-#    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
-#    lFODO = ENT.Lattice(FODO,'FODO')
-    lat = ENT.Lattice([el],'R3')
-    
-    E.track(lat, 100)
+    #%%
+    E.track(lFODO, 100)
     E.setReference(0)
     E.plot('x','s')
 
