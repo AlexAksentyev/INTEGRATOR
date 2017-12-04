@@ -86,6 +86,11 @@ class StateList:
         from pandas import DataFrame
         
         return str(DataFrame(self.SL))
+    
+    def as_list(self):
+        states = list()
+        for d in self.SL: states.append(list(d.values()))
+        return states
         
 #%%
 if __name__ is '__main__':
