@@ -8,6 +8,30 @@ import math
 
 from RHS import imap, index
 
+
+#%%
+
+class Field(NP.ndarray):
+
+    def __new__(cls, array, Element, dtype=object):
+        obj = NP.asarray(array, dtype=dtype, order='C').view(cls)  #force C-representation by default 
+        obj.host = Element
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None: return
+        self.host = getattr(obj, 'host', None)
+        
+    def vectorize(self,arg):
+        n = len(index(arg,'x')[0])
+        return Field(NP.repeat(self, n).reshape(3,n), self.host)
+    
+    def tilt(self):
+        return Field(self.host.TiltMatrix.dot(self).A,self.host)
+
+
+#%%
+
 class Element:
     
     def __init__(self, Curve, Length, Name = "Element",**kwargs):
@@ -15,8 +39,8 @@ class Element:
         self.fLength = Length
         self.fName = Name
         
-        self.__fEField = (0,0,0)
-        self.__fBField = (0,0,0)
+        self.__fEField = Field([0,0,0],self)
+        self.__fBField = Field([0,0,0],self)
         
         self.TiltMatrix = NP.matrix(NP.identity(3))
         
@@ -27,15 +51,15 @@ class Element:
         
         super().__init__(**kwargs)
     
-    def __vectorize(self,field,arg):
-        n = len(index(arg,'x'))
-#        fx,fy,fs = field
-        return NP.repeat(field, n).reshape(3,n)
-#        return (NP.repeat(fx,n), NP.repeat(fy,n), NP.repeat(fs,n))
+#    def __vectorize(self,field,arg):
+#        n = len(index(arg,'x')[0])
+#        return NP.repeat(field, n).reshape(3,n)
     
-    def EField(self,arg):        
-        fld = self.__vectorize(self.__fEField, arg)
-        return self.__tilt_field(fld)
+    def EField(self,arg):   
+        fld = self.__fEField.vectorize(arg)
+        return fld.tilt()
+#        fld = self.__vectorize(self.__fEField, arg)
+#        return self.__tilt_field(fld)
     
     def Eprime_tp(self, arg): # added for testing with ERF
         fld = self.__vectorize(self.__fEField, arg)
@@ -58,8 +82,8 @@ class Element:
     def __repr__(self):
         return str(self._Element__fChars)
     
-    def __tilt_field(self, field):
-        return self.TiltMatrix.dot(field).A
+#    def __tilt_field(self, field):
+#        return self.TiltMatrix.dot(field).A
     
     def tilt(self, order, X=0, Y=0, S=0):
         a_x, a_y, a_s = -NP.radians([X,Y,S])
@@ -453,7 +477,7 @@ if __name__ is '__main__':
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,3))
     state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,3)).as_list()).flatten()
     
-    el = R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
+    el = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
     
 #    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
 #    lFODO = ENT.Lattice(FODO,'FODO')
