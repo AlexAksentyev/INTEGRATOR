@@ -13,7 +13,7 @@ from RHS import imap, index
 
 class Field(NP.ndarray):
 
-    def __new__(cls, array, Element, dtype=object):
+    def __new__(cls, array, Element, dtype=float):
         obj = NP.asarray(array, dtype=dtype, order='C').view(cls)  #force C-representation by default 
         obj.host = Element
         return obj
@@ -62,12 +62,12 @@ class Element:
 #        return self.__tilt_field(fld)
     
     def Eprime_tp(self, arg): # added for testing with ERF
-        fld = self.__vectorize(self.__fEField, arg)
-        return self.__tilt_field(fld)
+        fld = self.__fEField.vectorize(arg)
+        return fld.tilt()
     
     def BField(self,arg):
-        fld = self.__vectorize(self.__fBField, arg)
-        return self.__tilt_field(fld)
+        fld = self.__fBField.vectorize(arg)
+        return fld.tilt()
                 
     def frontKick(self,particle):
         pass # do nothing
@@ -169,8 +169,8 @@ class MQuad(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        fld = NP.array([self.__fGrad*y, self.__fGrad*x, NP.zeros(len(x))])
-        return self._Element__tilt_field(fld)
+        fld = Field([self.__fGrad*y, self.__fGrad*x, NP.zeros(len(x))], self)
+        return fld.tilt()
         
 
 class MDipole(Element, HasCounter, Bend):
@@ -208,7 +208,7 @@ class MDipole(Element, HasCounter, Bend):
             BField = (0, self.computeBStrength(self.__fPardict['KinEn0'], R), 0)
         elif not isinstance(BField, CLN.Sequence): BField = (0,BField,0) # by default B = By
         
-        self._Element__fBField = BField[:]
+        self._Element__fBField = Field(BField[:],self)
         self._Element__fChars['Bx'] = BField[0]
         self._Element__fChars['By'] = BField[1]
         self._Element__fChars['Bs'] = BField[2]
@@ -225,10 +225,11 @@ class MDipole(Element, HasCounter, Bend):
   
 
 class Solenoid(Element, HasCounter):
+    """ not working smh """
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
         super().__init__(self, Curve=0, Length=Length, Name=Name)
-        self.__fField = (0,0,Bs)
+        self._Element__fBField = Field([0,0,Bs],self)
         
 
 class MSext(Element, HasCounter):
@@ -244,8 +245,8 @@ class MSext(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        fld = NP.array([self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), NP.zeros(len(x))])
-        return self._Element__tilt_field(fld)
+        fld = Field([self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), NP.zeros(len(x))], self)
+        return fld.tilt()
         
 class Wien(Element, HasCounter, Bend):
     """ wien filter
@@ -280,7 +281,7 @@ class Wien(Element, HasCounter, Bend):
             R = self.__fR
         
         self.fCurve = 1/R[0]
-        self._Element__fEField = (EField,0,0)
+        self._Element__fEField = Field([EField,0,0], self)
         self.__fVolt = (EField * R[0] * math.log(R[2] / R[1])) / (-2)
         self._Element__fChars['Curve'] = self.fCurve
         
@@ -303,15 +304,15 @@ class Wien(Element, HasCounter, Bend):
             if self._Element__fEField is None: self.setEField()
             BField = -self._Element__fEField[0]/v
         
-        self._Element__fBField = (0, BField, 0)
+        self._Element__fBField = Field([0, BField, 0], self)
         
     def EField(self, arg):
         i_x = index(arg,'x')
         x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         z = NP.zeros(len(x))
-        fld = (Ex, z, z)
-        return self._Element__tilt_field(fld)
+        fld = Field([Ex, z, z], self)
+        return fld.tilt()
     
     def BField(self, arg):
         i_x = index(arg,'x')
@@ -331,8 +332,8 @@ class Wien(Element, HasCounter, Bend):
         B0 = self._Element__fBField[1]
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
         z = NP.zeros(len(x))
-        fld = (z, B1, z)
-        return self._Element__tilt_field(fld)
+        fld = Field([z, B1, z], self)
+        return fld.tilt()
     
     def frontKick(self, state):
         u = self.__U(state[:,imap['x']])
@@ -379,8 +380,8 @@ class ERF(Element, HasCounter):
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         z = NP.zeros(len(t))
-        fld = (z, z, A*NP.cos(w*t+phi))
-        return self._Element__tilt_field(fld)
+        fld = Field([z, z, A*NP.cos(w*t+phi)], self)
+        return fld.tilt()
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
         i_t = index(arg, 't')
@@ -389,8 +390,8 @@ class ERF(Element, HasCounter):
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         z = NP.zeros(len(t))
-        fld = (z, z, -A*w*NP.sin(w*t+phi))
-        return self._Element__tilt_field(fld)
+        fld = Field([z, z, -A*w*NP.sin(w*t+phi)], self)
+        return fld.tilt()
     
     def advance(self, state):  
         """ alternative to integration,
@@ -474,14 +475,14 @@ if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
     
-    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,3))
-    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,3)).as_list()).flatten()
+    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5))
+    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,2), y=(2e-3,4e-3,2)).as_list()).flatten()
     
     el = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
     
 #    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
 #    lFODO = ENT.Lattice(FODO,'FODO')
-    lat = ENT.Lattice([R3],'R3')
+    lat = ENT.Lattice([el],'R3')
     
     E.track(lat, 100)
     E.setReference(0)
