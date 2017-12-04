@@ -106,24 +106,17 @@ StateList = U.StateList(dK=(0e-3,3e-4,4), Sz=1)
 E = ENS.Ensemble(StateList)
 
 ## adding RF
-tLat = ENT.Lattice(QFS)
+tLat = ENT.Lattice(QFS,'E+B')
 tLat.insertRF(0, 0, E, EField=15e7)
 
 #%%
 ## tracking
 start = clock()
-E.track(tLat, int(1e1), inner=False, breaks = 101, FWD=True)
+E.track(tLat, int(1e1), inner=False, cut = False)
 print("Tracking took {:04.2f} seconds".format(clock()-start))
 
 #%%
 #plotting
-E.setReference(1)
-#E.plot_min('dK')
-E.plot('-D dK','s',[0,1,2,3], mark_special=None,marker='.')
-#%%
-#p = E[3]
-#PLT.figure()
-#p.plot('Sx','-r'); p.plot('Sy','-g')
-#PLT.xlabel('s[m]')
-#PLT.ylabel('cm')
-#PLT.legend()
+E.setReference(2)
+E.plot('-D dK','-D Theta',[0,1,2,3])
+

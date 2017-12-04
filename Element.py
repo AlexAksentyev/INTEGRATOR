@@ -29,10 +29,10 @@ class Element:
         return self._Element__fEField
     
     def Eprime_tp(self, arg): # added for testing with ERF
-        return self._Element__fEField
+        return self.__fEField
     
     def BField(self,arg):
-        return self._Element__fBField
+        return self.__fBField
 
     def frontKick(self,particle):
         pass # do nothing
@@ -74,7 +74,6 @@ class HasCounter:
     
     def __init__(self, **kwargs):
         if 'fName' not in self.__dict__.keys(): self.fName = 'NoName' 
-#        self.fName = Name   
         self.fName += self.__fSep+str(self.__class__.fCount)
         self.__class__.fCount += 1
         super().__init__(**kwargs)
