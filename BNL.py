@@ -102,7 +102,7 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
     SSb2H1 + SSb2H2 + ARCb1H1 + SSb1H1
 #%%
 ## prepping ensemble of states
-E = ENS.Ensemble.populate(dK=(0e-3,3e-4,4), Sz=1)
+E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), Sz=1)
 
 ## adding RF
 tLat = ENT.Lattice(QFS,'E+B')
@@ -117,5 +117,5 @@ print("Tracking took {:04.2f} seconds".format(clock()-start))
 #%%
 #plotting
 E.setReference(2)
-E.plot('-D dK','-D Theta',[0,1,2,3])
+E.plot('x','s',[3])
 
