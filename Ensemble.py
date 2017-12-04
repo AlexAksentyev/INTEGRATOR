@@ -371,13 +371,9 @@ class Ensemble:
         
 #%%
 if __name__ is '__main__':
-    import utilFunc as U
     import Element as ENT
     import Particle as PCL
     from matplotlib import pyplot as PLT
-    
-
-#    states = U.StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
     
     E = Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
