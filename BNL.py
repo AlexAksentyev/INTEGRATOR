@@ -117,5 +117,5 @@ print("Tracking took {:04.2f} seconds".format(clock()-start))
 #%%
 #plotting
 E.setReference(2)
-E.plot('x','s',[3])
+E.plot()
 
