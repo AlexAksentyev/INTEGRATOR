@@ -187,6 +187,7 @@ class Ensemble:
         """ if cut is true, particle logs keep only the values relevant for the current turn,
             else keep all values in RAM
         """
+        # get lattice name for saving data into file
         from Element import Lattice
         if type(ElementSeq) == Lattice:
             latname = ElementSeq.Name
@@ -194,20 +195,22 @@ class Ensemble:
         else:
             latname = 'Unnamed_sequence'
         
+        # number integration period subdivisions
         brks = breaks
         self.fIntBrks = brks
         
+        ## creation of particle logs
+        # recarray type
         import tables as TBL
-        
         names = ['START']+[e.fName for e in ElementSeq]
         n = len(names[NP.argmax(names)])
-        EType = TBL.StringCol(n)
+        EType = TBL.StringCol(n) #otherwise problems writing into hdf5 file
         vartype = [('Turn',int),('Element',EType),('Point', int)]
         vartype += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
         
-        self.__fLastPnt = -1
+        self.__fLastPnt = -1 # marker of the state vector upon exiting an element
         
-        ics = list()
+        # counting the number of records in a p-log
         n_elem = len(ElementSeq)
         if inner: 
             nrow = n_elem*self.fIntBrks
@@ -219,46 +222,50 @@ class Ensemble:
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
         
-        # check for memory error
-        # if so, split log into chunks
-        try: NP.recarray(nrow*self.n_ics,dtype=vartype)
-        except MemoryError:
-            cut = True
-            print('Too much memory required; cutting logs')
-            if inner: nrow /= ntimes
-            else: nrow -=1; nrow /= ntimes; nrow += 1
+#        # check for memory error
+#        # if so, split log into chunks
+#        ### decided a bad idea to automatize this
+#        try: NP.recarray(nrow*self.n_ics,dtype=vartype)
+#        except MemoryError:
+#            cut = True
+#            print('Too much memory required; cutting logs')
+#            if inner: nrow /= ntimes
+#            else: nrow -=1; nrow /= ntimes; nrow += 1
+#        nrow = int(nrow)
         
-        nrow = int(nrow)
-        
+        # creating particle logs
+        ics = list()
         for pid, ic in self.ics.items():
                 setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
                 self[pid].Log.fill(NP.nan) # in case we later get a NaN error in tracking, 
-                                        # pre-fill the log with nans
+                                           # pre-fill the log with nans
                 ic = list(ic.values())
-                self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values
+                self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
                 ics.append(ic)
         
-        state = NP.array(ics)
-        
+        # current state vector
+        state = NP.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
         n_ics = self.n_ics
         n_var = self.n_var
         
-        rhs = RHS.RHS(self)
+        rhs = RHS.RHS(self) # setting up the RHS
         
+        # opening hdf5 file to output data
+        # write the used particle parameters (Mass0, KinEn0, G)
+        # write particle logs
         filename = './data/{}.h5'.format(latname)
         with TBL.open_file(filename, 'w', latname) as f: 
             ppar = self.Particle.getParams()
             f.create_table('/','Particle',ppar)
             f.create_group('/','Logs', 'Particle logs')
-            for p in self: # creating data tables
+            for p in self: # creating data tables to fill
                 f.create_table(f.root.Logs, 'P'+str(p.PID), p.Log.dtype)
             
-            old_percent = -1
-            cnt = 0
-            cnt_tot = n_elem*ntimes
-            old_ind=0
-            for n in range(1,ntimes+1):
-                for i in range(len(ElementSeq)):       
+            old_percent = -1 # to print 0 %
+            cnt = 0; cnt_tot = n_elem*ntimes # for progress bar
+            old_ind=0 # log is writtten into file from old_ind:ind
+            for n in range(1,ntimes+1): # turn
+                for i in range(len(ElementSeq)): # element
                     # pick element
                     if FWD: element = ElementSeq[i]
                     else: element = ElementSeq[len(ElementSeq)-1-i]
@@ -278,13 +285,13 @@ class Ensemble:
                     
                     try:
                         element.frontKick(state)
-                        state = state.reshape(n_ics*n_var)
+                        state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
                         if not bERF:
                             vals = odeint(rhs, state, at, args=(element,))
-                            state = vals[brks-1]
+                            state = vals[brks-1] # [x0,y0,...,x1,y1,...]
                         else:
                             element.advance(state)
-                        state = state.reshape(n_ics,n_var)
+                        state = state.reshape(n_ics,n_var) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
                         element.rearKick(state)
                         if not bERF and inner:
                             for k in range(brks-1):
@@ -329,7 +336,7 @@ if __name__ is '__main__':
     FODO.insertRF(0,0,E,EField=15e4)
     
 #%%
-    E.track(FODO,int(1e3),cut=False)
+    E.track(FODO,int(1e9),cut=False)
     
 #%%
     E.setReference(0)
@@ -337,4 +344,4 @@ if __name__ is '__main__':
     n=1
     for pid in pids:
         PLT.subplot(3,1,n); n += 1
-        E.plot('-D y','s', pids=[E.getReference().PID, pid], new_plot=False)
+        E.plot('-D x','s', pids=[E.getReference().PID, pid], new_plot=False)
