@@ -247,7 +247,7 @@ class Ensemble:
         """
         # get lattice name for saving data into file
         from Element import Lattice
-        if type(ElementSeq) == Lattice:
+        if isinstance(ElementSeq, Lattice):
             latname = ElementSeq.Name
             ElementSeq = ElementSeq.fSequence
         else:
