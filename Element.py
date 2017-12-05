@@ -51,15 +51,10 @@ class Element:
         
         super().__init__(**kwargs)
     
-#    def __vectorize(self,field,arg):
-#        n = len(index(arg,'x')[0])
-#        return NP.repeat(field, n).reshape(3,n)
     
     def EField(self,arg):   
         fld = self.__fEField.vectorize(arg)
         return fld.tilt()
-#        fld = self.__vectorize(self.__fEField, arg)
-#        return self.__tilt_field(fld)
     
     def Eprime_tp(self, arg): # added for testing with ERF
         fld = self.__fEField.vectorize(arg)
@@ -82,27 +77,24 @@ class Element:
     def __repr__(self):
         return str(self._Element__fChars)
     
-#    def __tilt_field(self, field):
-#        return self.TiltMatrix.dot(field).A
-    
     def tilt(self, order, X=0, Y=0, S=0):
-        a_x, a_y, a_s = -NP.radians([X,Y,S])
+        a_x, a_y, a_s = NP.radians([X,Y,S])
         
         cx, cy, cs = NP.cos([a_x, a_y, a_s])
         sx, sy, ss = NP.sin([a_x, a_y, a_s])
     
         Rx = NP.matrix([[1, 0,  0], 
-                        [0, cx, sx],
-                        [0,-sx, cx]])
-        Ry = NP.matrix([[cy, 0,-sy],
-                        [0,  1, 0],
-                        [sy, 0, cy]])
-        Rs = NP.matrix([[ cs, ss, 0],
-                        [-ss, cs, 0],
-                        [ 0,  0,  1]])
+                        [0, cx, -sx],
+                        [0, sx,  cx]])
+        Ry = NP.matrix([[ cy, 0, sy],
+                        [ 0,  1, 0],
+                        [-sy, 0, cy]])
+        Rs = NP.matrix([[cs, -ss, 0],
+                        [ss,  cs, 0],
+                        [0,   0,  1]])
         
         R = {'X':Rx, 'Y':Ry, 'S':Rs}
-        res = NP.identity(3)
+        res = NP.matrix(NP.identity(3))
         for ax in order:
             ax = ax.upper()
             res = R[ax].dot(res)
@@ -307,7 +299,7 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = Field([0, BField, 0], self)
         
     def EField(self, arg):
-        i_x = index(arg,'x')
+        i_x, = index(arg,'x')
         x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         z = NP.zeros(len(x))
@@ -315,7 +307,7 @@ class Wien(Element, HasCounter, Bend):
         return fld.tilt()
     
     def BField(self, arg):
-        i_x = index(arg,'x')
+        i_x, = index(arg,'x')
         x = arg[i_x]
         
         e0 = self.fPardict['q']
@@ -374,7 +366,7 @@ class ERF(Element, HasCounter):
         self.RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
         
     def EField(self, arg):
-        i_t = index(arg, 't')
+        i_t, = index(arg, 't')
         t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
@@ -384,7 +376,7 @@ class ERF(Element, HasCounter):
         return fld.tilt()
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
-        i_t = index(arg, 't')
+        i_t, = index(arg, 't')
         t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
@@ -474,15 +466,51 @@ class Lattice:
 if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
+    import BNL
     
-    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5))
-    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,2), y=(2e-3,4e-3,2)).as_list()).flatten()
-    
-    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
-    lFODO = ENT.Lattice(FODO,'FODO')
+    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))
     
     #%%
-    E.track(lFODO, 100)
+    SSb1H2 = BNL.SSb1H2
+    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
+    
+    lat = ENT.Lattice(SSb1H2,'FODO')
+    lat.insertRF(0,0,E,EField=15e7)
+    
+    #%%
+    E.track(lat, 100)
     E.setReference(0)
-    E.plot('x','s')
+    E.plot()
+    
+    #%%
+    def tilt(order, *args):
+        ang = {}
+        i=0
+        for t in order:
+            ang.update({(t.upper(),i):args[i]})
+            i += 1
+             
+        ang = {key: NP.radians(val) for key,val in ang.items()}
+        c = {key:NP.cos(x) for key,x in ang.items()}
+        s = {key:NP.sin(x) for key,x in ang.items()}
+         
+        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
+                       [0, c, -s],
+                       [0, s,  c]])
+        Ry = lambda c,s: NP.matrix([[ c, 0, s],
+                        [ 0,  1, 0],
+                        [-s, 0, c]])
+        Rs = lambda c,s: NP.matrix([[c, -s, 0],
+                        [s,  c, 0],
+                        [0,   0,  1]])
+        
+        R = {'X':Rx,'Y':Ry,'S':Rs}
+        
+        res = NP.matrix(NP.identity(3)) 
+        for key in ang.keys():
+            res = R[key[0]](c[key],s[key]).dot(res)
+        
+#        Rots = [R[key[0]](c[key],s[key]) for key in ang.keys()]
+         
+        return res
 
