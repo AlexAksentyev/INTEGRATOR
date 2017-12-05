@@ -77,29 +77,58 @@ class Element:
     def __repr__(self):
         return str(self._Element__fChars)
     
-    def tilt(self, order, X=0, Y=0, S=0):
-        a_x, a_y, a_s = NP.radians([X,Y,S])
-        
-        cx, cy, cs = NP.cos([a_x, a_y, a_s])
-        sx, sy, ss = NP.sin([a_x, a_y, a_s])
-    
-        Rx = NP.matrix([[1, 0,  0], 
-                        [0, cx, -sx],
-                        [0, sx,  cx]])
-        Ry = NP.matrix([[ cy, 0, sy],
+    def tilt(self, order, *args):
+        ang = {}
+        i=0
+        for t in order:
+            ang.update({(t.upper(),i):args[i]})
+            i += 1
+             
+        ang = {key: NP.radians(val) for key,val in ang.items()}
+        c = {key:NP.cos(x) for key,x in ang.items()}
+        s = {key:NP.sin(x) for key,x in ang.items()}
+         
+        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
+                       [0, c, -s],
+                       [0, s,  c]])
+        Ry = lambda c,s: NP.matrix([[ c, 0, s],
                         [ 0,  1, 0],
-                        [-sy, 0, cy]])
-        Rs = NP.matrix([[cs, -ss, 0],
-                        [ss,  cs, 0],
+                        [-s, 0, c]])
+        Rs = lambda c,s: NP.matrix([[c, -s, 0],
+                        [s,  c, 0],
                         [0,   0,  1]])
         
-        R = {'X':Rx, 'Y':Ry, 'S':Rs}
-        res = NP.matrix(NP.identity(3))
-        for ax in order:
-            ax = ax.upper()
-            res = R[ax].dot(res)
-            
+        R = {'X':Rx,'Y':Ry,'S':Rs}
+        
+        res = NP.matrix(NP.identity(3)) 
+        for key in ang.keys():
+            res = R[key[0]](c[key],s[key]).dot(res)
+         
         self.TiltMatrix = res
+    
+#    def tilt(self, order, X=0, Y=0, S=0): # less flexible code
+#        a_x, a_y, a_s = NP.radians([X,Y,S])
+#        
+#        cx, cy, cs = NP.cos([a_x, a_y, a_s])
+#        sx, sy, ss = NP.sin([a_x, a_y, a_s])
+#    
+#        Rx = NP.matrix([[1, 0,  0], 
+#                        [0, cx, -sx],
+#                        [0, sx,  cx]])
+#        Ry = NP.matrix([[ cy, 0, sy],
+#                        [ 0,  1, 0],
+#                        [-sy, 0, cy]])
+#        Rs = NP.matrix([[cs, -ss, 0],
+#                        [ss,  cs, 0],
+#                        [0,   0,  1]])
+#        
+#        R = {'X':Rx, 'Y':Ry, 'S':Rs}
+#        res = NP.matrix(NP.identity(3))
+#        for ax in order:
+#            ax = ax.upper()
+#            res = R[ax].dot(res)
+#            
+#        self.TiltMatrix = res
         
 class Bend:
     def __init__(self,RefPart,**kwargs):
@@ -470,6 +499,12 @@ if __name__ is '__main__':
     
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))
     
+    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
+    
+    
+    el = BNL.BDA
+    
+    
     #%%
     SSb1H2 = BNL.SSb1H2
     FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
@@ -482,35 +517,4 @@ if __name__ is '__main__':
     E.setReference(0)
     E.plot()
     
-    #%%
-    def tilt(order, *args):
-        ang = {}
-        i=0
-        for t in order:
-            ang.update({(t.upper(),i):args[i]})
-            i += 1
-             
-        ang = {key: NP.radians(val) for key,val in ang.items()}
-        c = {key:NP.cos(x) for key,x in ang.items()}
-        s = {key:NP.sin(x) for key,x in ang.items()}
-         
-        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
-                       [0, c, -s],
-                       [0, s,  c]])
-        Ry = lambda c,s: NP.matrix([[ c, 0, s],
-                        [ 0,  1, 0],
-                        [-s, 0, c]])
-        Rs = lambda c,s: NP.matrix([[c, -s, 0],
-                        [s,  c, 0],
-                        [0,   0,  1]])
-        
-        R = {'X':Rx,'Y':Ry,'S':Rs}
-        
-        res = NP.matrix(NP.identity(3)) 
-        for key in ang.keys():
-            res = R[key[0]](c[key],s[key]).dot(res)
-        
-#        Rots = [R[key[0]](c[key],s[key]) for key in ang.keys()]
-         
-        return res
 
