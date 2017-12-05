@@ -138,49 +138,6 @@ class Element:
     
     def tilt(self, order, *args, append=False):
         self.Tilt.tilt(order, *args, append=append)
-    
-#    def tilt(self, order, *args, append=False):
-#        i0 = 0
-#        if append:
-#            keys = list(self.Tilt.AngleRad.keys())
-#            try:
-#                i0 = keys[len(keys)-1][1] # index of the last made rotation
-#                i0 += 1 # start writing from next one
-#            except IndexError:
-#                pass
-#            
-#        order = order.upper()
-#        i0 = NP.repeat(i0, len(args))
-#        i = list(range(len(args)))
-#        keys = list(zip(order, i0 + i))
-#        ang = dict(zip(keys, zip(args, NP.radians(args))))
-#        
-#        if append: self.Tilt.Angle.update(ang)
-#        else: self.Tilt.Angle = ang.copy()
-#        
-#        c = {key:NP.cos(x[1]) for key,x in ang.items()}
-#        s = {key:NP.sin(x[1]) for key,x in ang.items()}
-#         
-#        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
-#                       [0, c, -s],
-#                       [0, s,  c]])
-#        Ry = lambda c,s: NP.matrix([[ c, 0, s],
-#                        [ 0,  1, 0],
-#                        [-s, 0, c]])
-#        Rs = lambda c,s: NP.matrix([[c, -s, 0],
-#                        [s,  c, 0],
-#                        [0,   0,  1]])
-#        
-#        R = {'X':Rx,'Y':Ry,'S':Rs}
-#        
-#        if append: res = self.Tilt.Matrix
-#        else: res = NP.matrix(NP.identity(3))
-#        for key in ang.keys():
-#            res = R[key[0]](c[key],s[key]).dot(res)
-#         
-#        self.Tilt.Matrix = res
-#        
-#        ## update Tilt repstr
         
 class Bend:
     def __init__(self,RefPart,**kwargs):
@@ -220,7 +177,7 @@ class HasCounter:
         else: res.fName = Name
         return res
         
-
+#%%
 class Drift(Element, HasCounter):
     """ drift space
     """
@@ -298,10 +255,9 @@ class MDipole(Element, HasCounter, Bend):
   
 
 class Solenoid(Element, HasCounter):
-    """ not working smh """
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
-        super().__init__(self, Curve=0, Length=Length, Name=Name)
+        super().__init__(Curve=0, Length=Length, Name=Name)
         self._Element__fBField = Field([0,0,Bs],self)
         
 
@@ -561,18 +517,16 @@ class Lattice:
 if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
-    from importlib import reload
     from BNL import SSb1H2, BDA
     
-    reload(ENT)
-    
-    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
-    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
-    
-    el = BDA()
+    if False:
+        E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
+        state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
+        
+        el = BDA()
     
     #%%
-    if True:
+    if False:
         mqf = MQuad(5e-2,86,'QF')
         mqd = MQuad(5e-2,-83,'QD')
         dft = Drift(25e-2)
