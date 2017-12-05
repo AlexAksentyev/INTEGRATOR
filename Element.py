@@ -27,7 +27,7 @@ class Field(NP.ndarray):
         return Field(NP.repeat(self, n).reshape(3,n), self.host)
     
     def tilt(self):
-        return Field(self.host.TiltMatrix.dot(self).A,self.host)
+        return Field(self.host.Tilt.Matrix.dot(self).A,self.host)
 
 
 #%%
@@ -42,7 +42,9 @@ class Element:
         self.__fEField = Field([0,0,0],self)
         self.__fBField = Field([0,0,0],self)
         
-        self.TiltMatrix = NP.matrix(NP.identity(3))
+        self.Tilt = lambda: None
+        self.Tilt.Matrix = NP.matrix(NP.identity(3))
+        self.Tilt.AngleRad = {}
         
         self.bSkip = False # for testing ERF.advance()
         
@@ -77,16 +79,27 @@ class Element:
     def __repr__(self):
         return str(self._Element__fChars)
     
-    def tilt(self, order, *args):
-        ang = {}
-        i=0
-        for t in order:
-            ang.update({(t.upper(),i):args[i]})
-            i += 1
-             
-        ang = {key: NP.radians(val) for key,val in ang.items()}
-        c = {key:NP.cos(x) for key,x in ang.items()}
-        s = {key:NP.sin(x) for key,x in ang.items()}
+    def tilt(self, order, *args, append=False):
+        i0 = 0
+        if append:
+            keys = list(self.Tilt.AngleRad.keys())
+            try:
+                i0 = keys[len(keys)-1][1] # index of the last made rotation
+                i0 += 1 # start writing from next one
+            except IndexError:
+                pass
+            
+        order = order.upper()
+        i0 = NP.repeat(i0, len(args))
+        i = list(range(len(args)))
+        keys = list(zip(order, i0 + i))
+        ang = dict(zip(keys, zip(args, NP.radians(args))))
+        
+        if append: self.Tilt.AngleRad.update(ang)
+        else: self.Tilt.AngleRad = ang.copy()
+        
+        c = {key:NP.cos(x[1]) for key,x in ang.items()}
+        s = {key:NP.sin(x[1]) for key,x in ang.items()}
          
         Rx = lambda c,s: NP.matrix([[1, 0,  0], 
                        [0, c, -s],
@@ -100,11 +113,12 @@ class Element:
         
         R = {'X':Rx,'Y':Ry,'S':Rs}
         
-        res = NP.matrix(NP.identity(3)) 
+        if append: res = self.Tilt.Matrix
+        else: res = NP.matrix(NP.identity(3))
         for key in ang.keys():
             res = R[key[0]](c[key],s[key]).dot(res)
          
-        self.TiltMatrix = res
+        self.Tilt.Matrix = res
     
 #    def tilt(self, order, X=0, Y=0, S=0): # less flexible code
 #        a_x, a_y, a_s = NP.radians([X,Y,S])
@@ -488,33 +502,36 @@ class Lattice:
         angle = NP.random.normal(mean_angle, sigma, self.fCount)
         i=0
         for element in self:
-            element.tilt('S',S=angle[i])
+            element.tilt('S',angle[i])
             i +=1
     
 #%%
 if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
+    from importlib import reload
     import BNL
     
-    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))
+    reload(ENT)
     
+    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
     state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
-    
     
     el = BNL.BDA
     
-    
     #%%
-    SSb1H2 = BNL.SSb1H2
-    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
-    
-    lat = ENT.Lattice(SSb1H2,'FODO')
-    lat.insertRF(0,0,E,EField=15e7)
-    
-    #%%
-    E.track(lat, 100)
-    E.setReference(0)
-    E.plot()
-    
+    if False:
+        SSb1H2 = BNL.SSb1H2
+        FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
+        
+        lat = ENT.Lattice(SSb1H2,'FODO')
+        lat.insertRF(0,0,E,EField=15e7)
+        
+        #%%
+        E.track(lat, 50)
+        
+        #%%
+        E.setReference(0)
+        E.plot('-D Sx','s',pids=[1,2,5,14])
+        
 
