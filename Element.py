@@ -544,6 +544,13 @@ class Lattice:
             print('Dimension mismatch: order {}, mean {}, sigma {}'.format(n, nmean, nsig))
             return
         
+        ids = [id(e) for e in self.fSequence]
+        nids = len(NP.unique(ids))
+        if nids != self.fCount:
+            print('Number of unique elements: {}/{}'.format(nids, self.fCount))
+            print('Non-unique elements in lattice!')
+            return
+        
         angle = NP.random.normal(mean_angle, sigma, size=(self.fCount, n))
         i=0
         for element in self:
@@ -555,22 +562,27 @@ if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
     from importlib import reload
-    import BNL
+    from BNL import SSb1H2, BDA
     
     reload(ENT)
     
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
     state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
     
-    el = BNL.BDA
+    el = BDA()
     
     #%%
     if True:
-        SSb1H2 = BNL.SSb1H2
-        FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
+        mqf = MQuad(5e-2,86,'QF')
+        mqd = MQuad(5e-2,-83,'QD')
+        dft = Drift(25e-2)
+        FODO = [mqf, dft, mqf, dft]
         
-        lat = ENT.Lattice(SSb1H2,'FODO')
+        lat = ENT.Lattice(FODO,'FODO')
         lat.insertRF(0,0,E,EField=15e7)
+        
+        lat.tilt('xs',(1,3))
+        lat.tilt('xs',(-1,-3), append=True)
         
         #%%
         E.track(lat, 5)
