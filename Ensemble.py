@@ -4,6 +4,13 @@
 Created on Tue Nov 28 15:04:54 2017
 
 @author: alexa
+
+TODO:
+    * in setReference make default arg None 
+        to set genuine reference (all vars 0, except Sz = 1)
+        
+    * vectorize tilted/untilted lattice
+
 """
 from scipy.integrate import odeint
 import numpy as NP
