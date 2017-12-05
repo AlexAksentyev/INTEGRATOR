@@ -28,7 +28,7 @@ class Element:
         super().__init__(**kwargs)
     
     def __vectorize(self,field,arg):
-        n = len(index(arg,'x'))
+        n = len(index(arg,'x')[0])
 #        fx,fy,fs = field
         return NP.repeat(field, n).reshape(3,n)
 #        return (NP.repeat(fx,n), NP.repeat(fy,n), NP.repeat(fs,n))
