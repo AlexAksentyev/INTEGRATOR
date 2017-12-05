@@ -29,7 +29,67 @@ class Field(NP.ndarray):
     def tilt(self):
         return Field(self.host.Tilt.Matrix.dot(self).A,self.host)
 
-
+#%%
+class Tilt(dict):
+    def __init__(self,**kw):
+        dict.__init__(self,kw)
+        self.__dict__ = self
+        self.Angle = {}
+        self.Matrix = NP.matrix(NP.identity(3))
+        self.__set_rep_str()
+        
+    def tilt(self, order, *args, append=False):
+        i0 = 0
+        if append:
+            keys = list(self.Angle.keys())
+            try:
+                i0 = keys[len(keys)-1][1] # index of the last made rotation
+                i0 += 1 # start writing from next one
+            except IndexError:
+                pass
+            
+        order = order.upper()
+        i0 = NP.repeat(i0, len(args))
+        i = list(range(len(args)))
+        keys = list(zip(order, i0 + i))
+        ang = dict(zip(keys, zip(args, NP.radians(args))))
+        
+        if append: self.Angle.update(ang)
+        else: self.Angle = ang.copy()
+        
+        c = {key:NP.cos(x[1]) for key,x in ang.items()}
+        s = {key:NP.sin(x[1]) for key,x in ang.items()}
+         
+        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
+                       [0, c, -s],
+                       [0, s,  c]])
+        Ry = lambda c,s: NP.matrix([[ c, 0, s],
+                        [ 0,  1, 0],
+                        [-s, 0, c]])
+        Rs = lambda c,s: NP.matrix([[c, -s, 0],
+                        [s,  c, 0],
+                        [0,   0,  1]])
+        
+        R = {'X':Rx,'Y':Ry,'S':Rs}
+        
+        if append: res = self.Matrix
+        else: res = NP.matrix(NP.identity(3))
+        for key in ang.keys():
+            res = R[key[0]](c[key],s[key]).dot(res)
+         
+        self.Matrix = res
+        
+        self.__set_rep_str()
+        
+    def __set_rep_str(self):
+        axis = [x[0] for x in self.Angle.keys()]
+        adeg = [x[0] for x in self.Angle.values()]
+        arad = [x[1] for x in self.Angle.values()]
+        pd = PDS.DataFrame({'Axis':axis,'Deg':adeg,'Rad':arad}).T
+        self.__RepStr = str(pd)
+        
+    def __repr__(self):
+        return self.__RepStr
 #%%
 
 class Element:
@@ -42,9 +102,7 @@ class Element:
         self.__fEField = Field([0,0,0],self)
         self.__fBField = Field([0,0,0],self)
         
-        self.Tilt = lambda: None
-        self.Tilt.Matrix = NP.matrix(NP.identity(3))
-        self.Tilt.AngleRad = {}
+        self.Tilt = Tilt()
         
         self.bSkip = False # for testing ERF.advance()
         
@@ -80,69 +138,50 @@ class Element:
         return str(self._Element__fChars)
     
     def tilt(self, order, *args, append=False):
-        i0 = 0
-        if append:
-            keys = list(self.Tilt.AngleRad.keys())
-            try:
-                i0 = keys[len(keys)-1][1] # index of the last made rotation
-                i0 += 1 # start writing from next one
-            except IndexError:
-                pass
-            
-        order = order.upper()
-        i0 = NP.repeat(i0, len(args))
-        i = list(range(len(args)))
-        keys = list(zip(order, i0 + i))
-        ang = dict(zip(keys, zip(args, NP.radians(args))))
-        
-        if append: self.Tilt.AngleRad.update(ang)
-        else: self.Tilt.AngleRad = ang.copy()
-        
-        c = {key:NP.cos(x[1]) for key,x in ang.items()}
-        s = {key:NP.sin(x[1]) for key,x in ang.items()}
-         
-        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
-                       [0, c, -s],
-                       [0, s,  c]])
-        Ry = lambda c,s: NP.matrix([[ c, 0, s],
-                        [ 0,  1, 0],
-                        [-s, 0, c]])
-        Rs = lambda c,s: NP.matrix([[c, -s, 0],
-                        [s,  c, 0],
-                        [0,   0,  1]])
-        
-        R = {'X':Rx,'Y':Ry,'S':Rs}
-        
-        if append: res = self.Tilt.Matrix
-        else: res = NP.matrix(NP.identity(3))
-        for key in ang.keys():
-            res = R[key[0]](c[key],s[key]).dot(res)
-         
-        self.Tilt.Matrix = res
+        self.Tilt.tilt(order, *args, append=append)
     
-#    def tilt(self, order, X=0, Y=0, S=0): # less flexible code
-#        a_x, a_y, a_s = NP.radians([X,Y,S])
+#    def tilt(self, order, *args, append=False):
+#        i0 = 0
+#        if append:
+#            keys = list(self.Tilt.AngleRad.keys())
+#            try:
+#                i0 = keys[len(keys)-1][1] # index of the last made rotation
+#                i0 += 1 # start writing from next one
+#            except IndexError:
+#                pass
+#            
+#        order = order.upper()
+#        i0 = NP.repeat(i0, len(args))
+#        i = list(range(len(args)))
+#        keys = list(zip(order, i0 + i))
+#        ang = dict(zip(keys, zip(args, NP.radians(args))))
 #        
-#        cx, cy, cs = NP.cos([a_x, a_y, a_s])
-#        sx, sy, ss = NP.sin([a_x, a_y, a_s])
-#    
-#        Rx = NP.matrix([[1, 0,  0], 
-#                        [0, cx, -sx],
-#                        [0, sx,  cx]])
-#        Ry = NP.matrix([[ cy, 0, sy],
+#        if append: self.Tilt.Angle.update(ang)
+#        else: self.Tilt.Angle = ang.copy()
+#        
+#        c = {key:NP.cos(x[1]) for key,x in ang.items()}
+#        s = {key:NP.sin(x[1]) for key,x in ang.items()}
+#         
+#        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
+#                       [0, c, -s],
+#                       [0, s,  c]])
+#        Ry = lambda c,s: NP.matrix([[ c, 0, s],
 #                        [ 0,  1, 0],
-#                        [-sy, 0, cy]])
-#        Rs = NP.matrix([[cs, -ss, 0],
-#                        [ss,  cs, 0],
+#                        [-s, 0, c]])
+#        Rs = lambda c,s: NP.matrix([[c, -s, 0],
+#                        [s,  c, 0],
 #                        [0,   0,  1]])
 #        
-#        R = {'X':Rx, 'Y':Ry, 'S':Rs}
-#        res = NP.matrix(NP.identity(3))
-#        for ax in order:
-#            ax = ax.upper()
-#            res = R[ax].dot(res)
-#            
-#        self.TiltMatrix = res
+#        R = {'X':Rx,'Y':Ry,'S':Rs}
+#        
+#        if append: res = self.Tilt.Matrix
+#        else: res = NP.matrix(NP.identity(3))
+#        for key in ang.keys():
+#            res = R[key[0]](c[key],s[key]).dot(res)
+#         
+#        self.Tilt.Matrix = res
+#        
+#        ## update Tilt repstr
         
 class Bend:
     def __init__(self,RefPart,**kwargs):
