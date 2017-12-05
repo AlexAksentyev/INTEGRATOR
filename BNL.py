@@ -6,20 +6,12 @@ Created on Mon Sep 18 16:59:23 2017
 @author: alexa
 """
 #%%
-import pandas as PDS
-from matplotlib import pyplot as PLT
 import Particle as PCL
-import Ensemble as ENS
 import Element as ENT
-import utilFunc as U
 from importlib import reload
 
-from time import clock
-
 reload(ENT)
-reload(ENS)
 reload(PCL)
-reload(U)
 
 #%%
 # lattice elements
@@ -100,22 +92,28 @@ SSb1H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
 QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
     ARCb2H1 + SSe2H1 + SSe2H2 + ARCb1H2 + \
     SSb2H1 + SSb2H2 + ARCb1H1 + SSb1H1
+    
 #%%
-## prepping ensemble of states
-E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), Sz=1)
-
-## adding RF
-tLat = ENT.Lattice(QFS,'E+B')
-tLat.insertRF(0, 0, E, EField=15e7)
-
+if __name__ is '__main__':
+    ## prepping ensemble of states
+    import Ensemble as ENS
+    reload(ENS) # update 
+    
+    E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), Sz=1)
+    
+    ## adding RF
+    tLat = ENT.Lattice(QFS,'E+B')
+    tLat.insertRF(0, 0, E, EField=15e7)
+    
 #%%
-## tracking
-start = clock()
-E.track(tLat, int(1e2), inner=False, cut = True)
-print("Tracking took {:04.2f} seconds".format(clock()-start))
-
+    ## tracking
+    from time import clock
+    start = clock()
+    E.track(tLat, int(1e2), inner=False, cut = True)
+    print("Tracking took {:04.2f} seconds".format(clock()-start))
+    
 #%%
-#plotting
-E.setReference(2)
-E.plot()
+    #plotting
+    E.setReference(2)
+    E.plot()
 
