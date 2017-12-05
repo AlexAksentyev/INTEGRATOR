@@ -28,6 +28,9 @@ class Field(NP.ndarray):
     
     def tilt(self):
         return Field(self.host.Tilt.Matrix.dot(self).A,self.host)
+    
+    def updateHost(self, new_host):
+        self.host = new_host
 
 #%%
 class Tilt:
@@ -138,6 +141,8 @@ class Element:
     
     def tilt(self, order, *args, append=False):
         self.Tilt.tilt(order, *args, append=append)
+        self.__fBField.updateHost(self)
+        self.__fEField.updateHost(self)
         
 class Bend:
     def __init__(self,RefPart,**kwargs):
@@ -452,7 +457,7 @@ class Lattice:
         
         super().__init__()
         
-        self.fSequence = ElSeq[:]
+        self.fSequence = copy.deepcopy(ElSeq)
         
         self.Name = Name
         
@@ -526,13 +531,13 @@ class Lattice:
 if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
-    from BNL import SSb1H2, BDA, QFS
+    from BNL import SSb1H2, BDA, QFS, QDA2
     
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
+    tE = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
     state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
     
-    el = BDA()
-    
+    el = QDA2()    
     #%%
     if True:
         mqf = MQuad(5e-2,86,'QF')
@@ -543,15 +548,18 @@ if __name__ is '__main__':
         lat = ENT.Lattice(FODO,'QFS')
         lat.insertRF(0,0,E,EField=15e7)
         
-        lat.tilt('xs',(1,3))
-        lat.tilt('xs',(-1,-3), append=True)
+        tlat = copy.deepcopy(lat)
+        
+        tlat.tilt('xs',(.01,.03))
         
         #%%
         if True:
             E.track(lat, 50)
+            tE.track(tlat, 50)
         
         #%%
             E.setReference(3)
-            E.plot('-D Sx','s', pids=[3,6])
+            tE.setReference(3)
+            tE.plot('-D Sx','s', pids=[3,6])
         
 

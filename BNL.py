@@ -101,14 +101,14 @@ if __name__ is '__main__':
     import copy
     
     E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
+    state = ENS.StateList(dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
     Etilt = copy.deepcopy(E)
     
     ## adding RF
     Lat = ENT.Lattice(QFS,'E+B')
     Lat.insertRF(0, 0, E, EField=15e7)
-    tiltLat = ENT.Lattice(QFS,'E+B_tilt')
-    tiltLat.insertRF(0, 0, E, EField=15e8)
-    tiltLat.tilt('S',0,.3)
+    tiltLat = copy.deepcopy(Lat)
+    tiltLat.tilt('S',.3)
     
     turns = int(1e1)
     
@@ -116,11 +116,11 @@ if __name__ is '__main__':
     ## tracking
     from time import clock
     start = clock()
-    E.track(Lat, turns, inner=False, cut = False)
+    Etilt.track(tiltLat, turns, inner=False, cut = False)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
 #%%    
     start = clock()
-    Etilt.track(tiltLat, turns, inner=False, cut = False)
+    E.track(Lat, turns, inner=False, cut = False)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
     
 #%%
@@ -129,11 +129,13 @@ if __name__ is '__main__':
     ylab = '-D Sx'
     xlab = 's'
     
+    E.setReference(5)
+    Etilt.setReference(5)
+    
     
     
     from matplotlib import pyplot as PLT
-    E.setReference(5)
-    Etilt.setReference(5)
+    PLT.figure()
     PLT.subplot(2,1,1)
     E.plot(ylab,xlab,pids=[6,18,15], new_plot=False)
     PLT.subplot(2,1,2)
