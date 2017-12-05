@@ -30,13 +30,24 @@ class Field(NP.ndarray):
         return Field(self.host.Tilt.Matrix.dot(self).A,self.host)
 
 #%%
-class Tilt(dict):
-    def __init__(self,**kw):
-        dict.__init__(self,kw)
-        self.__dict__ = self
+class Tilt:
+    def __init__(self):
         self.Angle = {}
         self.Matrix = NP.matrix(NP.identity(3))
         self.__set_rep_str()
+        
+        # rotation matrices for tilting
+        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
+                       [0, c, -s],
+                       [0, s,  c]])
+        Ry = lambda c,s: NP.matrix([[ c, 0, s],
+                        [ 0,  1, 0],
+                        [-s, 0, c]])
+        Rs = lambda c,s: NP.matrix([[c, -s, 0],
+                        [s,  c, 0],
+                        [0,   0,  1]])
+        
+        self.Rotation = {'X':Rx,'Y':Ry,'S':Rs}
         
     def tilt(self, order, *args, append=False):
         i0 = 0
@@ -59,23 +70,11 @@ class Tilt(dict):
         
         c = {key:NP.cos(x[1]) for key,x in ang.items()}
         s = {key:NP.sin(x[1]) for key,x in ang.items()}
-         
-        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
-                       [0, c, -s],
-                       [0, s,  c]])
-        Ry = lambda c,s: NP.matrix([[ c, 0, s],
-                        [ 0,  1, 0],
-                        [-s, 0, c]])
-        Rs = lambda c,s: NP.matrix([[c, -s, 0],
-                        [s,  c, 0],
-                        [0,   0,  1]])
-        
-        R = {'X':Rx,'Y':Ry,'S':Rs}
         
         if append: res = self.Matrix
         else: res = NP.matrix(NP.identity(3))
         for key in ang.keys():
-            res = R[key[0]](c[key],s[key]).dot(res)
+            res = self.Rotation[key[0]](c[key],s[key]).dot(res)
          
         self.Matrix = res
         
