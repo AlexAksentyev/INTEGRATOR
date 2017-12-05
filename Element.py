@@ -15,22 +15,22 @@ class Field(NP.ndarray):
 
     def __new__(cls, array, Element, dtype=float):
         obj = NP.asarray(array, dtype=dtype, order='C').view(cls)  #force C-representation by default 
-        obj.host = Element
+        obj.Host = Element
         return obj
 
     def __array_finalize__(self, obj):
         if obj is None: return
-        self.host = getattr(obj, 'host', None)
+        self.Host = getattr(obj, 'Host', None)
         
     def vectorize(self,arg):
         n = len(index(arg,'x')[0])
-        return Field(NP.repeat(self, n).reshape(3,n), self.host)
+        return Field(NP.repeat(self, n).reshape(3,n), self.Host)
     
     def tilt(self):
-        return Field(self.host.Tilt.Matrix.dot(self).A,self.host)
+        return Field(self.Host.Tilt.Matrix.dot(self).A,self.Host)
     
     def updateHost(self, new_host):
-        self.host = new_host
+        self.Host = new_host
 
 #%%
 class Tilt:
@@ -113,6 +113,15 @@ class Element:
         
         super().__init__(**kwargs)
     
+    def copy(self):
+        other = copy.deepcopy(self)
+        other.__fEField.updateHost(other)
+        other.__fBField.updateHost(other)
+#        other = super(Element,other).copy()
+        return other
+    
+    def getFields(self):
+        return self.__fEField, self.__fBField
     
     def EField(self,arg):   
         fld = self.__fEField.vectorize(arg)
@@ -141,8 +150,6 @@ class Element:
     
     def tilt(self, order, *args, append=False):
         self.Tilt.tilt(order, *args, append=append)
-        self.__fBField.updateHost(self)
-        self.__fEField.updateHost(self)
         
 class Bend:
     def __init__(self,RefPart,**kwargs):
@@ -164,26 +171,26 @@ class Bend:
     def __Pc(self, KNRG):
         return math.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2)
         
-class HasCounter:
-    fCount = 0
-    
-    __fSep = "_"
-    
-    def __init__(self, **kwargs):
-        if 'fName' not in self.__dict__.keys(): self.fName = 'NoName' 
-        self.fName += self.__fSep+str(self.__class__.fCount)
-        self.__class__.fCount += 1
-        super().__init__(**kwargs)
-
-    def copy(self, Name = None):
-        self.__class__.fCount += 1
-        res = copy.deepcopy(self)
-        if Name is None: res.fName = re.sub(self.__fSep+'.*',self.__fSep+str(res.__class__.fCount-1),res.fName)
-        else: res.fName = Name
-        return res
+#class HasCounter:
+#    fCount = 0
+#    
+#    __fSep = "_"
+#    
+#    def __init__(self, **kwargs):
+#        if 'fName' not in self.__dict__.keys(): self.fName = 'NoName' 
+#        self.fName += self.__fSep+str(self.__class__.fCount)
+#        self.__class__.fCount += 1
+#        super().__init__(**kwargs)
+#
+#    def copy(self, Name = None):
+#        self.__class__.fCount += 1
+#        res = copy.deepcopy(self)
+#        if Name is None: res.fName = re.sub(self.__fSep+'.*',self.__fSep+str(res.__class__.fCount-1),res.fName)
+#        else: res.fName = Name
+#        return res
         
 #%%
-class Drift(Element, HasCounter):
+class Drift(Element):
     """ drift space
     """
     
@@ -191,7 +198,7 @@ class Drift(Element, HasCounter):
         super().__init__(Curve=0, Length=Length, Name=Name)
         
 
-class MQuad(Element, HasCounter):
+class MQuad(Element):
     """ magnetic quadrupole
     """
     
@@ -208,7 +215,7 @@ class MQuad(Element, HasCounter):
         return fld.tilt()
         
 
-class MDipole(Element, HasCounter, Bend):
+class MDipole(Element, Bend):
     """ bending magnetic dipole (horizontally bending);
     define _BField as a tuple
     """
@@ -259,14 +266,14 @@ class MDipole(Element, HasCounter, Bend):
         return self._Bend__Pc(KinEn)*1e6/(BField*PCL.clight)
   
 
-class Solenoid(Element, HasCounter):
+class Solenoid(Element):
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
         super().__init__(Curve=0, Length=Length, Name=Name)
         self._Element__fBField = Field([0,0,Bs],self)
         
 
-class MSext(Element, HasCounter):
+class MSext(Element):
     """ magnetic sextupole
     """
     
@@ -282,7 +289,7 @@ class MSext(Element, HasCounter):
         fld = Field([self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), NP.zeros(len(x))], self)
         return fld.tilt()
         
-class Wien(Element, HasCounter, Bend):
+class Wien(Element, Bend):
     """ wien filter
     """
     
@@ -381,7 +388,7 @@ class Wien(Element, HasCounter, Bend):
         return (self.__fVolt, self.__U(x))
         
     
-class ERF(Element, HasCounter):
+class ERF(Element):
     """ RF element
     """
     
@@ -457,13 +464,16 @@ class Lattice:
         
         super().__init__()
         
-        self.fSequence = copy.deepcopy(ElSeq)
+        self.fSequence = ElSeq
         
         self.Name = Name
         
         self.fCount = len(ElSeq)
         self.fLength = 0
         for e in ElSeq: self.fLength += e.fLength
+        
+    def copy(self):
+        pass
         
     def __getitem__(self, idx):
         return self.fSequence[idx]
@@ -531,17 +541,17 @@ class Lattice:
 if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
-    from BNL import SSb1H2, BDA, QFS, QDA2
+#    from BNL import SSb1H2, BDA, QFS, QDA2
     
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
     tE = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
     state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
     
-    el = QDA2()    
+#    el = QDA2()    
     #%%
     if True:
         mqf = MQuad(5e-2,86,'QF')
-        mqd = MQuad(5e-2,-83,'QD')
+#        mqd = MQuad(5e-2,-83,'QD')
         dft = Drift(25e-2)
         FODO = [mqf, dft, mqf, dft]
         
@@ -553,7 +563,7 @@ if __name__ is '__main__':
         tlat.tilt('xs',(.01,.03))
         
         #%%
-        if True:
+        if False:
             E.track(lat, 50)
             tE.track(tlat, 50)
         
