@@ -494,6 +494,8 @@ class Lattice:
         
     def tilt(self, order='S', mean_angle=(0,), sigma=(0,), append=False):
         n = len(order)
+        if not isinstance(mean_angle, CLN.Sequence): mean_angle = (mean_angle,)
+        if not isinstance(sigma, CLN.Sequence): sigma = (sigma,)
         nmean = len(mean_angle)
         nsig = len(sigma)
         if n != nmean and n != nsig:
@@ -508,11 +510,13 @@ class Lattice:
         angle = NP.random.normal(mean_angle, sigma, size=(self.fCount, n))
         i=0
         ids = set()
-        
+        cnt = 1
         for element in self:
             eid = id(element.Tilt)
             if eid in ids:
-                print('\t\t element {} at lattice index {}'.format(element.fName, i))
+                print('\t\t {} element {} at lattice index {}'.format(cnt, element.fName, i))
+                cnt += 1
+                i += 1
                 continue
             element.tilt(order,*angle[i], append=append)
             ids.add(eid)
