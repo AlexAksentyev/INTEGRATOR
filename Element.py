@@ -536,11 +536,18 @@ class Lattice:
         else:
             return NP.unique([re.sub('_.*','',e) for e in names])        
         
-    def tiltS(self, mean_angle, sigma):
-        angle = NP.random.normal(mean_angle, sigma, self.fCount)
+    def tilt(self, order='S', mean_angle=(0,), sigma=(0,), append=False):
+        n = len(order)
+        nmean = len(mean_angle)
+        nsig = len(sigma)
+        if n != nmean and n != nsig:
+            print('Dimension mismatch: order {}, mean {}, sigma {}'.format(n, nmean, nsig))
+            return
+        
+        angle = NP.random.normal(mean_angle, sigma, size=(self.fCount, n))
         i=0
         for element in self:
-            element.tilt('S',angle[i])
+            element.tilt(order,*angle[i], append=append)
             i +=1
     
 #%%
@@ -558,7 +565,7 @@ if __name__ is '__main__':
     el = BNL.BDA
     
     #%%
-    if False:
+    if True:
         SSb1H2 = BNL.SSb1H2
         FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
         
@@ -566,10 +573,10 @@ if __name__ is '__main__':
         lat.insertRF(0,0,E,EField=15e7)
         
         #%%
-        E.track(lat, 50)
+        E.track(lat, 5)
         
         #%%
         E.setReference(0)
-        E.plot('-D Sx','s',pids=[1,2,5,14])
+        E.plot('-D Sx','s',pids=[3,6])
         
 
