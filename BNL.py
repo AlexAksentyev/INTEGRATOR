@@ -97,23 +97,45 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
 if __name__ is '__main__':
     ## prepping ensemble of states
     import Ensemble as ENS
-    reload(ENS) # update 
+    reload(ENS) # update   
+    import copy
     
-    E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), Sz=1)
+    E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
+    Etilt = copy.deepcopy(E)
     
     ## adding RF
-    tLat = ENT.Lattice(QFS,'E+B')
-    tLat.insertRF(0, 0, E, EField=15e7)
+    Lat = ENT.Lattice(QFS,'E+B')
+    Lat.insertRF(0, 0, E, EField=15e7)
+    tiltLat = ENT.Lattice(QFS,'E+B_tilt')
+    tiltLat.insertRF(0, 0, E, EField=15e8)
+    tiltLat.tilt('S',0,.3)
+    
+    turns = int(1e1)
     
 #%%
     ## tracking
     from time import clock
     start = clock()
-    E.track(tLat, int(1e2), inner=False, cut = True)
+    E.track(Lat, turns, inner=False, cut = False)
+    print("Tracking took {:04.2f} seconds".format(clock()-start))
+#%%    
+    start = clock()
+    Etilt.track(tiltLat, turns, inner=False, cut = False)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
     
 #%%
     #plotting
-    E.setReference(2)
-    E.plot()
+    
+    ylab = '-D Sx'
+    xlab = 's'
+    
+    
+    
+    from matplotlib import pyplot as PLT
+    E.setReference(5)
+    Etilt.setReference(5)
+    PLT.subplot(2,1,1)
+    E.plot(ylab,xlab,pids=[6,18,15], new_plot=False)
+    PLT.subplot(2,1,2)
+    Etilt.plot(ylab,xlab,pids=[6,18,15], new_plot=False)
 
