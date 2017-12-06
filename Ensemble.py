@@ -6,8 +6,6 @@ Created on Tue Nov 28 15:04:54 2017
 @author: alexa
 
 TODO:
-    * copy.deepcopy on Ensemble doesn't work as expected; 
-        must implement a proper deep copy
     * in setReference make default arg None 
         to set genuine reference (all vars 0, except Sz = 1)
         
@@ -21,7 +19,7 @@ import RHS
 import copy
 
 class Bundle(dict):
-    """ Bunndle serves as an interface for easy access 
+    """ Bundle serves as an interface for easy access 
         to a bundle of ensemble particle data
     """
     def __init__(self,**kw):
@@ -79,7 +77,7 @@ class Ensemble:
         self.Particle = Particle
         self.__fRefPart = None
         
-        self.Log = lambda: None 
+        self.Log = Bundle()
         
         self.n_ics = len(state_list)
         self.n_var = len(state_list[0])
