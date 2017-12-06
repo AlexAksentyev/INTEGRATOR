@@ -547,7 +547,7 @@ if __name__ is '__main__':
         dft2 = Drift(25e-2)
         FODO = [mqf, dft, mqd, dft]
         
-        lat = ENT.Lattice(FODO,'QFS')
+        lat = ENT.Lattice([BDA(),dft,dft,dft],'QFS')
         lat.insertRF(0,0,E,EField=15e7)
         
         tlat = copy.deepcopy(lat)
@@ -556,13 +556,11 @@ if __name__ is '__main__':
         
         #%%
         if True:
-            E.track(lat, 50)
-            tE.track(tlat, 50)
+            E.track(lat, 500)
+            tE.track(tlat, 30)
         
         #%%
             from matplotlib import pyplot as PLT
-            E.setReference()
-            tE.setReference()
             PLT.figure()
             PLT.subplot(2,1,1)
             E.plot('-D x','s', pids=[3,6],new_plot=False)
