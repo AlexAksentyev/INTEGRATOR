@@ -436,30 +436,35 @@ class Lattice:
         
         super().__init__()
         
-        self.fSequence = ElSeq
-        
+        self.Sequence = list(ElSeq)
+        self.ElCount = len(ElSeq)
         self.Name = Name
         
-        self.fCount = len(ElSeq)
         self.RFCount = 0
-        self.fLength = 0
-        for e in ElSeq: self.fLength += e.fLength
+        self.Length = 0
+        for e in self:
+            self.Length += e.fLength
+            if isinstance(e, ERF): self.RFCount += 1
+            
+        if self.RFCount > 1: 
+            print('More than one RF element in element sequence')
+            return
         
     def copy(self):
         pass
         
     def __getitem__(self, idx):
-        return self.fSequence[idx]
+        return self.Sequence[idx]
         
     def __repr__(self):
-        return self.fSequence.__repr__()
+        return self.Sequence.__repr__()
     
     def __iter__(self):
         self.__current_id=0
         return self
     
     def __next__(self):
-        last_id = self.fCount - 1
+        last_id = self.ElCount - 1
         if self.__current_id <= last_id:
             result = self[self.__current_id]
             self.__current_id += 1
@@ -468,11 +473,12 @@ class Lattice:
             raise StopIteration
             
     def insertRF(self, position, length, Ensemble, **ERF_pars):
-        full_acc_len = self.fLength + length
+        full_acc_len = self.Length + length
         rf = ERF(length,Ensemble, full_acc_len, **ERF_pars)
         self.IndRF = position
         self.RFCount += 1
-        self.fSequence.insert(position, rf)
+        self.ElCount += 1
+        self.Sequence.insert(position, rf)
         
     def getRF(self):
         try:
@@ -481,10 +487,10 @@ class Lattice:
             return None
         
     def pop(self, index):
-        return self.fSequence.pop(index)
+        return self.Sequence.pop(index)
         
     def listNames(self, full=False):
-        names = [e.fName for e in self.fSequence]
+        names = [e.fName for e in self]
         if full:
             return names
         else:
@@ -495,17 +501,19 @@ class Lattice:
         if not isinstance(mean_angle, CLN.Sequence): mean_angle = (mean_angle,)
         if not isinstance(sigma, CLN.Sequence): sigma = (sigma,)
         nmean = len(mean_angle)
-        nsig = len(sigma)
-        if n != nmean and n != nsig:
+        nsig = len(sigma)           
+        
+        try:
+            angle = NP.random.normal(mean_angle, sigma, size=(self.ElCount, n))
+        except ValueError:
             print('Dimension mismatch: order {}, mean {}, sigma {}'.format(n, nmean, nsig))
             return
         
         nuids = len(NP.unique([id(e.Tilt) for e in self]))
-        if nuids != self.fCount:
-            print('Non-unique elements ({}) in lattice. Smart tilting.'.format(self.fCount-nuids))
+        if nuids != self.ElCount:
+            print('Non-unique elements ({}) in lattice. Smart tilting.'.format(self.ElCount-nuids))
             print('\t Not tilting:')
         
-        angle = NP.random.normal(mean_angle, sigma, size=(self.fCount, n))
         i=0
         ids = set()
         cnt = 1
@@ -528,36 +536,37 @@ if __name__ is '__main__':
     
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
     tE = copy.deepcopy(E)
-#    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
+    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
     
 #    el = BDA()    
     #%%
     if True:
         mqf = MQuad(5e-2,86,'QF')
-#        mqd = MQuad(5e-2,-83,'QD')
+        mqd = MQuad(5e-2,-83,'QD')
         dft = Drift(25e-2)
-        FODO = [mqf, dft, mqf, dft]
+        dft2 = Drift(25e-2)
+        FODO = [mqf, dft, mqd, dft]
         
         lat = ENT.Lattice(FODO,'QFS')
         lat.insertRF(0,0,E,EField=15e7)
         
-#        tlat = copy.deepcopy(lat)
+        tlat = copy.deepcopy(lat)
         
-#        tlat.tilt('xs',(.001,.003))
+        tlat.tilt('ys',10,.003)
         
         #%%
         if True:
             E.track(lat, 50)
-#            tE.track(tlat, 50)
+            tE.track(tlat, 50)
         
         #%%
             from matplotlib import pyplot as PLT
-            E.setReference(3)
-            tE.setReference(3)
+            E.setReference()
+            tE.setReference()
             PLT.figure()
             PLT.subplot(2,1,1)
-            E.plot('-D Sx','s', pids=[3,6],new_plot=False)
+            E.plot('-D x','s', pids=[3,6],new_plot=False)
             PLT.subplot(2,1,2)
-            tE.plot('-D Sx','s', pids=[3,6],new_plot=False)
+            tE.plot('-D x','s', pids=[3,6],new_plot=False)
         
 
