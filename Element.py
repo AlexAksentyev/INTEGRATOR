@@ -8,6 +8,94 @@ import math
 
 from RHS import imap, index
 
+
+#%%
+
+class Field(NP.ndarray):
+
+    def __new__(cls, array, Element, dtype=float):
+        obj = NP.asarray(array, dtype=dtype, order='C').view(cls)  #force C-representation by default 
+        obj.Host = Element
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None: return
+        self.Host = getattr(obj, 'Host', None)
+        
+    def vectorize(self,arg):
+        n = len(index(arg,'x')[0])
+        return NP.repeat(self, n).reshape(3,n) # Field type is preserved
+    
+    def tilt(self):
+        return Field(self.Host.Tilt.Matrix.dot(self).A, self.Host)
+    
+#    def updateHost(self, new_host):
+#        """ In case i have to implement element::deepcopy, to use in there
+#        """
+#        self.Host = new_host
+
+#%%
+class Tilt:
+    def __init__(self):
+        self.Angle = {}
+        self.Matrix = NP.matrix(NP.identity(3))
+        self.__set_rep_str()
+        
+        # rotation matrices for tilting
+        Rx = lambda c,s: NP.matrix([[1, 0,  0], 
+                       [0, c, -s],
+                       [0, s,  c]])
+        Ry = lambda c,s: NP.matrix([[ c, 0, s],
+                        [ 0,  1, 0],
+                        [-s, 0, c]])
+        Rs = lambda c,s: NP.matrix([[c, -s, 0],
+                        [s,  c, 0],
+                        [0,   0,  1]])
+        
+        self.Rotation = {'X':Rx,'Y':Ry,'S':Rs}
+        
+    def tilt(self, order, *args, append=False):
+        i0 = 0
+        if append:
+            keys = list(self.Angle.keys())
+            try:
+                i0 = keys[len(keys)-1][1] # index of the last made rotation
+                i0 += 1 # start writing from next one
+            except IndexError:
+                pass
+            
+        order = order.upper()
+        i0 = NP.repeat(i0, len(args))
+        i = list(range(len(args)))
+        keys = list(zip(order, i0 + i))
+        ang = dict(zip(keys, zip(args, NP.radians(args))))
+        
+        if append: self.Angle.update(ang)
+        else: self.Angle = ang.copy()
+        
+        c = {key:NP.cos(x[1]) for key,x in ang.items()}
+        s = {key:NP.sin(x[1]) for key,x in ang.items()}
+        
+        if append: res = self.Matrix
+        else: res = NP.matrix(NP.identity(3))
+        for key in ang.keys():
+            res = self.Rotation[key[0]](c[key],s[key]).dot(res)
+         
+        self.Matrix = res
+        
+        self.__set_rep_str()
+        
+    def __set_rep_str(self):
+        axis = [x[0] for x in self.Angle.keys()]
+        adeg = [x[0] for x in self.Angle.values()]
+        arad = [x[1] for x in self.Angle.values()]
+        pd = PDS.DataFrame({'Axis':axis,'Deg':adeg,'Rad':arad}).T
+        self.__RepStr = str(pd)
+        
+    def __repr__(self):
+        return self.__RepStr
+#%%
+
 class Element:
     
     def __init__(self, Curve, Length, Name = "Element",**kwargs):
@@ -18,7 +106,7 @@ class Element:
         self.__fEField = (0,0,0)
         self.__fBField = (0,0,0)
         
-        self.TiltMatrix = NP.matrix(NP.identity(3))
+        self.Tilt = Tilt()
         
         self.bSkip = False # for testing ERF.advance()
         
@@ -27,23 +115,17 @@ class Element:
         
         super().__init__(**kwargs)
     
-    def __vectorize(self,field,arg):
-        n = len(index(arg,'x')[0])
-#        fx,fy,fs = field
-        return NP.repeat(field, n).reshape(3,n)
-#        return (NP.repeat(fx,n), NP.repeat(fy,n), NP.repeat(fs,n))
+    def getFields(self):
+        return self.__fEField, self.__fBField
     
-    def EField(self,arg):        
-        fld = self.__vectorize(self.__fEField, arg)
-        return self.__tilt_field(fld)
+    def EField(self,arg):   
+        return Field(self.__fEField,self).vectorize(arg).tilt()
     
     def Eprime_tp(self, arg): # added for testing with ERF
-        fld = self.__vectorize(self.__fEField, arg)
-        return self.__tilt_field(fld)
+        return Field((0,0,0),self).vectorize(arg).tilt()
     
     def BField(self,arg):
-        fld = self.__vectorize(self.__fBField, arg)
-        return self.__tilt_field(fld)
+        return Field(self.__fBField,self).vectorize(arg).tilt()
                 
     def frontKick(self,particle):
         pass # do nothing
@@ -52,38 +134,14 @@ class Element:
         pass # do nothing
         
     def printFields(self):
-        print('Ex {}, Ey {}, Es {}'.format(*self._Element__fEField))
-        print('Bx {}, By {}, Bs {}'.format(*self._Element__fBField))
+        print('Ex {}, Ey {}, Es {}'.format(*self.__fEField))
+        print('Bx {}, By {}, Bs {}'.format(*self.__fBField))
     
     def __repr__(self):
         return str(self._Element__fChars)
     
-    def __tilt_field(self, field):
-        return self.TiltMatrix.dot(field).A
-    
-    def tilt(self, order, X=0, Y=0, S=0):
-        a_x, a_y, a_s = -NP.radians([X,Y,S])
-        
-        cx, cy, cs = NP.cos([a_x, a_y, a_s])
-        sx, sy, ss = NP.sin([a_x, a_y, a_s])
-    
-        Rx = NP.matrix([[1, 0,  0], 
-                        [0, cx, sx],
-                        [0,-sx, cx]])
-        Ry = NP.matrix([[cy, 0,-sy],
-                        [0,  1, 0],
-                        [sy, 0, cy]])
-        Rs = NP.matrix([[ cs, ss, 0],
-                        [-ss, cs, 0],
-                        [ 0,  0,  1]])
-        
-        R = {'X':Rx, 'Y':Ry, 'S':Rs}
-        res = NP.identity(3)
-        for ax in order:
-            ax = ax.upper()
-            res = R[ax].dot(res)
-            
-        self.TiltMatrix = res
+    def tilt(self, order, *args, append=False):
+        self.Tilt.tilt(order, *args, append=append)
         
 class Bend:
     def __init__(self,RefPart,**kwargs):
@@ -105,26 +163,8 @@ class Bend:
     def __Pc(self, KNRG):
         return math.sqrt((self.fPardict['Mass0'] + KNRG)**2 - self.fPardict['Mass0']**2)
         
-class HasCounter:
-    fCount = 0
-    
-    __fSep = "_"
-    
-    def __init__(self, **kwargs):
-        if 'fName' not in self.__dict__.keys(): self.fName = 'NoName' 
-        self.fName += self.__fSep+str(self.__class__.fCount)
-        self.__class__.fCount += 1
-        super().__init__(**kwargs)
-
-    def copy(self, Name = None):
-        self.__class__.fCount += 1
-        res = copy.deepcopy(self)
-        if Name is None: res.fName = re.sub(self.__fSep+'.*',self.__fSep+str(res.__class__.fCount-1),res.fName)
-        else: res.fName = Name
-        return res
-        
-
-class Drift(Element, HasCounter):
+#%%
+class Drift(Element):
     """ drift space
     """
     
@@ -132,7 +172,7 @@ class Drift(Element, HasCounter):
         super().__init__(Curve=0, Length=Length, Name=Name)
         
 
-class MQuad(Element, HasCounter):
+class MQuad(Element):
     """ magnetic quadrupole
     """
     
@@ -145,11 +185,11 @@ class MQuad(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        fld = NP.array([self.__fGrad*y, self.__fGrad*x, NP.zeros(len(x))])
-        return self._Element__tilt_field(fld)
+        fld = (self.__fGrad*y, self.__fGrad*x, NP.zeros(len(x)))
+        return  Field(fld, self).tilt()
         
 
-class MDipole(Element, HasCounter, Bend):
+class MDipole(Element, Bend):
     """ bending magnetic dipole (horizontally bending);
     define _BField as a tuple
     """
@@ -200,14 +240,14 @@ class MDipole(Element, HasCounter, Bend):
         return self._Bend__Pc(KinEn)*1e6/(BField*PCL.clight)
   
 
-class Solenoid(Element, HasCounter):
+class Solenoid(Element):
     
     def __init__(self, Length, Bs, Name = "Solenoid"):
-        super().__init__(self, Curve=0, Length=Length, Name=Name)
-        self.__fField = (0,0,Bs)
+        super().__init__(Curve=0, Length=Length, Name=Name)
+        self._Element__fBField = (0,0,Bs)
         
 
-class MSext(Element, HasCounter):
+class MSext(Element):
     """ magnetic sextupole
     """
     
@@ -220,10 +260,10 @@ class MSext(Element, HasCounter):
         i_x, i_y = index(arg, 'x','y')
         x = arg[i_x]
         y = arg[i_y]
-        fld = NP.array([self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), NP.zeros(len(x))])
-        return self._Element__tilt_field(fld)
+        fld = (self.__fGrad*x*y,.5*self.__fGrad*(x**2 - y**2), NP.zeros(len(x)))
+        return Field(fld, self).tilt()
         
-class Wien(Element, HasCounter, Bend):
+class Wien(Element, Bend):
     """ wien filter
     """
     
@@ -282,15 +322,15 @@ class Wien(Element, HasCounter, Bend):
         self._Element__fBField = (0, BField, 0)
         
     def EField(self, arg):
-        i_x = index(arg,'x')
+        i_x, = index(arg,'x')
         x = arg[i_x]
         Ex = self._Element__fEField[0]/(1+self.fCurve*x)
         z = NP.zeros(len(x))
         fld = (Ex, z, z)
-        return self._Element__tilt_field(fld)
+        return Field(fld, self).tilt()
     
     def BField(self, arg):
-        i_x = index(arg,'x')
+        i_x, = index(arg,'x')
         x = arg[i_x]
         
         e0 = self.fPardict['q']
@@ -308,7 +348,7 @@ class Wien(Element, HasCounter, Bend):
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
         z = NP.zeros(len(x))
         fld = (z, B1, z)
-        return self._Element__tilt_field(fld)
+        return Field(fld, self).tilt()
     
     def frontKick(self, state):
         u = self.__U(state[:,imap['x']])
@@ -322,7 +362,7 @@ class Wien(Element, HasCounter, Bend):
         return (self.__fVolt, self.__U(x))
         
     
-class ERF(Element, HasCounter):
+class ERF(Element):
     """ RF element
     """
     
@@ -346,27 +386,25 @@ class ERF(Element, HasCounter):
             
         self.__fU = self.fAmplitude*Length # Length instead self.fLength for compatibility with Length 0
         
-        self.RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
-        
     def EField(self, arg):
-        i_t = index(arg, 't')
+        i_t, = index(arg, 't')
         t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         z = NP.zeros(len(t))
         fld = (z, z, A*NP.cos(w*t+phi))
-        return self._Element__tilt_field(fld)
+        return Field(fld, self).tilt()
     
     def Eprime_tp(self, arg): # Es prime divided by time prime
-        i_t = index(arg, 't')
+        i_t, = index(arg, 't')
         t = arg[i_t]
         A = self.fAmplitude
         w = self.fFreq*2*NP.pi
         phi = self.fPhase
         z = NP.zeros(len(t))
         fld = (z, z, -A*w*NP.sin(w*t+phi))
-        return self._Element__tilt_field(fld)
+        return Field(fld, self).tilt()
     
     def advance(self, state):  
         """ alternative to integration,
@@ -398,26 +436,35 @@ class Lattice:
         
         super().__init__()
         
-        self.fSequence = ElSeq[:]
-        
+        self.Sequence = list(ElSeq)
+        self.ElCount = len(ElSeq)
         self.Name = Name
         
-        self.fCount = len(ElSeq)
-        self.fLength = 0
-        for e in ElSeq: self.fLength += e.fLength
+        self.RFCount = 0
+        self.Length = 0
+        for e in self:
+            self.Length += e.fLength
+            if isinstance(e, ERF): self.RFCount += 1
+            
+        if self.RFCount > 1: 
+            print('More than one RF element in element sequence')
+            return
+        
+    def copy(self):
+        pass
         
     def __getitem__(self, idx):
-        return self.fSequence[idx]
+        return self.Sequence[idx]
         
     def __repr__(self):
-        return self.fSequence.__repr__()
+        return self.Sequence.__repr__()
     
     def __iter__(self):
         self.__current_id=0
         return self
     
     def __next__(self):
-        last_id = self.fCount - 1
+        last_id = self.ElCount - 1
         if self.__current_id <= last_id:
             result = self[self.__current_id]
             self.__current_id += 1
@@ -425,41 +472,101 @@ class Lattice:
         else:
             raise StopIteration
             
-        
     def insertRF(self, position, length, Ensemble, **ERF_pars):
-        full_acc_len = self.fLength + length
+        full_acc_len = self.Length + length
         rf = ERF(length,Ensemble, full_acc_len, **ERF_pars)
-        self.fSequence.insert(position, rf)
+        self.IndRF = position
+        self.RFCount += 1
+        self.ElCount += 1
+        self.Sequence.insert(position, rf)
+        
+    def getRF(self):
+        try:
+            return self[self.IndRF]
+        except AttributeError:
+            return None
+        
+    def pop(self, index):
+        return self.Sequence.pop(index)
         
     def listNames(self, full=False):
-        names = [e.fName for e in self.fSequence]
+        names = [e.fName for e in self]
         if full:
             return names
         else:
             return NP.unique([re.sub('_.*','',e) for e in names])        
         
-    def tiltS(self, mean_angle, sigma):
-        angle = NP.random.normal(mean_angle, sigma, self.fCount)
+    def tilt(self, order='S', mean_angle=(0,), sigma=(0,), append=False):
+        n = len(order)
+        if not isinstance(mean_angle, CLN.Sequence): mean_angle = (mean_angle,)
+        if not isinstance(sigma, CLN.Sequence): sigma = (sigma,)
+        nmean = len(mean_angle)
+        nsig = len(sigma)           
+        
+        try:
+            angle = NP.random.normal(mean_angle, sigma, size=(self.ElCount, n))
+        except ValueError:
+            print('Dimension mismatch: order {}, mean {}, sigma {}'.format(n, nmean, nsig))
+            return
+        
+        nuids = len(NP.unique([id(e.Tilt) for e in self]))
+        if nuids != self.ElCount:
+            print('Non-unique elements ({}) in lattice. Smart tilting.'.format(self.ElCount-nuids))
+            print('\t Not tilting:')
+        
         i=0
+        ids = set()
+        cnt = 1
         for element in self:
-            element.tilt('S',S=angle[i])
+            eid = id(element.Tilt)
+            if eid in ids:
+                print('\t\t {} element {} at lattice index {}'.format(cnt, element.fName, i))
+                cnt += 1
+                i += 1
+                continue
+            element.tilt(order,*angle[i], append=append)
+            ids.add(eid)
             i +=1
     
 #%%
 if __name__ is '__main__':
     import Ensemble as ENS
     import Element as ENT
+    from BNL import SSb1H2, BDA, QFS, QDA2
     
-    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,3))
-    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,3)).as_list()).flatten()
+    E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
+    tE = copy.deepcopy(E)
+    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
     
-    el = R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
-    
-#    FODO = [MQuad(5e-2,86,'QF'), Drift(25e-2), MQuad(5e-2,-83,'QD'),Drift(25e-2)]
-#    lFODO = ENT.Lattice(FODO,'FODO')
-    lat = ENT.Lattice([R3],'R3')
-    
-    E.track(lat, 100)
-    E.setReference(0)
-    E.plot('x','s')
+#    el = BDA()    
+    #%%
+    if True:
+        mqf = MQuad(5e-2,86,'QF')
+        mqd = MQuad(5e-2,-83,'QD')
+        dft = Drift(25e-2)
+        dft2 = Drift(25e-2)
+        FODO = [mqf, dft, mqd, dft]
+        
+        lat = ENT.Lattice(FODO,'QFS')
+        lat.insertRF(0,0,E,EField=15e7)
+        
+        tlat = copy.deepcopy(lat)
+        
+        tlat.tilt('ys',10,.003)
+        
+        #%%
+        if True:
+            E.track(lat, 50)
+            tE.track(tlat, 50)
+        
+        #%%
+            from matplotlib import pyplot as PLT
+            E.setReference()
+            tE.setReference()
+            PLT.figure()
+            PLT.subplot(2,1,1)
+            E.plot('-D x','s', pids=[3,6],new_plot=False)
+            PLT.subplot(2,1,2)
+            tE.plot('-D x','s', pids=[3,6],new_plot=False)
+        
 
