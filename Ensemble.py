@@ -5,10 +5,7 @@ Created on Tue Nov 28 15:04:54 2017
 
 @author: alexa
 
-TODO:
-    * in setReference make default arg None 
-        to set genuine reference (all vars 0, except Sz = 1)
-        
+TODO:        
     * vectorize tilted/untilted lattice
 
 """
@@ -25,6 +22,9 @@ class Bundle(dict):
     def __init__(self,**kw):
         dict.__init__(self,kw)
         self.__dict__ = self
+        
+    def __repr__(self):
+        return str(list(self.keys()))
         
 class StateList:
     def __init__(self, **kwargs):
@@ -47,11 +47,13 @@ class StateList:
         mesh = dict(zip(keys, NP.meshgrid(*list(argDict.values()))))
             
         vartype = list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
-        self.SL = NP.zeros(ntot, dtype=vartype)
+        self.SL = NP.zeros(ntot+1, dtype=vartype) # +1 for genuine refrence particle
         
         #write data
         for key, value in mesh.items():
-            self.SL[key] = value.reshape(ntot)
+            self.SL[key] = NP.array([0]+value.reshape(ntot).tolist())
+            
+        self.SL[0]['Sz'] = 1
             
         # convert to list of dicts for use with ensemble
         self.SL = [dict(zip(self.SL.dtype.names, x)) for x in self.SL]
@@ -75,7 +77,6 @@ class Ensemble:
     
     def __init__(self, state_list, Particle=PCL.Particle()):
         self.Particle = Particle
-        self.__fRefPart = None
         
         self.Log = Bundle()
         
@@ -83,6 +84,8 @@ class Ensemble:
         self.n_var = len(state_list[0])
         
         self.ics = dict(zip(range(len(state_list)), state_list))
+        
+        self.setReference()
         
     @classmethod
     def populate(cls, Particle, **kwargs):
@@ -111,16 +114,18 @@ class Ensemble:
         
     def __bundle_up(self, pid):
         log = getattr(self.Log, 'P'+str(pid), None)
-        lst_i = len(log)-1
+        try: current_state = log[len(log)-1]
+        except TypeError: 
+            current_state = self.ics[pid]
         return Bundle(PID = pid, 
                       ics = self.ics[pid], 
-                      current_state = log[lst_i],
+                      current_state = current_state,
                       Log = log)
         
     def count(self):
         return self.n_ics
         
-    def setReference(self, name):
+    def setReference(self, name = 0): #by default, a particle with all s.v. = 0 except Sz is put in index 0
         self.__fRefPart = self.__bundle_up(name)
         
     def getReference(self):
@@ -258,7 +263,7 @@ class Ensemble:
             latname = ElementSeq.Name
             cnt = ElementSeq.RFCount
             RF = ElementSeq.getRF()
-            ElementSeq = ElementSeq.fSequence
+            ElementSeq = ElementSeq.Sequence
         else:
             latname = 'Unnamed_sequence'
             RF = None; cnt = 0
@@ -386,22 +391,28 @@ if __name__ is '__main__':
     import Particle as PCL
     from matplotlib import pyplot as PLT
     
+#    s = StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
+    
     E = Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
-    R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
-    OD1 = ENT.Drift(.25, 'OD1')
-    QD1 = ENT.MQuad(5e-2,-.82,"QD")
-    QF1 = ENT.MQuad(5e-2,.736,"QF")
-    
-    FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
-    FODO.insertRF(0,0,E,EField=15e4)
-    
-#%%
-    E.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
-    
-#%%
-    E.setReference(0)
-    pids = [1,4,5]
-    n=1
-    for pid in pids:
-        PLT.subplot(3,1,n); n += 1
-        E.plot('-D x','s', pids=[E.getReference().PID, pid], new_plot=False)
+#    R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
+#    OD1 = ENT.Drift(.25, 'OD1')
+#    QD1 = ENT.MQuad(5e-2,-.82,"QD")
+#    QF1 = ENT.MQuad(5e-2,.736,"QF")
+#    
+#    FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
+#    FODO.insertRF(0,0,E,EField=15e4)
+#    
+##%%
+#    E.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
+#    R3.tilt('x',5)
+#    tE = copy.deepcopy(E)
+#    tE.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
+#    
+##%%
+#    E.setReference(0)
+#    tE.setReference(0)
+#    pids = [1,4,5]
+#    n=1
+#    for pid in pids:
+#        PLT.subplot(3,1,n); n += 1
+#        tE.plot('-D x','s', pids=[E.getReference().PID, pid], new_plot=False)
