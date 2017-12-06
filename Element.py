@@ -386,8 +386,6 @@ class ERF(Element):
             
         self.__fU = self.fAmplitude*Length # Length instead self.fLength for compatibility with Length 0
         
-        self.RefPart.fRF = {'Amplitude':self.fAmplitude,'Freq':self.fFreq, 'Phase':self.fPhase}
-        
     def EField(self, arg):
         i_t, = index(arg, 't')
         t = arg[i_t]
@@ -443,6 +441,7 @@ class Lattice:
         self.Name = Name
         
         self.fCount = len(ElSeq)
+        self.RFCount = 0
         self.fLength = 0
         for e in ElSeq: self.fLength += e.fLength
         
@@ -468,11 +467,21 @@ class Lattice:
         else:
             raise StopIteration
             
-        
     def insertRF(self, position, length, Ensemble, **ERF_pars):
         full_acc_len = self.fLength + length
         rf = ERF(length,Ensemble, full_acc_len, **ERF_pars)
+        self.IndRF = position
+        self.RFCount += 1
         self.fSequence.insert(position, rf)
+        
+    def getRF(self):
+        try:
+            return self[self.IndRF]
+        except AttributeError:
+            return None
+        
+    def pop(self, index):
+        return self.fSequence.pop(index)
         
     def listNames(self, full=False):
         names = [e.fName for e in self.fSequence]
@@ -518,10 +527,10 @@ if __name__ is '__main__':
     from BNL import SSb1H2, BDA, QFS, QDA2
     
     E = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
-    tE = ENS.Ensemble.populate(PCL.Particle(), Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3))    
-    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
+    tE = copy.deepcopy(E)
+#    state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
     
-    el = BDA()    
+#    el = BDA()    
     #%%
     if True:
         mqf = MQuad(5e-2,86,'QF')
@@ -532,18 +541,23 @@ if __name__ is '__main__':
         lat = ENT.Lattice(FODO,'QFS')
         lat.insertRF(0,0,E,EField=15e7)
         
-        tlat = copy.deepcopy(lat)
+#        tlat = copy.deepcopy(lat)
         
-        tlat.tilt('xs',(.01,.03))
+#        tlat.tilt('xs',(.001,.003))
         
         #%%
-        if False:
+        if True:
             E.track(lat, 50)
-            tE.track(tlat, 50)
+#            tE.track(tlat, 50)
         
         #%%
+            from matplotlib import pyplot as PLT
             E.setReference(3)
             tE.setReference(3)
-            tE.plot('-D Sx','s', pids=[3,6])
+            PLT.figure()
+            PLT.subplot(2,1,1)
+            E.plot('-D Sx','s', pids=[3,6],new_plot=False)
+            PLT.subplot(2,1,2)
+            tE.plot('-D Sx','s', pids=[3,6],new_plot=False)
         
 

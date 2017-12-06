@@ -220,7 +220,7 @@ class Ensemble:
             if '-D' in x_flags: dX -= pr.Log[Xlab][not_nan]
             if '-D' in y_flags: dY -= pr.Log[Ylab][not_nan]
             plot(dX, dY, i, **kwargs)
-            
+            None
         legend(names)
         
         ## creating pretty labels
@@ -253,12 +253,22 @@ class Ensemble:
             else keep all values in RAM
         """
         # get lattice name for saving data into file
-        from Element import Lattice
+        from Element import Lattice, ERF
         if isinstance(ElementSeq, Lattice):
             latname = ElementSeq.Name
+            cnt = ElementSeq.RFCount
+            RF = ElementSeq.getRF()
             ElementSeq = ElementSeq.fSequence
         else:
             latname = 'Unnamed_sequence'
+            RF = None; cnt = 0
+            for e in ElementSeq:
+                if not isinstance(e, ERF):
+                    continue
+                RF = e; cnt += 1
+        if cnt > 1: 
+            print('\t\t More than one ({}) RF!')
+            return
         
         # number integration period subdivisions
         brks = breaks
@@ -287,17 +297,6 @@ class Ensemble:
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
         
-#        # check for memory error
-#        # if so, split log into chunks
-#        ### decided a bad idea to automatize this
-#        try: NP.recarray(nrow*self.n_ics,dtype=vartype)
-#        except MemoryError:
-#            cut = True
-#            print('Too much memory required; cutting logs')
-#            if inner: nrow /= ntimes
-#            else: nrow -=1; nrow /= ntimes; nrow += 1
-#        nrow = int(nrow)
-        
         # creating particle logs
         ics = list()
         for pid, ic in self.ics.items():
@@ -313,7 +312,7 @@ class Ensemble:
         n_ics = self.n_ics
         n_var = self.n_var
         
-        rhs = RHS.RHS(self) # setting up the RHS
+        rhs = RHS.RHS(self, RF) # setting up the RHS
         
         # opening hdf5 file to output data
         # write the used particle parameters (Mass0, KinEn0, G)
@@ -327,6 +326,7 @@ class Ensemble:
             old_percent = -1 # to print 0 %
             cnt = 0; cnt_tot = n_elem*ntimes # for progress bar
             old_ind=0 # log is writtten into file from old_ind:ind
+            print('\t\t LATTICE: {} '.format(latname))
             for n in range(1,ntimes+1): # turn
                 for i in range(len(ElementSeq)): # element
                     # pick element
@@ -396,7 +396,7 @@ if __name__ is '__main__':
     FODO.insertRF(0,0,E,EField=15e4)
     
 #%%
-    E.track(FODO,int(1e3),cut=False)
+    E.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
     
 #%%
     E.setReference(0)

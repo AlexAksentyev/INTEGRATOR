@@ -19,23 +19,26 @@ def index(array, *names):
 
 class RHS:
     
-    def __init__(self, Ensemble):
+    def __init__(self, Ensemble, RF):
         self.n_ics = Ensemble.n_ics
-        self.n_var = Ensemble.n_var
         self.Particle = Ensemble.Particle
         
-        try:
-            check = self.Particle.fRF
-        except AttributeError:
-            print('\n \t \t System w/o RF')
-            check = {'Freq':0, 'Phase':0}
+        n_var = Ensemble.n_var
+        assert n_var == varnum, "Incorrect number of state variables ({}/{})".format(n_var,varnum)
         
-        self.WFreq = 2*NP.pi*check['Freq']
+        from Element import ERF
+        if not isinstance(RF, ERF): # I will pass None in Ensemble::track, but 
+                                    # in case I change my mind later, this won't have to accomodate changes
+            print('\t\t System w/o RF')
+            RFfreq = 0
+        else: RFfreq = RF.fFreq
+        
+        self.WFreq = 2*NP.pi*RFfreq
         
     
     def __call__(self, state, at, element):
         if NP.isnan(state).any(): raise ValueError('NaN state variable(s)')
-        x,y,s,t,theta,H,px,py,dEn,Sx,Sy,Ss = state.reshape(self.n_var, self.n_ics,order='F')
+        x,y,s,t,theta,H,px,py,dEn,Sx,Sy,Ss = state.reshape(varnum, self.n_ics,order='F')
         
         KinEn = self.Particle.KinEn0*(1+dEn) # dEn = (En - En0) / En0
         
@@ -106,7 +109,7 @@ class RHS:
               Sxp, Syp, Ssp] #Sxp, Syp, Ssp
               # Theta 
         
-        return NP.reshape(DX, self.n_var*self.n_ics,order='F')
+        return NP.reshape(DX, varnum*self.n_ics,order='F')
     
     
 if __name__ is '__main__':
