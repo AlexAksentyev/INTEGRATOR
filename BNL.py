@@ -101,16 +101,16 @@ if __name__ is '__main__':
     import copy
     
     E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
-    state = ENS.StateList(dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
+#    state = ENS.StateList(dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
     Etilt = copy.deepcopy(E)
     
     ## adding RF
     Lat = ENT.Lattice(QFS,'E+B')
     Lat.insertRF(0, 0, E, EField=15e7)
     tiltLat = copy.deepcopy(Lat)
-    tiltLat.tilt('S',.3)
+    tiltLat.tilt('S',0,.3)
     
-    turns = int(1e1)
+    turns = int(1e2)
     
 #%%
     ## tracking
@@ -133,11 +133,26 @@ if __name__ is '__main__':
     Etilt.setReference(5)
     
     
-    
+    #%%
     from matplotlib import pyplot as PLT
     PLT.figure()
     PLT.subplot(2,1,1)
     E.plot(ylab,xlab,pids=[6,18,15], new_plot=False)
+    PLT.title('E+B clean')
     PLT.subplot(2,1,2)
     Etilt.plot(ylab,xlab,pids=[6,18,15], new_plot=False)
+    PLT.title('E+B tilted: S (0, .3)')
+    
+    
+    #%%
+    PLT.figure()
+    df = PDS.DataFrame(E[0].Log)
+    df5 = PDS.DataFrame(E[5].Log)
+    Sx = df.loc[df.Element==b'RF']['Sx']
+    trn = df.loc[df.Element==b'RF']['Turn']
+    Sx5 = df5.loc[df5.Element==b'RF']['Sx']
+    PLT.plot(trn,Sx,label='lab')
+    PLT.plot(trn,Sx-Sx5,label='ref')
+    PLT.legend()
+    PLT.title('Turn by turn, after RF')
 
