@@ -85,7 +85,7 @@ class Ensemble:
         
         self.ics = dict(zip(range(len(state_list)), state_list))
         
-        self.setReference()
+        self.TrackControl = Bundle(FWD=True, inner = True, breaks=101, cut=False)
         
     @classmethod
     def populate(cls, Particle, **kwargs):
@@ -252,10 +252,13 @@ class Ensemble:
         PLT.grid()
             
         return PLT.gcf()
+    
+    def setTrackArgs(self, **kwargs):
+        self.TrackControl.update(**kwargs)
 
-    def track(self, ElementSeq , ntimes, FWD=True, inner = True, breaks=101, cut=False):
-        """ if cut is true, particle logs keep only the values relevant for the current turn,
-            else keep all values in RAM
+    def track(self, ElementSeq , ntimes):
+        """ if cut (see TrackControl) is true, particle logs keep only the values 
+            relevant for the current turn, else keep all values in RAM
         """
         # get lattice name for saving data into file
         from Element import Lattice, ERF
@@ -272,12 +275,12 @@ class Ensemble:
                     continue
                 RF = e; cnt += 1
         if cnt > 1: 
-            print('\t\t More than one ({}) RF!')
+            print('\t\t More than one ({}) RF;\n aborting.'.format(cnt))
             return
         
         # number integration period subdivisions
-        brks = breaks
-        self.fIntBrks = brks
+        brks = self.TrackControl.breaks
+        self.IntBrks = brks
         
         ## creation of particle logs
         # recarray type
@@ -292,8 +295,10 @@ class Ensemble:
         
         # counting the number of records in a p-log
         n_elem = len(ElementSeq)
+        inner = self.TrackControl.inner
+        cut = self.TrackControl.cut
         if inner: 
-            nrow = n_elem*self.fIntBrks
+            nrow = n_elem*self.IntBrks
             if not cut:  nrow *= ntimes
             ind = 0 # odeint will return injection values
         else: 
@@ -332,6 +337,7 @@ class Ensemble:
             cnt = 0; cnt_tot = n_elem*ntimes # for progress bar
             old_ind=0 # log is writtten into file from old_ind:ind
             print('\t\t LATTICE: {} '.format(latname))
+            FWD = self.TrackControl.FWD
             for n in range(1,ntimes+1): # turn
                 for i in range(len(ElementSeq)): # element
                     # pick element
@@ -394,22 +400,23 @@ if __name__ is '__main__':
 #    s = StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
     
     E = Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
-#    R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
-#    OD1 = ENT.Drift(.25, 'OD1')
-#    QD1 = ENT.MQuad(5e-2,-.82,"QD")
-#    QF1 = ENT.MQuad(5e-2,.736,"QF")
-#    
-#    FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
-#    FODO.insertRF(0,0,E,EField=15e4)
+    R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
+    OD1 = ENT.Drift(.25, 'OD1')
+    QD1 = ENT.MQuad(5e-2,-.82,"QD")
+    QF1 = ENT.MQuad(5e-2,.736,"QF")
+    
+    FODO = ENT.Lattice([OD1, OD1, QD1, OD1], 'FODO')
+    FODO.insertRF(0,0,E,EField=15e7)
 #    
 ##%%
-#    E.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
+    E.track(FODO,int(5e1))
 #    R3.tilt('x',5)
 #    tE = copy.deepcopy(E)
 #    tE.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
 #    
 ##%%
-#    E.setReference(0)
+    E.setReference()
+    E.plot('dK','s')
 #    tE.setReference(0)
 #    pids = [1,4,5]
 #    n=1
