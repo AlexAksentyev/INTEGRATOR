@@ -110,7 +110,7 @@ if __name__ is '__main__':
     tiltLat = copy.deepcopy(Lat)
     tiltLat.tilt('S',0,.3)
     
-    turns = int(1e2)
+    turns = int(1e1)
     
 #%%
     ## tracking

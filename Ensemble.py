@@ -83,6 +83,8 @@ class StateList:
 #%%
 
 class Writer:
+    """ Unfinished
+    """
     def __init__(self, Ensemble, Lattice, file_handle):
         """ Lattice argument b/c in any case I will probably
             want to write some lattice data as well,
