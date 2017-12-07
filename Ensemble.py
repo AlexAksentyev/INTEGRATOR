@@ -7,7 +7,11 @@ Created on Tue Nov 28 15:04:54 2017
 
 TODO:        
     * remove duplicate reference particle
-    * vectorize tilted/untilted lattice
+    * vectorize tilted/untilted lattice:
+        this'll require that all elements have to be tilted the same number of times,
+        so as to have an equal number of tilt matrices, 
+        and hence length of state vector in the RHS,
+        in all elements
 
 """
 from scipy.integrate import odeint
@@ -60,7 +64,7 @@ class StateList:
 #        self.SL = NP.unique(self.SL) # this works but messes up the order
             
         # convert to list of dicts for use with ensemble
-#        self.SL2 = [dict(zip(self.SL.dtype.names, x)) for x in self.SL]
+        self.SL = [dict(zip(self.SL.dtype.names, x)) for x in self.SL]
             
     def __len__(self):
         return len(self.SL)

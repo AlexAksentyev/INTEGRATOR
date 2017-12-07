@@ -21,6 +21,7 @@ class RHS:
     
     def __init__(self, Ensemble, RF):
         self.n_ics = Ensemble.n_ics
+        self.IntBrks = Ensemble.fIntBrks
         self.Particle = Ensemble.Particle
         
         n_var = Ensemble.n_var
