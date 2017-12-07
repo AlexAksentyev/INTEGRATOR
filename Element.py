@@ -8,6 +8,19 @@ import math
 
 from RHS import imap, index
 
+"""
+1. scipy.linalg.block_diag for constructing diagonal block matrices:
+    m0,m1,m2,... --- n_tilt, 3x3 tilt matrices
+    f --- vectorized force (3x n_states matrix)
+    M = scipy.linalg.block_diag(m0,m1,..)
+    F = scipy.linalg.block_diag(f,f,f,...)
+    MF = M.dot(F) --- [[m0*F, 0, 0,...],[0, m1*F, 0, ..], ...]
+2. for picking out diagonal blocks (f'_i = m_i*F):
+    x = [MF[i*3:(i+1)*3,i*n_state:(i+1)*n_state] for i in range(int(MF.shape[0]/3))]
+3. for making an RHS compatible tilted force vector:
+    x = NP.reshape(x,n_tilt*3*n_state) # for flat array
+    x = x.reshape((3,-1)) # for array [[fx00,fx01,..., fxij],[fyij],[fsij]] #i -- tilt matrix, j -- state vector index
+"""
 
 #%%
 
@@ -542,16 +555,17 @@ if __name__ is '__main__':
     tE = copy.deepcopy(E)
     state = NP.array(ENS.StateList(Sz=1, x=(-1e-3,1e-3,5),dK=(0,3e-4,3)).as_list()).flatten()
     
-#    el = BDA()    
+    el = BDA()    
+    el.BField(state)
     #%%
-    if True:
+    if False:
         mqf = MQuad(5e-2,86,'QF')
         mqd = MQuad(5e-2,-83,'QD')
         dft = Drift(25e-2)
         dft2 = Drift(25e-2)
         FODO = [mqf, dft, mqd, dft]
         
-        lat = ENT.Lattice(FODO,'QFS')
+        lat = ENT.Lattice([BDA(),dft,dft,dft],'QFS')
         lat.insertRF(0,0,E,EField=15e7)
         
         tlat = copy.deepcopy(lat)
@@ -560,13 +574,11 @@ if __name__ is '__main__':
         
         #%%
         if True:
-            E.track(lat, 50)
-            tE.track(tlat, 50)
+            E.track(lat, 500)
+            tE.track(tlat, 30)
         
         #%%
             from matplotlib import pyplot as PLT
-            E.setReference()
-            tE.setReference()
             PLT.figure()
             PLT.subplot(2,1,1)
             E.plot('-D x','s', pids=[3,6],new_plot=False)

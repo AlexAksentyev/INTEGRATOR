@@ -6,7 +6,12 @@ Created on Tue Nov 28 15:04:54 2017
 @author: alexa
 
 TODO:        
-    * vectorize tilted/untilted lattice
+    * remove duplicate reference particle
+    * vectorize tilted/untilted lattice:
+        this'll require that all elements have to be tilted the same number of times,
+        so as to have an equal number of tilt matrices, 
+        and hence length of state vector in the RHS,
+        in all elements
 
 """
 from scipy.integrate import odeint
@@ -61,6 +66,9 @@ class StateList:
             self.SL[key] = NP.array([0]+value.reshape(ntot).tolist())
             
         self.SL[0]['Sz'] = 1
+        
+        #here i should remove any duplicate reference particles
+#        self.SL = NP.unique(self.SL) # this works but messes up the order
             
         # convert to list of dicts for use with ensemble
         self.SL = [dict(zip(self.SL.dtype.names, x)) for x in self.SL]
@@ -492,7 +500,7 @@ if __name__ is '__main__':
     import Particle as PCL
     from matplotlib import pyplot as PLT
     
-#    s = StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
+    s = StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,3), Sz=1)
     
     E = Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
     R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
