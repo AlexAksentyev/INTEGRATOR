@@ -4,43 +4,51 @@
 Created on Thu Dec  7 17:21:59 2017
 
 @author: alexa
+
+TODO:
+    * Tracker should have Particle Logs, a pointer copy to which is given to Ensemble 
+    at the end of tracking, and deleted
+
 """
 
 from time import clock
+import RHS
+import numpy as NP
+from scipy.integrate import odeint
+
+from Utilities import Bundle
 
 class Tracker:
     
     def __init__(self, Lattice, Ensemble):
-        pass
+        self.Lattice = Lattice
+        self.Ensemble = Ensemble     
+        
+        
     
-    def setControls(self, **kwargs):
-        pass
+    def setControls(self, inner=True, FWD = True, breaks=101, ncut=0):
+        self.Controls = Bundle(inner=inner,FWD=FWD,breaks=breaks,ncut=ncut)
+        
+    def __getitem__(self, pid):
+        return getattr(self.Log, 'P'+str(pid), None)
     
-    def track(self, ElementSeq , ntimes):
-        """ if cut (see TrackControl) is true, particle logs keep only the values 
+    def track(self, ntimes):
+        """ if cut (see Controls) is true, particle logs keep only the values 
             relevant for the current turn, else keep all values in RAM
         """
+        Lattice = self.Lattice
+        Ensemble = self.Ensemble
+        
         # get lattice name for saving data into file
-        from Element import Lattice, ERF
-        if isinstance(ElementSeq, Lattice):
-            latname = ElementSeq.Name
-            cnt = ElementSeq.RFCount
-            RF = ElementSeq.getRF()
-            ElementSeq = ElementSeq.Sequence
-        else:
-            latname = 'Unnamed_sequence'
-            RF = None; cnt = 0
-            for e in ElementSeq:
-                if not isinstance(e, ERF):
-                    continue
-                RF = e; cnt += 1
-        if cnt > 1: 
-            print('\t\t More than one ({}) RF;\n aborting.'.format(cnt))
+        latname = Lattice.Name
+        RF = Lattice.getRF()
+        ElementSeq = Lattice.Sequence
+        if Lattice.RFCount > 1: 
+            print('\t\t More than one ({}) RF;\n aborting.'.format(Lattice.RFCount))
             return
         
         # number integration period subdivisions
-        brks = self.TrackControl.breaks
-        self.IntBrks = brks # Ensemble.IntBrks will be used in RHS
+        brks = self.Controls.breaks
         
         ## creation of particle logs
         # recarray type
@@ -55,10 +63,10 @@ class Tracker:
         
         # counting the number of records in a p-log
         n_elem = len(ElementSeq)
-        inner = self.TrackControl.inner
-        ncut = self.TrackControl.ncut
+        inner = self.Controls.inner
+        ncut = self.Controls.ncut
         if inner: 
-            nrow = n_elem*self.IntBrks
+            nrow = n_elem*brks
             if ncut == 0:  nrow *= ntimes 
             else: nrow *= ncut
             ind = 0 # odeint will return injection values
@@ -80,21 +88,21 @@ class Tracker:
         
         # creating particle logs
         ics = list()
-        for pid, ic in self.ics.items():
+        for pid, ic in Ensemble.ics.items():
             setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
-            self[pid].Log.fill(NP.nan) # in case we later get a NaN error in tracking, 
+            self[pid].fill(NP.nan) # in case we later get a NaN error in tracking, 
                                        # pre-fill the log with nans
                                        # Turn,Point fill fill with a big random integer
             ic = list(ic.values())
-            self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
+            self[pid][0] = 0,names[0],self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
             ics.append(ic)
         
         # current state vector
         state = NP.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
-        n_ics = self.n_ics
-        n_var = self.n_var
+        n_ics = Ensemble.n_ics
+        n_var = Ensemble.n_var
         
-        rhs = RHS.RHS(self, RF) # setting up the RHS
+        rhs = RHS.RHS(Ensemble, RF) # setting up the RHS
         
         # opening hdf5 file to output data
         # write the used particle parameters (Mass0, KinEn0, G)
@@ -110,7 +118,7 @@ class Tracker:
             old_percent = -1 # to print 0 %
             cnt = 0; cnt_tot = n_elem*ntimes # for progress bar
             print('\t\t LATTICE: {} '.format(latname))
-            FWD = self.TrackControl.FWD
+            FWD = self.Controls.FWD
             for n in range(1,ntimes+1): # turn
                 for i in range(len(ElementSeq)): # element
                     # pick element
