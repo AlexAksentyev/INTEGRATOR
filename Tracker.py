@@ -16,7 +16,7 @@ import RHS
 import numpy as NP
 from scipy.integrate import odeint
 
-from Utilities import Bundle
+from Utilities import Bundle, Writer
 
 class Tracker:
     
@@ -27,41 +27,28 @@ class Tracker:
         
     
     def setControls(self, inner=True, FWD = True, breaks=101, ncut=0):
-        self.Controls = Bundle(inner=inner,FWD=FWD,breaks=breaks,ncut=ncut)
-        
-    def __getitem__(self, pid):
-        return getattr(self.Log, 'P'+str(pid), None)
-    
-    def track(self, ntimes):
-        """ if cut (see Controls) is true, particle logs keep only the values 
-            relevant for the current turn, else keep all values in RAM
-        """
-        Lattice = self.Lattice
-        Ensemble = self.Ensemble
-        
-        # get lattice name for saving data into file
-        latname = Lattice.Name
-        RF = Lattice.getRF()
-        ElementSeq = Lattice.Sequence
-        if Lattice.RFCount > 1: 
-            print('\t\t More than one ({}) RF;\n aborting.'.format(Lattice.RFCount))
-            return
-        
-        # number integration period subdivisions
-        brks = self.Controls.breaks
-        
-        ## creation of particle logs
-        # recarray type
+        self.Controls = Bundle(inner=inner,FWD=FWD,breaks=breaks,ncut=ncut)  
+
+    def __form_log_type(self, injection_name):
         import tables as TBL
-        names = ['START']+[e.fName for e in ElementSeq]
+        names = [injection_name]+[e.fName for e in self.Lattice]
         n = len(names[NP.argmax(names)])
         EType = TBL.StringCol(n) #otherwise problems writing into hdf5 file
         vartype = [('Turn',int),('Element',EType),('Point', int)]
         vartype += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
         
-        self.__fLastPnt = -1 # marker of the state vector upon exiting an element
+        return vartype
         
+    def __getitem__(self, pid):
+        return getattr(self.Log, 'P'+str(pid), None)
+    
+    def __create_logs(self, ntimes):
+        """ returns first index from which to fill log
+        """
+        ElementSeq = self.Lattice.Sequence
+        ## creating p-logs
         # counting the number of records in a p-log
+        brks = self.Controls.breaks
         n_elem = len(ElementSeq)
         inner = self.Controls.inner
         ncut = self.Controls.ncut
@@ -77,15 +64,10 @@ class Tracker:
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
             
-        cut = True # reset log index after writing to file
-        if ncut == 0: 
-            ncut = NP.floor(ntimes/10) # ncut is used below to decide whether to write data
-                        # if we keep all data in RAM, still backup every 10% of turns
-                        # 10% is arbitrary
-            cut = False 
-                                    
-        print('Saving data to file {} every {} turns'.format(latname, ncut))
-        
+        inj_name = 'START'
+        self.__fLastPnt = -1 # marker of the state vector upon exiting an element
+        vartype = self.__form_log_type(inj_name)
+        Ensemble = self.Ensemble
         # creating particle logs
         ics = list()
         for pid, ic in Ensemble.ics.items():
@@ -94,31 +76,69 @@ class Tracker:
                                        # pre-fill the log with nans
                                        # Turn,Point fill fill with a big random integer
             ic = list(ic.values())
-            self[pid][0] = 0,names[0],self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
+            self[pid][0] = 0,inj_name,self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
             ics.append(ic)
+            
+        self.ics = ics
+            
+        return ind
+    
+    def write_log(self, from_to):
+        old_ind, ind = from_to
+        # write data to file
+        for p in self.Ensemble:
+            tbl = getattr(self.file_handle.root.Logs, 'P'+str(p.PID))
+            tbl.append(p.Log[old_ind:ind])
+            tbl.flush()
+    
+    def track(self, ntimes):
+        Lattice = self.Lattice
+        latname = Lattice.Name
         
-        # current state vector
-        state = NP.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
-        n_ics = Ensemble.n_ics
-        n_var = Ensemble.n_var
+        ## check if there's more than one RF element
+        if Lattice.RFCount > 1:
+            print('\t\t More than one ({}) RF;\n aborting.'.format(Lattice.RFCount))
+            return
         
+        ind = self.__create_logs(ntimes)
+        
+        ncut = self.Controls.ncut    
+        cut = True # reset log index after writing to file
+        if ncut == 0: 
+            ncut = NP.floor(ntimes/10) # ncut is used below to decide whether to write data
+                        # if we keep all data in RAM, still backup every 10% of turns
+                        # 10% is arbitrary
+            cut = False 
+                                   
+        print('Saving data to file {} every {} turns'.format(latname, ncut))
+        
+         # current state vector
+        state = NP.array(self.ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
+        n_ics = len(state)
+        n_var = len(state[0])
+        
+        # create the RHS
+        RF = Lattice.getRF()
+        Ensemble = self.Ensemble
         rhs = RHS.RHS(Ensemble, RF) # setting up the RHS
         
         # opening hdf5 file to output data
         # write the used particle parameters (Mass0, KinEn0, G)
         # write particle logs
         filename = './data/{}.h5'.format(latname)
+        ElementSeq = Lattice.Sequence
+        n_elem = len(ElementSeq)
+        import tables as TBL
         with TBL.open_file(filename, 'w', latname) as f: 
-            self.__setup_file(f)
-            for p in self: # creating data tables to fill
-                f.create_table(f.root.Logs, 'P'+str(p.PID), p.Log.dtype)
-            
+            writer = Writer(Ensemble, Lattice, f)
             old_ind=0 # log is written into file from old_ind:ind
             old_turn = 0 # every ncut turns
             old_percent = -1 # to print 0 %
             cnt = 0; cnt_tot = n_elem*ntimes # for progress bar
             print('\t\t LATTICE: {} '.format(latname))
             FWD = self.Controls.FWD
+            brks = self.Controls.breaks
+            inner = self.Controls.inner
             for n in range(1,ntimes+1): # turn
                 for i in range(len(ElementSeq)): # element
                     # pick element
@@ -152,10 +172,10 @@ class Tracker:
                             for k in range(brks-1):
                                 valsk = vals[k].reshape(n_ics, n_var)
                                 for pid in self.ics.keys():
-                                    self[pid].Log[ind] = n,element.fName, k, *valsk[pid]
+                                    self[pid][ind] = n,element.fName, k, *valsk[pid]
                                 ind += 1
                         for pid in self.ics.keys():
-                            self[pid].Log[ind] = n,element.fName, self.__fLastPnt, *state[pid]
+                            self[pid][ind] = n,element.fName, self.__fLastPnt, *state[pid]
                         ind += 1
                     except ValueError:
                         print('NAN error at: Element {}, turn {}, log index {}'.format(element.fName, n, ind))
@@ -165,11 +185,7 @@ class Tracker:
                 if (n-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(n))
                     start = clock()
-                    # write data to file
-                    for p in self:
-                        tbl = getattr(f.root.Logs, 'P'+str(p.PID))
-                        tbl.append(p.Log[old_ind:ind])
-                        tbl.flush()
+                    writer.write_log((old_ind,ind))
                     if cut: ind = 0 # if cut, logs can only keep data for one turn => overwrite
                                     # otherwise, keep writing log
                     old_ind = ind
@@ -182,11 +198,7 @@ class Tracker:
             ## write any remainig data
             print('writing remaining ({}) data ...'.format(ind-old_ind))
             start = clock()
-            # write data to file
-            for p in self:
-                tbl = getattr(f.root.Logs, 'P'+str(p.PID))
-                tbl.append(p.Log[old_ind:ind])
-                tbl.flush()
+            writer.write_log((old_ind,ind))
             print('writing took: {:04.2f} secs'.format(clock()-start))
                     
         print('Complete 100 %')

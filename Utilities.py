@@ -28,17 +28,17 @@ class Bundle(dict):
 class Writer:
     """ Unfinished
     """
-    def __init__(self, Ensemble, Lattice, file_handle):
+    def __init__(self, Ensemble, Lattice, file_handle, Log_type):
         """ Lattice argument b/c in any case I will probably
             want to write some lattice data as well,
             like element tilts, parameters
         """
+        self.Log_type = Log_type
         self.file_handle = file_handle
         self.Ensemble = Ensemble
         self.Lattice = Lattice
         
         self.__setup_file()
-        self.__determine_log_type()
         self.__create_tables()
         
         self.__fLastPnt = -1 # marker of the state vector upon exiting an element
@@ -50,15 +50,6 @@ class Writer:
         self.file_handle.create_table('/','Particle',ppar)
         # separate group to write p-logs in
         self.file_handle.create_group('/','Logs', 'Particle logs')
-        
-    def __determine_log_type(self):
-        from TBL import StringCol
-        # find the minimum required string length
-        names = ['START']+[e.fName for e in self.Lattice]
-        n = len(names[NP.argmax(names)]) 
-        EType = StringCol(n) # StringCol, b/c otherwise problems writing into hdf5 file
-        self.Log_type = [('Turn',int),('Element',EType),('Point', int)]
-        self.Log_type += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
         
     def __create_tables(self):
         ## creating data tables to fill
