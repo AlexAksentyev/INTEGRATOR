@@ -79,6 +79,58 @@ class StateList:
         states = list()
         for d in self.SL: states.append(list(d.values()))
         return states
+    
+#%%
+
+class Writer:
+    def __init__(self, Ensemble, Lattice, file_handle):
+        """ Lattice argument b/c in any case I will probably
+            want to write some lattice data as well,
+            like element tilts, parameters
+        """
+        self.file_handle = file_handle
+        self.Ensemble = Ensemble
+        self.Lattice = Lattice
+        
+        self.__setup_file()
+        self.__determine_log_type()
+        self.__create_tables()
+        
+        self.__fLastPnt = -1 # marker of the state vector upon exiting an element
+        
+    def __setup_file(self):
+        ## setting up file
+        # write particle parameters (Mass0, KinEn0, G)
+        ppar = self.Ensemble.Particle.getParams() 
+        self.file_handle.create_table('/','Particle',ppar)
+        # separate group to write p-logs in
+        self.file_handle.create_group('/','Logs', 'Particle logs')
+        
+    def __determine_log_type(self):
+        from TBL import StringCol
+        # find the minimum required string length
+        names = ['START']+[e.fName for e in self.Lattice]
+        n = len(names[NP.argmax(names)]) 
+        EType = StringCol(n) # StringCol, b/c otherwise problems writing into hdf5 file
+        self.Log_type = [('Turn',int),('Element',EType),('Point', int)]
+        self.Log_type += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
+        
+    def __create_tables(self):
+        ## creating data tables to fill
+        for p in self.Ensemble: 
+            self.file_handle.create_table(self.file_handle.root.Logs, 
+                                     'P'+str(p.PID), self.Log_type)
+    
+    def write_log(self, from_to):
+        old_ind, ind = from_to
+        # write data to file
+        for p in self.Ensemble:
+            tbl = getattr(self.file_handle.root.Logs, 'P'+str(p.PID))
+            tbl.append(p.Log[old_ind:ind])
+            tbl.flush()
+        
+        
+#%%
 
 class Ensemble:
     
@@ -415,7 +467,7 @@ class Ensemble:
                                     # otherwise, keep writing log
                     old_ind = ind
                     old_turn = n
-                    print('old index {}'.format(old_ind))
+                    print('current index {}'.format(old_ind))
                     print('writing took: {:04.2f} secs'.format(clock()-start))
                 
             # end turn loop
@@ -450,7 +502,7 @@ if __name__ is '__main__':
     FODO.insertRF(0,0,E,EField=15e7)
 #    
 ##%%
-    E.track(FODO,int(3e2))
+    E.track(FODO,int(375))
 #    R3.tilt('x',5)
 #    tE = copy.deepcopy(E)
 #    tE.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
