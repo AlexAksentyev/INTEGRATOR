@@ -515,7 +515,7 @@ class Lattice:
         
         nuids = len(NP.unique([id(e.Tilt) for e in self]))
         if nuids != self.ElCount:
-            print('Non-unique elements ({}) in lattice. Smart tilting.'.format(self.ElCount-nuids))
+            print('Non-unique elements ({}/{}) in lattice. Smart tilting.'.format(self.ElCount-nuids,self.ElCount))
             print('\t Not tilting:')
         
         i=0
