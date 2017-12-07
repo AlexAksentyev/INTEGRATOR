@@ -23,8 +23,15 @@ class Bundle(dict):
         dict.__init__(self,kw)
         self.__dict__ = self
         
+    def __deepcopy__(self, memo):
+        res = self.__class__(**self.__dict__)
+#        res.__dict__ = res
+        return res
+        
     def __repr__(self):
         return str(list(self.keys()))
+    
+#%%
         
 class StateList:
     def __init__(self, **kwargs):
