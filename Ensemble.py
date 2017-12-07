@@ -320,10 +320,10 @@ class Ensemble:
             
         cut = True # reset log index after writing to file
         if ncut == 0: 
-            ncut = NP.floor(ntimes/10) # ncut now is used below to decide whether to write data
+            ncut = NP.floor(ntimes/10) # ncut is used below to decide whether to write data
                         # if we keep all data in RAM, still backup every 10% of turns
                         # 10% is arbitrary
-            cut = False
+            cut = False 
                                     
         print('Saving data to file {} every {} turns'.format(latname, ncut))
         
@@ -419,6 +419,16 @@ class Ensemble:
                     print('writing took: {:04.2f} secs'.format(clock()-start))
                 
             # end turn loop
+            
+            ## write any remainig data
+            print('writing remaining ({}) data ...'.format(ind-old_ind))
+            start = clock()
+            # write data to file
+            for p in self:
+                tbl = getattr(f.root.Logs, 'P'+str(p.PID))
+                tbl.append(p.Log[old_ind:ind])
+                tbl.flush()
+            print('writing took: {:04.2f} secs'.format(clock()-start))
                     
         print('Complete 100 %')
         
