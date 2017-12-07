@@ -21,6 +21,7 @@ class RHS:
     
     def __init__(self, Ensemble, RF):
         self.n_ics = Ensemble.n_ics
+        self.IntBrks = Ensemble.IntBrks
         self.Particle = Ensemble.Particle
         
         n_var = Ensemble.n_var
@@ -74,7 +75,8 @@ class RHS:
         m0 = q*1e6*self.Particle.Mass0/clight**2
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
-        brks = getattr(self, 'IntBrks', 101)
+        brks = self.IntBrks
+            
         ds = element.fLength/(brks-1)
         dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
         gammap = dEnp/self.Particle.Mass0 # gamma prime
