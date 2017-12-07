@@ -25,7 +25,6 @@ class Bundle(dict):
         
     def __deepcopy__(self, memo):
         res = self.__class__(**self.__dict__)
-#        res.__dict__ = res
         return res
         
     def __repr__(self):
