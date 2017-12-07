@@ -101,7 +101,7 @@ if __name__ is '__main__':
     import copy
     
     E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
-#    state = ENS.StateList(dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
+    E.setTrackArgs(inner=False,cut=True)
     Etilt = copy.deepcopy(E)
     
     ## adding RF
@@ -116,11 +116,11 @@ if __name__ is '__main__':
     ## tracking
     from time import clock
     start = clock()
-    Etilt.track(tiltLat, turns, inner=False, cut = False)
+    Etilt.track(tiltLat, turns)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
 #%%    
     start = clock()
-    E.track(Lat, turns, inner=False, cut = False)
+    E.track(Lat, turns)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
     
 #%%
@@ -145,6 +145,7 @@ if __name__ is '__main__':
     
     
     #%%
+    import pandas as PDS
     PLT.figure()
     df = PDS.DataFrame(E[0].Log)
     df5 = PDS.DataFrame(E[5].Log)
