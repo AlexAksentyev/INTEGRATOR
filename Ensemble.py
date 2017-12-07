@@ -14,6 +14,7 @@ import numpy as NP
 import Particle as PCL
 import RHS
 import copy
+from time import clock
 
 class Bundle(dict):
     """ Bundle serves as an interface for easy access 
@@ -91,7 +92,9 @@ class Ensemble:
         
         self.ics = dict(zip(range(len(state_list)), state_list))
         
-        self.TrackControl = Bundle(FWD=True, inner = True, breaks=101, cut=False)
+        self.TrackControl = Bundle(FWD=True, inner = True, breaks=101, ncut=0) 
+                                # ncut should be an int representing the number of turns to keep
+                                # 0, or None, means don't cut, a.k.a. keep full log in memory
         
     @classmethod
     def populate(cls, Particle, **kwargs):
@@ -286,7 +289,7 @@ class Ensemble:
         
         # number integration period subdivisions
         brks = self.TrackControl.breaks
-        self.IntBrks = brks
+        self.IntBrks = brks # Ensemble.IntBrks will be used in RHS
         
         ## creation of particle logs
         # recarray type
@@ -302,26 +305,38 @@ class Ensemble:
         # counting the number of records in a p-log
         n_elem = len(ElementSeq)
         inner = self.TrackControl.inner
-        cut = self.TrackControl.cut
+        ncut = self.TrackControl.ncut
         if inner: 
             nrow = n_elem*self.IntBrks
-            if not cut:  nrow *= ntimes
+            if ncut == 0:  nrow *= ntimes 
+            else: nrow *= ncut
             ind = 0 # odeint will return injection values
         else: 
             nrow = n_elem
-            if not cut: nrow *= ntimes
+            if ncut == 0: nrow *= ntimes
+            else: nrow *= ncut
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
+            
+        cut = True # reset log index after writing to file
+        if ncut == 0: 
+            ncut = NP.floor(ntimes/10) # ncut now is used below to decide whether to write data
+                        # if we keep all data in RAM, still backup every 10% of turns
+                        # 10% is arbitrary
+            cut = False
+                                    
+        print('Saving data to file {} every {} turns'.format(latname, ncut))
         
         # creating particle logs
         ics = list()
         for pid, ic in self.ics.items():
-                setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
-                self[pid].Log.fill(NP.nan) # in case we later get a NaN error in tracking, 
-                                           # pre-fill the log with nans
-                ic = list(ic.values())
-                self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
-                ics.append(ic)
+            setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+            self[pid].Log.fill(NP.nan) # in case we later get a NaN error in tracking, 
+                                       # pre-fill the log with nans
+                                       # Turn,Point fill fill with a big random integer
+            ic = list(ic.values())
+            self[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
+            ics.append(ic)
         
         # current state vector
         state = NP.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
@@ -339,9 +354,10 @@ class Ensemble:
             for p in self: # creating data tables to fill
                 f.create_table(f.root.Logs, 'P'+str(p.PID), p.Log.dtype)
             
+            old_ind=0 # log is written into file from old_ind:ind
+            old_turn = 0 # every ncut turns
             old_percent = -1 # to print 0 %
             cnt = 0; cnt_tot = n_elem*ntimes # for progress bar
-            old_ind=0 # log is writtten into file from old_ind:ind
             print('\t\t LATTICE: {} '.format(latname))
             FWD = self.TrackControl.FWD
             for n in range(1,ntimes+1): # turn
@@ -385,15 +401,24 @@ class Ensemble:
                     except ValueError:
                         print('NAN error at: Element {}, turn {}, log index {}'.format(element.fName, n, ind))
                         return
+                # end element loop
                     
-                # write data to file
-                for p in self:
-                    tbl = getattr(f.root.Logs, 'P'+str(p.PID))
-                    tbl.append(p.Log[old_ind:ind])
-                    tbl.flush()
-                if cut: ind = 0 # if cut, logs can only keep data for one turn => overwrite
-                                # otherwise, keep writing log
-                old_ind = ind
+                if (n-old_turn)%ncut == 0:
+                    print('turn {}, writing data ...'.format(n))
+                    start = clock()
+                    # write data to file
+                    for p in self:
+                        tbl = getattr(f.root.Logs, 'P'+str(p.PID))
+                        tbl.append(p.Log[old_ind:ind])
+                        tbl.flush()
+                    if cut: ind = 0 # if cut, logs can only keep data for one turn => overwrite
+                                    # otherwise, keep writing log
+                    old_ind = ind
+                    old_turn = n
+                    print('old index {}'.format(old_ind))
+                    print('writing took: {:04.2f} secs'.format(clock()-start))
+                
+            # end turn loop
                     
         print('Complete 100 %')
         
@@ -411,18 +436,18 @@ if __name__ is '__main__':
     QD1 = ENT.MQuad(5e-2,-.82,"QD")
     QF1 = ENT.MQuad(5e-2,.736,"QF")
     
-    FODO = ENT.Lattice([OD1, OD1, QD1, OD1], 'FODO')
+    FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
     FODO.insertRF(0,0,E,EField=15e7)
 #    
 ##%%
-    E.track(FODO,int(5e1))
+    E.track(FODO,int(3e2))
 #    R3.tilt('x',5)
 #    tE = copy.deepcopy(E)
 #    tE.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
 #    
 ##%%
     E.setReference()
-    E.plot('dK','s')
+    E.plot('y','s')
 #    tE.setReference(0)
 #    pids = [1,4,5]
 #    n=1
