@@ -473,6 +473,9 @@ class Lattice:
             raise StopIteration
             
     def insertRF(self, position, length, Ensemble, **ERF_pars):
+        if isinstance(self[position], ERF):
+            print('Replacing RF {}'.format(self.pop(position)))
+            self.RFCount -= 1
         full_acc_len = self.Length + length
         rf = ERF(length,Ensemble, full_acc_len, **ERF_pars)
         self.IndRF = position
@@ -487,6 +490,7 @@ class Lattice:
             return None
         
     def pop(self, index):
+        self.ElCount -= 1
         return self.Sequence.pop(index)
         
     def listNames(self, full=False):
