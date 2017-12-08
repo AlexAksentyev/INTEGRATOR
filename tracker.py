@@ -11,7 +11,7 @@ from time import clock
 from importlib import reload
 from tables import open_file, StringCol
 
-import numpy as NP
+import numpy as np
 from scipy.integrate import odeint
 
 import rhs
@@ -52,15 +52,15 @@ class Tracker:
         """ returns first index from which to fill log
         """
         ## p-log data type
-        names = ['START']+[e.fName for e in self.lattice]
-        max_len_name = len(names[NP.argmax(names)])
+        names = ['START']+[e.name for e in self.lattice]
+        max_len_name = len(names[np.argmax(names)])
         el_field_type = StringCol(max_len_name) #otherwise problems writing into hdf5 file
         vartype = [('Turn', int), ('Element', el_field_type), ('Point', int)]
-        vartype += list(zip(rhs.VAR_NAME, NP.repeat(float, rhs.VAR_NUM)))
+        vartype += list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
 
         ## the number of records in a p-log
         brks = self.controls.breaks
-        el_num = self.lattice.ElCount
+        el_num = self.lattice.el_count
         inner = self.controls.inner
         ncut = self.controls.ncut
         if inner:
@@ -81,12 +81,12 @@ class Tracker:
 
         # creating particle logs
         for pid, ic in self.ensemble.ics.items():
-            setattr(self.ensemble.Log, 'P'+str(pid), NP.recarray(nrow, dtype=vartype))
-            self.ensemble[pid].Log.fill(NP.nan) # in case we later get a NaN error in tracking,
+            setattr(self.ensemble.log, 'P'+str(pid), np.recarray(nrow, dtype=vartype))
+            self.ensemble[pid].log.fill(np.nan) # in case we later get a NaN error in tracking,
                                        # pre-fill the log with nans
                                        # Turn,Point fill fill with a big random integer
             ic = list(ic.values())
-            self.ensemble[pid].Log[0] = 0, names[0], self._last_pnt, *ic # saving injection values
+            self.ensemble[pid].log[0] = 0, names[0], self._last_pnt, *ic # saving injection values
                                                 # (will be overwritten if inner is true)
 
         return ind
@@ -95,7 +95,7 @@ class Tracker:
         ## setting up file
         self.file_handle = file_handle
         # write particle parameters (Mass0, KinEn0, G)
-        ppar = self.ensemble.Particle.getParams()
+        ppar = self.ensemble.particle.get_params()
         self.file_handle.create_table('/', 'Particle', ppar)
         # separate group to write p-logs in
         self.file_handle.create_group('/', 'Logs', 'Particle logs')
@@ -103,13 +103,13 @@ class Tracker:
         ## creating data tables to fill
         for p in self.ensemble:
             self.file_handle.create_table(self.file_handle.root.Logs,
-                                          'P'+str(p.PID), p.Log.dtype)
+                                          'P'+str(p.pid), p.log.dtype)
 
     def _run_turn(self, current_turn, log_index, state):
         brks = self.controls.breaks
 
-        el_num = self.lattice.ElCount
-        el_seq = self.lattice.Sequence
+        el_num = self.lattice.el_count
+        el_seq = self.lattice.sequence
 
         ensemble = self.ensemble
         n_ics = self.rhs.n_ics
@@ -121,13 +121,13 @@ class Tracker:
             else: element = el_seq[len(el_num)-1-i]
 
             # choose if integrate or otherwise advance the state vector
-            rf_el = element.bSkip
+            rf_el = element.bool_skip
 
             #integrate at these points
-            at = NP.linspace(0, element.fLength, brks)
+            at = np.linspace(0, element.length, brks)
 
             try:
-                element.frontKick(state)
+                element.front_kick(state)
                 state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
                 if not rf_el:
                     vals = odeint(self.rhs, state, at, args=(element, brks))
@@ -137,18 +137,18 @@ class Tracker:
                 state = state.reshape(n_ics, n_var) # [[x0,y0,...],
                                                     # [x1,y1,...],
                                                     # [x2,y2,...]]
-                element.rearKick(state)
+                element.rear_kick(state)
                 if not rf_el and self.controls.inner:
                     for k in range(brks-1):
                         valsk = vals[k].reshape(n_ics, n_var)
                         for pid in ensemble.ics.keys():
-                            ensemble[pid].Log[log_index] = current_turn, element.fName, k, *valsk[pid]
+                            ensemble[pid].log[log_index] = current_turn, element.name, k, *valsk[pid]
                         log_index += 1
                 for pid in ensemble.ics.keys():
-                    ensemble[pid].Log[log_index] = current_turn, element.fName, self._last_pnt, *state[pid]
+                    ensemble[pid].log[log_index] = current_turn, element.name, self._last_pnt, *state[pid]
                 log_index += 1
             except ValueError:
-                print('NAN error: Element {}, turn {}, log index {}'.format(element.fName, current_turn, log_index))
+                print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
                 raise StopTracking
 #                break
         # end element loop
@@ -159,8 +159,8 @@ class Tracker:
         old_ind, ind = from_, to_
         # write data to file
         for p in self.ensemble:
-            tbl = getattr(self.file_handle.root.Logs, 'P'+str(p.PID))
-            tbl.append(p.Log[old_ind:ind])
+            tbl = getattr(self.file_handle.root.Logs, 'P'+str(p.pid))
+            tbl.append(p.log[old_ind:ind])
             tbl.flush()
 
     def track(self, ensemble, lattice, n_turns):
@@ -175,8 +175,8 @@ class Tracker:
             print('Setting default controls.')
 
         ## check if there's more than one RF element
-        if lattice.RFCount > 1:
-            print('\t\t More than one ({}) RF;\n aborting.'.format(lattice.RFCount))
+        if lattice.RF_count > 1:
+            print('\t\t More than one ({}) RF;\n aborting.'.format(lattice.RF_count))
             return
 
         log_ind = self._create_logs(n_turns)
@@ -184,18 +184,18 @@ class Tracker:
         ncut = self.controls.ncut
         cut = True # reset log index after writing to file
         if ncut == 0:
-            ncut = NP.floor(n_turns/10) # ncut is used below to decide whether to write data
+            ncut = np.floor(n_turns/10) # ncut is used below to decide whether to write data
                         # if we keep all data in RAM, still backup every 10% of turns
                         # 10% is arbitrary
             cut = False
 
-        latname = lattice.Name
+        latname = lattice.name
         print('Saving data to file {} every {} turns'.format(latname, ncut))
 
          # initial state vector
         ics = list()
         for ic in ensemble.ics.values(): ics.append(list(ic.values()))
-        state = NP.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
+        state = np.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
 
         # create the RHS
         self.rhs = rhs.RHS(ensemble, lattice.getRF()) # setting up the RHS
@@ -247,11 +247,11 @@ class Tracker:
 #%%
 
 if __name__ == '__main__':
-    from Ensemble import Ensemble
-    from Particle import Particle
-    from Element import MQuad, Drift, Lattice
+    from ensemble import Ensemble
+    from particle import Particle
+    from element import MQuad, Drift, Lattice
 
-    from BNL import BDA
+#    from BNL import BDA
     t = Tracker()
 
     #%%
@@ -262,10 +262,10 @@ if __name__ == '__main__':
     dft = Drift(25e-2)
     dft2 = Drift(25e-2)
     FODO = [mqf, dft, mqd, dft]
-    MAGNET = [BDA, dft, dft, dft, BDA]
+    MAGNET = [dft, dft, dft]
 
     LAT = Lattice(FODO, 'test')
-    LAT.insertRF(0, 0, E, EField=15e7)
+    LAT.insertRF(0, 0, E, E_field=15e7)
 
     #%%
     start = clock()

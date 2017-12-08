@@ -6,8 +6,8 @@ Created on Mon Sep 18 16:59:23 2017
 @author: alexa
 """
 #%%
-import Particle as PCL
-import Element as ENT
+import particle as PCL
+import element as ENT
 from importlib import reload
 
 reload(ENT)
