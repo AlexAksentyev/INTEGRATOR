@@ -65,16 +65,16 @@ class Tracker:
         ncut = self.controls.ncut
         if inner:
             nrow = el_num*brks
-            if ncut == 0: 
+            if ncut == 0:
                 nrow *= nturns
-            else: 
+            else:
                 nrow *= ncut
             ind = 0 # odeint will return injection values
         else:
             nrow = el_num
-            if ncut == 0: 
+            if ncut == 0:
                 nrow *= nturns
-            else: 
+            else:
                 nrow *= ncut
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
@@ -150,7 +150,7 @@ class Tracker:
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.fName, current_turn, log_index))
                 raise StopTracking
-                break
+#                break
         # end element loop
 
         return state, log_index
