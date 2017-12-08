@@ -172,8 +172,10 @@ class Ensemble:
         try:
             pr = self.getReference()
         except AttributeError:
-            print('Reference not set')
-            return
+            self.setReference()
+            pr = self.getReference()
+            print('Reference not set; using default (pid: {})'.format(pr.PID))
+            
         
         ## selecting only the required pids for plot
         names = self.listNames()
