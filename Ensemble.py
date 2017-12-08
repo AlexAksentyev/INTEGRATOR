@@ -395,7 +395,7 @@ class Ensemble:
                         element.frontKick(state)
                         state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
                         if not bERF:
-                            vals = odeint(rhs, state, at, args=(element,))
+                            vals = odeint(rhs, state, at, args=(element,brks))
                             state = vals[brks-1] # [x0,y0,...,x1,y1,...]
                         else:
                             element.advance(state)
@@ -450,26 +450,30 @@ if __name__ is '__main__':
     import Particle as PCL
     from matplotlib import pyplot as PLT
     
-    s = StateList(dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,3), Sz=1)
+#    s = StateList(dK=(0e-3,1e-4,3), x=(-1e-3,1e-3,3), Sz=1)
     
-    E = Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,5), x=(-1e-3,1e-3,2), Sz=1)
-    R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
-    OD1 = ENT.Drift(.25, 'OD1')
-    QD1 = ENT.MQuad(5e-2,-.82,"QD")
-    QF1 = ENT.MQuad(5e-2,.736,"QF")
+    E = Ensemble.populate(PCL.Particle(), dK=(0e-3,1e-4,3), x=(-1e-3,1e-3,3), Sz=1)
+#    R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761)
+#    OD1 = ENT.Drift(.25, 'OD1')
+#    QD1 = ENT.MQuad(5e-2,-.82,"QD")
+#    QF1 = ENT.MQuad(5e-2,.736,"QF")
     
-    FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
-    FODO.insertRF(0,0,E,EField=15e7)
+#    FODO = ENT.Lattice([QF1, OD1, QD1, OD1], 'FODO')
+#    FODO.insertRF(0,0,E,EField=15e7)
 #    
 ##%%
-    E.track(FODO,int(375))
+    from BNL import SSb1H2
+    lat = ENT.Lattice(SSb1H2,'QFS')
+    start = clock()
+    E.track(SSb1H2,int(100))
+    print('time passed {:04.2f}'.format(clock()-start))
 #    R3.tilt('x',5)
 #    tE = copy.deepcopy(E)
 #    tE.track([R3,OD1,OD1,OD1,OD1],int(5e1),cut=False)
 #    
 ##%%
     E.setReference()
-    E.plot('y','s')
+    E.plot('x','s')
 #    tE.setReference(0)
 #    pids = [1,4,5]
 #    n=1
