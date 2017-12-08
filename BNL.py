@@ -6,40 +6,40 @@ Created on Mon Sep 18 16:59:23 2017
 @author: alexa
 """
 #%%
-import particle as PCL
-import element as ENT
+import particle as pcl
+import element as ent
 from importlib import reload
 
-reload(ENT)
-reload(PCL)
+reload(ent)
+reload(pcl)
 
 #%%
 # lattice elements
 
-OD1 = ENT.Drift(25e-2, "OD1")
-OD2 = ENT.Drift(25e-2, "OD2")
-ORE = ENT.Drift(2.17, "ORE")
-ORB = ENT.Drift(2.2, "ORB")
+OD1 = ent.Drift(25e-2, "OD1")
+OD2 = ent.Drift(25e-2, "OD2")
+ORE = ent.Drift(2.17, "ORE")
+ORB = ent.Drift(2.2, "ORB")
 
-QDA1 = ENT.MQuad(5e-2,-11.71, 'QDA1')
-QFA1 = ENT.MQuad(5e-2, 13.38, 'QFA1')
-QDA2 = ENT.MQuad(5e-2,-10.3,'QDA2')
-QFA2 = ENT.MQuad(5e-2, 10.11,'QFA2')
+QDA1 = ent.MQuad(5e-2, -11.71, 'QDA1')
+QFA1 = ent.MQuad(5e-2,  13.38, 'QFA1')
+QDA2 = ent.MQuad(5e-2, -10.3,'QDA2')
+QFA2 = ent.MQuad(5e-2,  10.11,'QFA2')
 
 
-OSF = ENT.MSext(15e-2,0,"OSF")
-OSD = ENT.MSext(15e-2,0,"OSD")
+OSF = ent.MSext(15e-2,0,"OSF")
+OSD = ent.MSext(15e-2,0,"OSD")
 
-SDP = ENT.MSext(15e-2,3.39598,"SDP")
-SFP = ENT.MSext(15e-2,2.76958,"SFP")
-SDN = ENT.MSext(15e-2,3.79311,"SDN")
-SFN = ENT.MSext(15e-2,2.09837,"SFN")
+SDP = ent.MSext(15e-2, 3.39598,"SDP")
+SFP = ent.MSext(15e-2, 2.76958,"SFP")
+SDN = ent.MSext(15e-2, 3.79311,"SDN")
+SFN = ent.MSext(15e-2, 2.09837,"SFN")
 
-BDA = ENT.MDipole(182.02463e-2, PCL.Particle(), BField=1.5,Name="BDA")
+BDA = ent.MDipole(182.02463e-2, pcl.Particle(), B_field=1.5, name="BDA")
 
-BPM = ENT.Drift(15e-2,"BPM")
+BPM = ent.Drift(15e-2, "BPM")
 
-R3 = ENT.Wien(361.55403e-2,5e-2,PCL.Particle(),-120e5,.082439761, Name="R3")
+R3 = ent.Wien(361.55403e-2, 5e-2, pcl.Particle(), -120e5, .082439761, name="R3")
 
 #%%
 # lattice definition
@@ -96,17 +96,20 @@ QFS = SSb1H2 + ARCb1H2 + SSe1H1 + SSe1H2 + \
 #%%
 if __name__ is '__main__':
     ## prepping ensemble of states
-    import Ensemble as ENS
-    reload(ENS) # update   
+    import ensemble as ens
+    reload(ens) # update   
     import copy
     
-    E = ENS.Ensemble.populate(PCL.Particle(), dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
-    E.setTrackArgs(inner=False,cut=True)
+    from tracker import Tracker
+    
+    TRKR = Tracker()
+    
+    E = ens.Ensemble.populate(pcl.Particle(), dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
     Etilt = copy.deepcopy(E)
     
     ## adding RF
-    Lat = ENT.Lattice(QFS,'E+B')
-    Lat.insertRF(0, 0, E, EField=15e7)
+    Lat = ent.Lattice(QFS,'E+B')
+    Lat.insertRF(0, 0, E, E_field=15e7)
     tiltLat = copy.deepcopy(Lat)
     tiltLat.tilt('S',0,.3)
     
@@ -116,39 +119,35 @@ if __name__ is '__main__':
     ## tracking
     from time import clock
     start = clock()
-    Etilt.track(tiltLat, turns)
+    TRKR.track(Etilt, tiltLat, turns)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
 #%%    
     start = clock()
-    E.track(Lat, turns)
+    TRKR.track(E, Lat, turns)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
     
 #%%
     #plotting
     
     ylab = '-D Sx'
-    xlab = 's'
-    
-    E.setReference()
-    Etilt.setReference()
-    
+    xlab = 's'    
     
     #%%
     from matplotlib import pyplot as PLT
     PLT.figure()
     PLT.subplot(2,1,1)
-    E.plot(ylab,xlab,pids=[6,18,15], new_plot=False)
+    E.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
     PLT.title('E+B clean')
     PLT.subplot(2,1,2)
-    Etilt.plot(ylab,xlab,pids=[6,18,15], new_plot=False)
+    Etilt.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
     PLT.title('E+B tilted: S (0, .3)')
     
     
     #%%
     import pandas as PDS
     PLT.figure()
-    df = PDS.DataFrame(E[0].Log)
-    df5 = PDS.DataFrame(E[5].Log)
+    df = PDS.DataFrame(E[0].log)
+    df5 = PDS.DataFrame(E[5].log)
     Sx = df.loc[df.Element==b'RF']['Sx']
     trn = df.loc[df.Element==b'RF']['Turn']
     Sx5 = df5.loc[df5.Element==b'RF']['Sx']

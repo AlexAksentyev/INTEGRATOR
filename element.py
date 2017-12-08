@@ -60,12 +60,12 @@ class Tilt:
 
         # rotation matrices for tilting
         Rx = lambda c, s: np.matrix([[1, 0, 0], [0, c, -s], [0, s, c]])
-        Ry = lambda c, s: np.matrix([[ c, 0, s], [ 0, 1, 0], [-s, 0, c]])
+        Ry = lambda c, s: np.matrix([[c, 0, s], [0, 1, 0], [-s, 0, c]])
         Rs = lambda c, s: np.matrix([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
         self.rotation = {'X': Rx, 'Y': Ry, 'S': Rs}
 
-    def __call__(self, order, *args, append=False):
+    def __call__(self, order, *degree_angles, append=False):
         i0 = 0
         if append:
             keys = list(self.angle.keys())
@@ -76,10 +76,10 @@ class Tilt:
                 pass
 
         order = order.upper()
-        i0 = np.repeat(i0, len(args))
-        i = list(range(len(args)))
+        i0 = np.repeat(i0, len(degree_angles))
+        i = list(range(len(degree_angles)))
         keys = list(zip(order, i0 + i))
-        ang = dict(zip(keys, zip(args, np.deg2rad(args))))
+        ang = dict(zip(keys, zip(degree_angles, np.deg2rad(degree_angles))))
 
         if append:
             self.angle.update(ang)
@@ -132,19 +132,19 @@ class Element:
     def get_fields(self):
         return self.__E_field, self.__B_field
 
-    def EField(self,arg):
+    def EField(self, arg):
         return Field(self.__E_field, self).vectorize(arg).tilt()
 
     def EField_prime_t(self, arg): # added for testing with ERF
         return Field((0, 0, 0), self).vectorize(arg).tilt()
 
-    def BField(self,arg):
+    def BField(self, arg):
         return Field(self.__B_field, self).vectorize(arg).tilt()
 
-    def front_kick(self, particle):
+    def front_kick(self, state):
         pass # do nothing
 
-    def rear_kick(self, particle):
+    def rear_kick(self, state):
         pass # do nothing
 
     def print_fields(self):
@@ -158,12 +158,12 @@ class Element:
         self.tilt_(order, *args, append=append)
 
 class Bend:
-    def __init__(self, ref_particle, **kwargs):
+    def __init__(self, reference_particle, **kwargs):
         q = pcl.EZERO
         clight = pcl.CLIGHT
-        self.pardict = {'KinEn0':ref_particle.KinEn0, 'Mass0':ref_particle.Mass0,
+        self.pardict = {'KinEn0':reference_particle.kin_nrg_0, 'Mass0':reference_particle.mass0,
                         'q':q, 'clight':clight,
-                        'm0':ref_particle.Mass0/clight**2*1e6*q}
+                        'm0':reference_particle.mass0/clight**2*1e6*q}
 
         super().__init__(**kwargs)
 
@@ -229,7 +229,7 @@ class MDipole(Element, Bend):
 
         if crv is None:
             R = self.compute_radius(reference_particle.kin_nrg_0, B_field)
-            self.__raduis = R
+            self.__radius = R
             self.curve = 1/self.__radius
             self._Element__chars['Curve'] = self.curve
 
@@ -510,9 +510,9 @@ class Lattice:
         except AttributeError:
             return None
 
-    def pop(self, index):
+    def pop(self, ind):
         self.el_count -= 1
-        return self.sequence.pop(index)
+        return self.sequence.pop(ind)
 
     def list_names(self, full=False):
         names = [e.name for e in self]
@@ -534,7 +534,7 @@ class Lattice:
             print('Dimension mismatch: order {}, mean {}, sigma {}'.format(n, nmean, nsig))
             return
 
-        nuids = len(np.unique([id(e.Tilt) for e in self]))
+        nuids = len(np.unique([id(e.tilt_) for e in self]))
         if nuids != self.el_count:
             print('Non-unique elements ({}/{}) in lattice. Smart tilting.'.format(self.el_count-nuids, self.el_count))
             print('\t Not tilting:')
@@ -543,7 +543,7 @@ class Lattice:
         ids = set()
         cnt = 1
         for element in self:
-            eid = id(element.tilt)
+            eid = id(element.tilt_)
             if eid in ids:
                 print('\t\t {} element {} at lattice index {}'.format(cnt, element.name, i))
                 cnt += 1
@@ -552,3 +552,4 @@ class Lattice:
             element.tilt(order, *angle[i], append=append)
             ids.add(eid)
             i += 1
+            
