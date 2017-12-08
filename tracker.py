@@ -250,12 +250,14 @@ if __name__ == '__main__':
     from ensemble import Ensemble
     from particle import Particle
     from element import MQuad, Drift, Lattice
+    import copy
 
 #    from BNL import BDA
     t = Tracker()
 
     #%%
     E = Ensemble.populate(Particle(), x=(-5e-3, 5e-3, 3), dK=(0, 1e-4, 3), Sz=1)
+    E_tilted = copy.deepcopy(E)
 
     mqf = MQuad(5e-2, 8.6, 'QF')
     mqd = MQuad(5e-2, -8.3, 'QD')
@@ -265,11 +267,15 @@ if __name__ == '__main__':
     MAGNET = [dft, dft, dft]
 
     LAT = Lattice(FODO, 'test')
+    LAT_tilted = copy.deepcopy(LAT)
     LAT.insertRF(0, 0, E, E_field=15e7)
+    LAT_tilted.insertRF(0, 0, E_tilted, E_field=15e7)
+    
+    LAT_tilted.tilt('s',0,.003)
 
     #%%
     start = clock()
-    t.track(E, LAT, 100)
+    t.track(E_tilted, LAT_tilted, 100)
     print('time passed {:04.2f}'.format(clock()-start))
     #%%
-    E.plot('Sx', 'x')
+    E_tilted.plot('Sx', 'x')

@@ -534,7 +534,7 @@ class Lattice:
             print('Dimension mismatch: order {}, mean {}, sigma {}'.format(n, nmean, nsig))
             return
 
-        nuids = len(np.unique([id(e.Tilt) for e in self]))
+        nuids = len(np.unique([id(e.tilt_) for e in self]))
         if nuids != self.el_count:
             print('Non-unique elements ({}/{}) in lattice. Smart tilting.'.format(self.el_count-nuids, self.el_count))
             print('\t Not tilting:')
@@ -543,7 +543,7 @@ class Lattice:
         ids = set()
         cnt = 1
         for element in self:
-            eid = id(element.tilt)
+            eid = id(element.tilt_)
             if eid in ids:
                 print('\t\t {} element {} at lattice index {}'.format(cnt, element.name, i))
                 cnt += 1
