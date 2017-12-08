@@ -12,76 +12,83 @@ TODO:
 """
 
 from time import clock
-import RHS
+from importlib import reload
+import RHS; reload(RHS)
 import numpy as NP
 from scipy.integrate import odeint
 
-from Utilities import Bundle, Writer
+from Utilities import Bundle
+
+
 
 class Tracker:
     
     def __init__(self, Lattice, Ensemble):
         self.Lattice = Lattice
-        self.Ensemble = Ensemble     
+        self.Ensemble = Ensemble   
         
         
     
     def setControls(self, inner=True, FWD = True, breaks=101, ncut=0):
         self.Controls = Bundle(inner=inner,FWD=FWD,breaks=breaks,ncut=ncut)  
-
-    def __form_log_type(self, injection_name):
+    
+    def __create_logs(self, nturns):
+        """ returns first index from which to fill log
+        """
+        ## p-log data type
         import tables as TBL
-        names = [injection_name]+[e.fName for e in self.Lattice]
+        names = ['START']+[e.fName for e in self.Lattice]
         n = len(names[NP.argmax(names)])
         EType = TBL.StringCol(n) #otherwise problems writing into hdf5 file
         vartype = [('Turn',int),('Element',EType),('Point', int)]
         vartype += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
         
-        return vartype
-        
-    def __getitem__(self, pid):
-        return getattr(self.Log, 'P'+str(pid), None)
-    
-    def __create_logs(self, ntimes):
-        """ returns first index from which to fill log
-        """
         ElementSeq = self.Lattice.Sequence
-        ## creating p-logs
-        # counting the number of records in a p-log
+        ## the number of records in a p-log
         brks = self.Controls.breaks
         n_elem = len(ElementSeq)
         inner = self.Controls.inner
         ncut = self.Controls.ncut
         if inner: 
             nrow = n_elem*brks
-            if ncut == 0:  nrow *= ntimes 
+            if ncut == 0:  nrow *= nturns 
             else: nrow *= ncut
             ind = 0 # odeint will return injection values
         else: 
             nrow = n_elem
-            if ncut == 0: nrow *= ntimes
+            if ncut == 0: nrow *= nturns
             else: nrow *= ncut
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
             
-        inj_name = 'START'
         self.__fLastPnt = -1 # marker of the state vector upon exiting an element
-        vartype = self.__form_log_type(inj_name)
+        
         Ensemble = self.Ensemble
         # creating particle logs
-        ics = list()
         for pid, ic in Ensemble.ics.items():
-            setattr(self.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
-            self[pid].fill(NP.nan) # in case we later get a NaN error in tracking, 
+            setattr(Ensemble.Log, 'P'+str(pid), NP.recarray(nrow,dtype=vartype))
+            Ensemble[pid].Log.fill(NP.nan) # in case we later get a NaN error in tracking, 
                                        # pre-fill the log with nans
                                        # Turn,Point fill fill with a big random integer
             ic = list(ic.values())
-            self[pid][0] = 0,inj_name,self.__fLastPnt, *ic # saving injection values (will be overwritten if inner is true)
-            ics.append(ic)
-            
-        self.ics = ics
+            self.Ensemble[pid].Log[0] = 0,names[0],self.__fLastPnt, *ic # saving injection values 
+                                                # (will be overwritten if inner is true)
             
         return ind
+    
+    def __setup_file(self, file_handle):
+        ## setting up file
+        self.file_handle = file_handle
+        # write particle parameters (Mass0, KinEn0, G)
+        ppar = self.Ensemble.Particle.getParams() 
+        self.file_handle.create_table('/','Particle',ppar)
+        # separate group to write p-logs in
+        self.file_handle.create_group('/','Logs', 'Particle logs')
+        
+        ## creating data tables to fill
+        for p in self.Ensemble: 
+            self.file_handle.create_table(self.file_handle.root.Logs, 
+                                     'P'+str(p.PID), p.Log.dtype)
     
     def write_log(self, from_to):
         old_ind, ind = from_to
@@ -92,9 +99,12 @@ class Tracker:
             tbl.flush()
     
     def track(self, ntimes):
-        Lattice = self.Lattice
-        latname = Lattice.Name
+        ## check for controls; if they haven't been set, use defaults
+        if getattr(self, 'Controls', None) is None:
+            self.setControls()
+            print('Setting default controls.')
         
+        Lattice = self.Lattice        
         ## check if there's more than one RF element
         if Lattice.RFCount > 1:
             print('\t\t More than one ({}) RF;\n aborting.'.format(Lattice.RFCount))
@@ -109,17 +119,20 @@ class Tracker:
                         # if we keep all data in RAM, still backup every 10% of turns
                         # 10% is arbitrary
             cut = False 
-                                   
+                                
+        latname = Lattice.Name
         print('Saving data to file {} every {} turns'.format(latname, ncut))
         
          # current state vector
-        state = NP.array(self.ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
+        ics = list()
+        Ensemble = self.Ensemble
+        for ic in Ensemble.ics.values(): ics.append(list(ic.values()))
+        state = NP.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
         n_ics = len(state)
         n_var = len(state[0])
         
         # create the RHS
-        RF = Lattice.getRF()
-        Ensemble = self.Ensemble
+        RF = Lattice.getRF()        
         rhs = RHS.RHS(Ensemble, RF) # setting up the RHS
         
         # opening hdf5 file to output data
@@ -130,7 +143,7 @@ class Tracker:
         n_elem = len(ElementSeq)
         import tables as TBL
         with TBL.open_file(filename, 'w', latname) as f: 
-            writer = Writer(Ensemble, Lattice, f)
+            self.__setup_file(f)
             old_ind=0 # log is written into file from old_ind:ind
             old_turn = 0 # every ncut turns
             old_percent = -1 # to print 0 %
@@ -162,7 +175,7 @@ class Tracker:
                         element.frontKick(state)
                         state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
                         if not bERF:
-                            vals = odeint(rhs, state, at, args=(element,))
+                            vals = odeint(rhs, state, at, args=(element,brks))
                             state = vals[brks-1] # [x0,y0,...,x1,y1,...]
                         else:
                             element.advance(state)
@@ -171,11 +184,11 @@ class Tracker:
                         if not bERF and inner:
                             for k in range(brks-1):
                                 valsk = vals[k].reshape(n_ics, n_var)
-                                for pid in self.ics.keys():
-                                    self[pid][ind] = n,element.fName, k, *valsk[pid]
+                                for pid in Ensemble.ics.keys():
+                                    Ensemble[pid].Log[ind] = n,element.fName, k, *valsk[pid]
                                 ind += 1
-                        for pid in self.ics.keys():
-                            self[pid][ind] = n,element.fName, self.__fLastPnt, *state[pid]
+                        for pid in Ensemble.ics.keys():
+                            Ensemble[pid].Log[ind] = n,element.fName, self.__fLastPnt, *state[pid]
                         ind += 1
                     except ValueError:
                         print('NAN error at: Element {}, turn {}, log index {}'.format(element.fName, n, ind))
@@ -185,7 +198,7 @@ class Tracker:
                 if (n-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(n))
                     start = clock()
-                    writer.write_log((old_ind,ind))
+                    self.write_log((old_ind,ind))
                     if cut: ind = 0 # if cut, logs can only keep data for one turn => overwrite
                                     # otherwise, keep writing log
                     old_ind = ind
@@ -198,8 +211,24 @@ class Tracker:
             ## write any remainig data
             print('writing remaining ({}) data ...'.format(ind-old_ind))
             start = clock()
-            writer.write_log((old_ind,ind))
+            self.write_log((old_ind,ind))
             print('writing took: {:04.2f} secs'.format(clock()-start))
                     
         print('Complete 100 %')
+    
+#%%
+
+if __name__ is '__main__':
+    import Ensemble as ENS
+    import Particle as PCL
+    import Element as ENT
+    
+    from BNL import SSb1H2
+    E = ENS.Ensemble.populate(PCL.Particle(), x=(-1e-3,1e-3,3), dK = (0,1e-4,3), Sz=1)
+    
+    lat = ENT.Lattice(SSb1H2, 'SSb1H2')    
+    t = Tracker(lat, E)
+    start = clock()
+    t.track(100)
+    print('time passed {:04.2f}'.format(clock()-start))
     
