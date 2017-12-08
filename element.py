@@ -461,18 +461,35 @@ class Lattice:
         self.RF_index = None
         self.RF_count = 0
         self.length = 0
-        for ind in range(self.el_count):
-            self.length += self.sequence[ind].length
-            if isinstance(self.sequence[ind], ERF):
-                self.RF_count += 1
-                self.RF_index = ind
-
-        if self.RF_count > 1:
-            print('More than one RF element in element sequence')
-            return
-
-    def copy(self):
-        pass
+        for ind, element in enumerate(self.sequence):
+            if isinstance(element, ERF):
+                if self.RF_count < 1:
+                    self.RF_count += 1
+                    self.RF_index = ind
+                else:
+                    print('Second RF element encountered; not adding to lattice')
+                    self.pop(ind)
+                    continue
+            self.length += element.length
+        
+    def __add__(self, other):
+        if not isinstance(other, Lattice):
+            print('Cannot add a non-lattice object') 
+            return # but think about adding an element sequence        
+        
+        # remove RF's of both
+        rf0 = self.pop(self.RF_index)
+        if rf0 is not None:
+            self.RF_count -= 1
+            self.RF_index = None
+        rf1 = other.pop(other.RF_index)
+        if rf1 is not None:
+            other.RF_count -= 1
+            other.RF_index = None
+        print('New lattice w/o RF elements.')
+        
+        el_sequence = self.sequence + other.sequence
+        
 
     def __getitem__(self, idx):
         return self.sequence[idx]
@@ -494,7 +511,11 @@ class Lattice:
             raise StopIteration
 
     def insertRF(self, position, length, ensemble, **ERF_pars):
-        if isinstance(self[position], ERF):
+        if self.RF_index is not None and self.RF_index != position:
+            print("""Trying to add a second RF element; 
+                  current RF position is {}""".format(self.RF_index))
+            return
+        if position == self.RF_index:
             print('Replacing RF {}'.format(self.pop(position)))
             self.RF_count -= 1
         full_acc_len = self.length + length
@@ -511,8 +532,18 @@ class Lattice:
             return None
 
     def pop(self, ind):
-        self.el_count -= 1
-        return self.sequence.pop(ind)
+        if ind is None:
+            print('Passed index is None; no element popped.')
+            return None
+        
+        try:
+            element = self.sequence.pop(ind)
+            self.el_count -= 1
+        except IndexError:
+            print('Wrong index; no element popped.')
+            return None
+        
+        return element
 
     def list_names(self, full=False):
         names = [e.name for e in self]
@@ -553,3 +584,12 @@ class Lattice:
             ids.add(eid)
             i += 1
             
+#%%
+if __name__ == '__main__':
+    from ensemble import Ensemble
+    from particle import Particle
+    
+    ERF0 = ERF(5,Ensemble.populate(Particle(), Sz=1, x=(-1e-3, 1e-3, 3)), 5)
+    ERF1 = ERF(5,Ensemble.populate(Particle(), Sz=1, x=(-1e-3, 1e-3, 3)), 5)
+    
+    LAT = Lattice([ERF0,ERF1],'test')
