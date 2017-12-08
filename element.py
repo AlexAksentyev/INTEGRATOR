@@ -473,6 +473,8 @@ class Lattice:
             self.length += element.length
         
     def __add__(self, other):
+        """ Unifished
+        """
         if not isinstance(other, Lattice):
             print('Cannot add a non-lattice object') 
             return # but think about adding an element sequence        
