@@ -7,8 +7,8 @@ Created on Thu Nov 30 11:05:49 2017
 """
 import numpy as NP
 
-ezero = 1.602176462e-19 # Coulomb
-clight = 2.99792458e8 # m/s
+EZERO = 1.602176462e-19 # Coulomb
+CLIGHT = 2.99792458e8 # m/s
 
 class Particle:
     
@@ -30,5 +30,5 @@ class Particle:
     
     def revFreq(self, Lat_len):
         gamma,beta = self.GammaBeta(self.KinEn0)
-        v = beta*clight
+        v = beta*CLIGHT
         return v/Lat_len

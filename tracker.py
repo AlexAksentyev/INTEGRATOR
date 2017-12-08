@@ -14,8 +14,8 @@ from tables import open_file, StringCol
 import numpy as NP
 from scipy.integrate import odeint
 
-import RHS
-reload(RHS)
+import rhs
+reload(rhs)
 
 
 TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut'])
@@ -56,7 +56,7 @@ class Tracker:
         max_len_name = len(names[NP.argmax(names)])
         el_field_type = StringCol(max_len_name) #otherwise problems writing into hdf5 file
         vartype = [('Turn', int), ('Element', el_field_type), ('Point', int)]
-        vartype += list(zip(RHS.varname, NP.repeat(float, RHS.varnum)))
+        vartype += list(zip(rhs.VAR_NAME, NP.repeat(float, rhs.VAR_NUM)))
 
         ## the number of records in a p-log
         brks = self.controls.breaks
@@ -113,7 +113,7 @@ class Tracker:
 
         ensemble = self.ensemble
         n_ics = self.rhs.n_ics
-        n_var = RHS.varnum
+        n_var = rhs.VAR_NUM
 
         for i in range(el_num): # element loop
             # pick element
@@ -198,7 +198,7 @@ class Tracker:
         state = NP.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
 
         # create the RHS
-        self.rhs = RHS.RHS(ensemble, lattice.getRF()) # setting up the RHS
+        self.rhs = rhs.RHS(ensemble, lattice.getRF()) # setting up the RHS
 
         # opening hdf5 file to output data
         # write the used particle parameters (Mass0, KinEn0, G)
