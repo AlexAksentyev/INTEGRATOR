@@ -21,7 +21,6 @@ class RHS:
     
     def __init__(self, Ensemble, RF):
         self.n_ics = Ensemble.n_ics
-        self.IntBrks = Ensemble.IntBrks
         self.Particle = Ensemble.Particle
         
         n_var = Ensemble.n_var
@@ -37,7 +36,7 @@ class RHS:
         self.WFreq = 2*NP.pi*RFfreq
         
     
-    def __call__(self, state, at, element):
+    def __call__(self, state, at, element, brks):
         if NP.isnan(state).any(): raise ValueError('NaN state variable(s)')
         x,y,s,t,theta,H,px,py,dEn,Sx,Sy,Ss = state.reshape(varnum, self.n_ics,order='F')
         
@@ -75,7 +74,6 @@ class RHS:
         m0 = q*1e6*self.Particle.Mass0/clight**2
         
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
-        brks = self.IntBrks
             
         ds = element.fLength/(brks-1)
         dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
