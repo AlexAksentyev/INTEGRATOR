@@ -24,9 +24,9 @@ import particle as pcl
 from rhs import IMAP, index
 
 class Field(np.ndarray):
-    """ Representation of an element's EM-field;
-        makes more sense to call field.tilt, instead of
-        element.tilt(field). Same for vectorization.
+    """Representation of an element's EM-field;
+    makes more sense to call field.tilt, instead of
+    element.tilt(field). Same for vectorization.
     """
     def __new__(cls, array, element, dtype=float):
         obj = np.asarray(array, dtype=dtype, order='C').view(cls)
@@ -46,8 +46,7 @@ class Field(np.ndarray):
         return Field(self.host.tilt_.matrix.dot(self).A, self.host)
 
 #    def updateHost(self, new_host):
-#        """ In case i have to implement element::deepcopy, to use in there
-#        """
+#        """In case i have to implement element::deepcopy, to use in there."""
 #        self.Host = new_host
 
 #%%
@@ -131,9 +130,6 @@ class Element:
     def get_fields(self):
         return self.__E_field, self.__B_field
 
-#    def rename(self, new_name):
-#        self.name = newname
-
     def EField(self, arg):
         return Field(self.__E_field, self).vectorize(arg).tilt()
 
@@ -181,16 +177,14 @@ class Bend:
 
 #%%
 class Drift(Element):
-    """ drift space
-    """
+    """Drift space."""
 
     def __init__(self, length, name="Drift"):
         super().__init__(curve=0, length=length, name=name)
 
 
 class MQuad(Element):
-    """ magnetic quadrupole
-    """
+    """Magnetic quadrupole."""
 
     def __init__(self, length, grad, name="MQuad"):
         super().__init__(curve=0, length=length, name=name)
@@ -206,9 +200,7 @@ class MQuad(Element):
 
 
 class MDipole(Element, Bend):
-    """ bending magnetic dipole (horizontally bending);
-    define _B_field as a tuple
-    """
+    """(Horizontally) Bending magnetic dipole."""
 
     def __init__(self, length, reference_particle, R=None, B_field=None, name="MDipole"):
         if all([e is None for e in [B_field, R]]):
@@ -266,8 +258,7 @@ class Solenoid(Element):
 
 
 class MSext(Element):
-    """ magnetic sextupole
-    """
+    """Magnetic sextupole."""
 
     def __init__(self, length, grad, name="MSext"):
         super().__init__(curve=0, length=length, name=name)
@@ -282,8 +273,7 @@ class MSext(Element):
         return Field(fld, self).tilt()
 
 class Wien(Element, Bend):
-    """ wien filter
-    """
+    """Wien filter."""
 
     def __init__(self, length, h_gap, reference_particle, E_field=None, B_field=None, R=None, name="Wien"):
 

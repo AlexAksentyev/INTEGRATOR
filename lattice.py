@@ -228,4 +228,4 @@ if __name__ == '__main__':
     trkr = Tracker()
     trkr.track(bunch, section, 10)
     
-    bunch.plot()
+    bunch.plot('x','s')

@@ -19,9 +19,9 @@ def index(array, *names):
     return [np.arange(IMAP[name], len(array), VAR_NUM) for name in names]
 
 class RHS:
-    """ Representation of the differential equation's right hand side;
-        The RHS' for different elements are determined by the elements'
-        field distributions. Those are called at run time.
+    """Representation of the differential equation's right hand side;
+    The RHS' for different elements are determined by the elements'
+    field distributions. Those are called at run time.
     """
 
     def __init__(self, ensemble, RF):

@@ -21,13 +21,11 @@ reload(rhs)
 TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut'])
 
 class StopTracking(Exception):
-    """ raise upon ValueError in RHS() to stop Tracker from tracking
-    """
+    """ Raise upon ValueError in RHS() to stop Tracker from tracking."""
     pass
 
 class Tracker:
-    """ Handles tracking of ensembles thru lattices
-    """
+    """Handles tracking of ensembles thru lattices."""
     def __init__(self):
         self.controls = None
         self._last_pnt = -1 # marker of the state vector upon exiting an element
@@ -39,28 +37,27 @@ class Tracker:
         self.file_handle = None # for data backup
 
     def set_controls(self, fwd=True, inner=True, breaks=101, ncut=0):
-        """ Choose whether to track a lattice forward/backward (fwd),
-            log state variable values inside elements (inner),
-            at how many nodes to compute state vars inside an element (breaks),
-            data for how many turns to keep in RAM/how often to do file backup (ncut).
-            If ncut == 0, keep all data in RAM; in this case I still back up every
-            10 % of the total number of turns (see Tracker::track)
+        """Choose whether to track a lattice forward/backward (fwd),
+        log state variable values inside elements (inner),
+        at how many nodes to compute state vars inside an element (breaks),
+        data for how many turns to keep in RAM/how often to do file backup (ncut).
+        If ncut == 0, keep all data in RAM; in this case I still back up every
+        10 % of the total number of turns (see Tracker::track).
         """
         self.controls = TrackerControls(fwd, inner, breaks, ncut)
 
     def _create_logs(self, nturns):
-        """ returns first index from which to fill log
-        """
+        """Returns first index from which to fill log."""
         ## p-log data type
         names = ['START']+[e.name for e in self.lattice]
         max_len_name = len(names[np.argmax(names)])
         el_field_type = StringCol(max_len_name) #otherwise problems writing into hdf5 file
-        vartype = [('Turn', int), ('Element', el_field_type), ('Point', int)]
+        vartype = [('Turn', int), ('Element', el_field_type), ('EID', int) , ('Point', int)]
         vartype += list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
 
         ## the number of records in a p-log
         brks = self.controls.breaks
-        el_num = self.lattice.el_count
+        el_num = self.lattice.count
         inner = self.controls.inner
         ncut = self.controls.ncut
         if inner:
@@ -84,9 +81,9 @@ class Tracker:
             setattr(self.ensemble.log, 'P'+str(pid), np.recarray(nrow, dtype=vartype))
             self.ensemble[pid].log.fill(np.nan) # in case we later get a NaN error in tracking,
                                        # pre-fill the log with nans
-                                       # Turn,Point fill fill with a big random integer
+                                       # Turn, EID, Point fill fill with a big random integer
             ic = list(ic.values())
-            self.ensemble[pid].log[0] = 0, names[0], self._last_pnt, *ic # saving injection values
+            self.ensemble[pid].log[0] = 0, names[0], 0, self._last_pnt, *ic # saving injection values
                                                 # (will be overwritten if inner is true)
 
         return ind
@@ -108,8 +105,8 @@ class Tracker:
     def _run_turn(self, current_turn, log_index, state):
         brks = self.controls.breaks
 
-        el_num = self.lattice.el_count
-        el_seq = self.lattice.sequence
+        el_num = self.lattice.count
+        el_seq = self.lattice._sequence
 
         ensemble = self.ensemble
         n_ics = self.rhs.n_ics
@@ -142,10 +139,10 @@ class Tracker:
                     for k in range(brks-1):
                         valsk = vals[k].reshape(n_ics, n_var)
                         for pid in ensemble.ics.keys():
-                            ensemble[pid].log[log_index] = current_turn, element.name, k, *valsk[pid]
+                            ensemble[pid].log[log_index] = current_turn, element.name, i, k, *valsk[pid]
                         log_index += 1
                 for pid in ensemble.ics.keys():
-                    ensemble[pid].log[log_index] = current_turn, element.name, self._last_pnt, *state[pid]
+                    ensemble[pid].log[log_index] = current_turn, element.name, i, self._last_pnt, *state[pid]
                 log_index += 1
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
@@ -164,8 +161,7 @@ class Tracker:
             tbl.flush()
 
     def track(self, ensemble, lattice, n_turns):
-        """ Track ensemble through lattice for n_turns.
-        """
+        """Track ensemble through lattice for n_turns."""
 
         self.ensemble = ensemble
         self.lattice = lattice
@@ -175,8 +171,8 @@ class Tracker:
             print('Setting default controls.')
 
         ## check if there's more than one RF element
-        if lattice.RF_count > 1:
-            print('\t\t More than one ({}) RF;\n aborting.'.format(lattice.RF_count))
+        if lattice.RF.count > 1:
+            print('\t\t More than one ({}) RF;\n aborting.'.format(lattice.RF.count))
             return
 
         log_ind = self._create_logs(n_turns)
