@@ -10,23 +10,24 @@ import copy
 import re
 import collections as cln
 from element import ERF
+from utilities import MutableNamedTuple
 
-RF = cln.namedtuple('RF', ['index','count'])
+class RF(MutableNamedTuple):
+    __slots__ = ['index', 'count']
 
 class Lattice:
     def __init__(self, element_sequence, name, segment_map = None):
         sequence = copy.deepcopy(element_sequence)
         ## ensuring the lattice doesn't have more than one RF element
-        self.RF_index = None
-        self.RF_count = 0
+        self.RF = RF(None, 0)
         self.length = 0
         remove_indices = []
         for ind, element in enumerate(sequence):
             if isinstance(element, ERF):
                 print('Found RF at {}'.format(ind))
-                if self.RF_count < 1:
-                    self.RF_count += 1
-                    self.RF_index = ind
+                if self.RF.count < 1:
+                    self.RF.count += 1
+                    self.RF.index = ind
                 else:
                     print('Second RF element encountered; not adding to lattice')
                     remove_indices.append(ind)
@@ -45,21 +46,19 @@ class Lattice:
             self.segment_map = segment_map
 
     def __add__(self, other):
-        """ Unifished
-        """
         if not isinstance(other, Lattice):
             print('Cannot add a non-lattice object')
             return # but think about adding an element sequence
 
         # remove RF's of both
-        rf0 = self.pop(self.RF_index)
+        rf0 = self.pop(self.RF.index)
         if rf0 is not None:
-            self.RF_count -= 1
-            self.RF_index = None
-        rf1 = other.pop(other.RF_index)
+            self.RF.count -= 1
+            self.RF.index = None
+        rf1 = other.pop(other.RF.index)
         if rf1 is not None:
-            other.RF_count -= 1
-            other.RF_index = None
+            other.RF.count -= 1
+            other.RF.index = None
         print('New lattice w/o RF elements.')
         print('Achtung! the segments {}, {} were updated.'.format(self.name, other.name))
 
@@ -98,27 +97,25 @@ class Lattice:
             raise StopIteration
 
     def insertRF(self, position, length, ensemble, **ERF_pars):
-        """ define insert, use insert here
-        """
-        if self.RF_index is not None and self.RF_index != position:
+        if self.RF.index is not None and self.RF.index != position:
             print("""Trying to add a second RF element;
-                  current RF position is {}""".format(self.RF_index))
+                  current RF position is {}""".format(self.RF.index))
             return
-        if position == self.RF_index:
+        if position == self.RF.index:
             print('Replacing RF {}'.format(self.pop(position)))
-            self.RF_count -= 1
+            self.RF.count -= 1
 
         # creating an RF element
         full_acc_len = self.length + length
         rf = ERF(length, ensemble, full_acc_len, **ERF_pars)
 
         self.insert(position, rf)
-        self.RF_index = position
-        self.RF_count += 1
+        self.RF.index = position
+        self.RF.count += 1
 
     def getRF(self):
         try:
-            return self[self.RF_index]
+            return self[self.RF.index]
         except TypeError:
             return None
 
@@ -159,8 +156,8 @@ class Lattice:
             element = self._sequence.pop(ind)
             self.count -= 1
             if isinstance(element, ERF):
-                self.RF_count -= 1
-                self.RF_index = None
+                self.RF.count -= 1
+                self.RF.index = None
             # updating segment map
             self._update_segment_map(ind, element, 'subtract')
         except IndexError:
@@ -229,4 +226,6 @@ if __name__ == '__main__':
 
     from tracker import Tracker
     trkr = Tracker()
-#    trkr.track(bunch, section, 10)
+    trkr.track(bunch, section, 10)
+    
+    bunch.plot()
