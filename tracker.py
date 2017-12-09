@@ -187,6 +187,8 @@ class Tracker:
             ncut = np.floor(n_turns/10) # ncut is used below to decide whether to write data
                         # if we keep all data in RAM, still backup every 10% of turns
                         # 10% is arbitrary
+            if ncut < 101: # unless it's less than  100,
+                ncut = 100 # if so, backup every 100 turns
             cut = False
 
         latname = lattice.name
