@@ -31,14 +31,9 @@ class RHS:
         n_var = ensemble.n_var
         assert n_var == VAR_NUM, "Incorrect number of state variables ({}/{})".format(n_var, VAR_NUM)
 
-        from element import ERF
-        if not isinstance(RF, ERF): # I will pass None in Ensemble::track, but
-                                    # in case I change my mind later,
-                                    # this won't have to accomodate changes
+        RF_freq = getattr(RF, 'freq', 0)
+        if RF_freq == 0:
             print('\t\t System w/o RF')
-            RF_freq = 0
-        else:
-            RF_freq = RF.freq
 
         self.w_freq = 2*np.pi*RF_freq
 
