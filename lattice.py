@@ -222,10 +222,11 @@ if __name__ == '__main__':
     segment_0 = Lattice(SSb1H1, 'SSb1H1')
     segment_1 = Lattice(SSb1H2, 'SSb1H2')
     section = segment_0 + segment_1
-    section.insertRF(27, 0, bunch, E_field=15e7)
+    section.insertRF(section.segment_map['SSb1H2'][0], 0, bunch, E_field=15e7)
 
     from tracker import Tracker
     trkr = Tracker()
-    trkr.track(bunch, section, 10)
-    
+    trkr.set_controls(inner=False,breaks=3)
+    trkr.track(bunch, section, 100)
+
     bunch.plot('x','s')

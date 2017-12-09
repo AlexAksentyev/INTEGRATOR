@@ -166,7 +166,7 @@ class Tracker:
         self.ensemble = ensemble
         self.lattice = lattice
         ## check for controls; if they haven't been set, use defaults
-        if getattr(self, 'Controls', None) is None:
+        if getattr(self, 'controls', None) is None:
             self.set_controls()
             print('Setting default controls.')
 

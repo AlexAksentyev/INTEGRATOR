@@ -373,8 +373,7 @@ class Wien(Element, Bend):
 
 
 class ERF(Element):
-    """ RF element
-    """
+    """RF element."""
 
     def __init__(self, length, ensemble, acc_length, E_field=15e5, phase=1.5*np.pi, H_number=50, name="RF"):
         super().__init__(curve=0, length=length, name=name)
