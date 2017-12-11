@@ -20,6 +20,7 @@ import particle as pcl
 import rhs
 
 from utilities import Bundle
+from particle_log import PLog
 
 #%%
 
@@ -81,7 +82,7 @@ class Ensemble:
     def __init__(self, state_list, particle=pcl.Particle()):
         self.particle = particle
 
-        self.log = Bundle()
+        self.log = None # Bundle()
 
         self.n_ics = len(state_list)
         self.n_var = len(state_list[0])
@@ -112,6 +113,14 @@ class Ensemble:
             ens.log = log
 
         return ens
+    
+    def __deepcopy__(self, memo):
+        result = copy.deepcopy(self) ## PLog keeps a reference to host ensemble, 
+                                     ## hence when deepcopying we want that reference 
+                                     ## to update to the current ensemble copy
+        if isinstance(self.log, PLog):
+            self.log.host = self
+        return result
 
     def __bundle_up(self, pid):
         log = getattr(self.log, 'P'+str(pid), None)
