@@ -6,6 +6,7 @@ Created on Mon Dec 11 09:01:42 2017
 @author: alexa
 """
 import numpy as np
+import numpy.ma as ma
 from tables import StringCol
 import rhs
 import copy
@@ -25,9 +26,13 @@ class PLog(np.recarray):
         max_len_name = 10
         el_field_type = StringCol(max_len_name) #otherwise problems writing into hdf5 file
         metadata_type = [('Turn', int), ('Element', el_field_type), 
-                   ('EID', int) , ('Point', int)]
+                   ('EID', int), ('Point', int)]
         variable_type = list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
-        record_type = metadata_type + variable_type
+        record_type = metadata_type + [('PID', int)] + variable_type
+                    ## PID field is weird like this to enable automatic 
+                    ## pid setting in setitem (if it were metadata, i'd have to supply it)
+                    ## i could actually do without it, now that i know that subsetting
+                    ## a recarray makes it 1D, and I have to manually reshape it.
         
         n_ics = len(ics_dict)
         
@@ -66,7 +71,7 @@ class PLog(np.recarray):
         result = np.empty(self.n_ics, self.dtype)
         
         for ind, vec in enumerate(vector):
-            result[ind] = stamp + tuple(vec)
+            result[ind] = stamp + (ind,) + tuple(vec)
         
         super(PLog, self).__setitem__(i, result)
         
