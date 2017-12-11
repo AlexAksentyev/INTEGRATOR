@@ -6,10 +6,8 @@ Created on Mon Dec 11 09:01:42 2017
 @author: alexa
 """
 import numpy as np
-import numpy.ma as ma
 from tables import StringCol
 import rhs
-import copy
     
 from utilities import Bundle
 
