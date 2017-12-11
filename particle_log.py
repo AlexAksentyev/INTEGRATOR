@@ -37,14 +37,7 @@ class PLog(np.recarray):
         
         ics = np.array(ics).flatten()
             
-#        obj[0] = ((0, 'START', 0, obj._last_pnt_marker), ics)
-        
-        
-        for pid, item in enumerate(ics_dict.items()):
-            key, value = item
-            ic = list(value.values())
-            obj[0][pid] = 0, 'START', 0, obj._last_pnt_marker, *ic # saving injection values
-                                                # (will be overwritten if inner is true)
+        obj[0] = ((0, 'START', 0, obj._last_pnt_marker), ics)
         
         return obj
 
@@ -55,23 +48,22 @@ class PLog(np.recarray):
         self._last_pnt_marker = getattr(obj, '_last_pnt_marker', None)
         self.n_ics = getattr(obj, 'n_ics', None)
         
-    def fill(self, i, stamp, vector):
+    def __setitem__(self, i, stamp_vector):
         """Scipy integrator returns a flat array of state vector values
         [x_i^0, y_i^0, ..., Sz_i^0, x_i^1, y_i^1, ...], where the superscript
         denotes the particle number.
         We want to append each particle's state variable vector with some 
         metadata, and turn the resulting vector into a tuple.
         """
+        stamp, vector = stamp_vector
         vector = vector.reshape(self.n_ics, -1)
         
         result = np.empty(self.n_ics, self.dtype)
         
         for ind, vec in enumerate(vector):
             result[ind] = stamp + tuple(vec)
-            
-#        result = result.flatten()
         
-        self[i] = result
+        super(PLog, self).__setitem__(i, result)
     
 #%%
     
@@ -91,4 +83,4 @@ if __name__ == '__main__':
     
     for i in range(1,NRec):
         metadata = (i, 'RF',0,-1)
-        log.fill(i, metadata, statevec*i)
+        log[i] = (metadata, statevec*i)
