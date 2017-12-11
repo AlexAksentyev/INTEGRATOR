@@ -167,14 +167,14 @@ if __name__ is '__main__':
     
     #%%
     import pandas as pds
-    PLT.figure()
+    plt.figure()
     df = pds.DataFrame(bunch[0].log)
     df5 = pds.DataFrame(bunch[5].log)
     Sx = df.loc[df.Element==b'RF']['Sx']
     trn = df.loc[df.Element==b'RF']['Turn']
     Sx5 = df5.loc[df5.Element==b'RF']['Sx']
-    PLT.plot(trn,Sx,label='lab')
-    PLT.plot(trn,Sx-Sx5,label='ref')
-    PLT.legend()
-    PLT.title('Turn by turn, after RF')
+    plt.plot(trn,Sx,label='lab')
+    plt.plot(trn,Sx-Sx5,label='ref')
+    plt.legend()
+    plt.title('Turn by turn, after RF')
 

@@ -12,6 +12,9 @@
     x = NP.reshape(x,n_tilt*3*n_state) # for flat array
     x = x.reshape((3,-1)) # for array [[fx00,fx01,..., fxij],[fyij],[fsij]]
     # i -- tilt matrix, j -- state vector index
+    
+TODO:
+    * think about using slots in elements, tilt, field
 """
 
 import pandas as pds

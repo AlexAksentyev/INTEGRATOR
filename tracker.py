@@ -81,7 +81,7 @@ class Tracker:
             setattr(self.ensemble.log, 'P'+str(pid), np.recarray(nrow, dtype=vartype))
             self.ensemble[pid].log.fill(np.nan) # in case we later get a NaN error in tracking,
                                        # pre-fill the log with nans
-                                       # Turn, EID, Point fill fill with a big random integer
+                                       # Turn, EID, Point fill with a big random integer
             ic = list(ic.values())
             self.ensemble[pid].log[0] = 0, names[0], 0, self._last_pnt, *ic # saving injection values
                                                 # (will be overwritten if inner is true)
@@ -247,7 +247,8 @@ class Tracker:
 if __name__ == '__main__':
     from ensemble import Ensemble
     from particle import Particle
-    from element import MQuad, Drift, Lattice
+    from element import MQuad, Drift
+    from lattice import Lattice
     import copy
 
 #    from BNL import BDA
