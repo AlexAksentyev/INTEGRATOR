@@ -143,6 +143,10 @@ class Element:
         return Field(self.__B_field, self).vectorize(arg).tilt()
 
     def front_kick(self, state):
+        """If I want not to reshape the state vector before writing to
+        PLog, all I need to do is change state[:,IMAP['dK']] = ....
+        to  i_dK = index('dK'); state[i_dK] = ...
+        """
         pass # do nothing
 
     def rear_kick(self, state):
