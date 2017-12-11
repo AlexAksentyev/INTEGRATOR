@@ -8,6 +8,11 @@ Created on Mon Dec 11 09:01:42 2017
 import numpy as np
 from tables import StringCol
 import rhs
+import copy
+    
+from utilities import Bundle
+
+#%%
 
 
 class PLog(np.recarray):
@@ -64,6 +69,19 @@ class PLog(np.recarray):
             result[ind] = stamp + tuple(vec)
         
         super(PLog, self).__setitem__(i, result)
+        
+        
+    def turn_to_ensemble_log(self):
+        """For compatibility with earlier code; specifically --- Ensemble.plot()
+        """        
+        log = Bundle()
+        
+        particle_num = len(self[0])
+        
+        for pid in range(particle_num):
+            setattr(log, 'P'+str(pid), self[:,pid])
+            
+        return log
     
 #%%
     
