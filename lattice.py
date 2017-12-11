@@ -227,6 +227,6 @@ if __name__ == '__main__':
     from tracker import Tracker
     trkr = Tracker()
     trkr.set_controls(inner=False,breaks=3)
-    trkr.track(bunch, section, 100)
+    bunch.log = trkr.track(bunch, section, 10)
 
-    bunch.plot('x','s')
+    bunch.plot('Sx','s')

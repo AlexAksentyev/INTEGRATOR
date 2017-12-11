@@ -80,7 +80,7 @@ class Tracker:
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
 
-        self.log = PLog(self.ensemble.ics, nrow)
+        self.log = PLog(self.ensemble, nrow)
 
         return ind
 
@@ -270,7 +270,7 @@ if __name__ == '__main__':
 
     #%%
     start = clock()
-    log = t.track(E_tilted, LAT_tilted, 100)
+    log = t.track(E_tilted, LAT_tilted, 10)
     print('time passed {:04.2f}'.format(clock()-start))
     #%%
     E_tilted.plot('Sx', 'x')
