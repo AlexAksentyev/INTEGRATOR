@@ -144,14 +144,14 @@ class Tracker:
 
         return state, log_index
 
-    def _write_log(self, from_, to_):
-        old_ind, ind = from_, to_
-        # write data to file
-        pids = self.log[0]['PID']
-        for pid in pids:
-            tbl = getattr(self.file_handle.root.logs, 'P'+str(pid))
-            tbl.append(self.log[old_ind:ind, pid])
-            tbl.flush()
+#    def _write_log(self, from_, to_):
+#        old_ind, ind = from_, to_
+#        # write data to file
+#        pids = self.log[0]['PID']
+#        for pid in pids:
+#            tbl = getattr(self.file_handle.root.logs, 'P'+str(pid))
+#            tbl.append(self.log[old_ind:ind, pid])
+#            tbl.flush()
 
     def track(self, ensemble, lattice, n_turns):
         """Track ensemble through lattice for n_turns.
@@ -219,7 +219,7 @@ class Tracker:
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))
                     start = clock()
-                    self._write_log(old_ind, log_ind)
+                    self.log.write_file(file_handle, old_ind, log_ind)
                     if cut: log_ind = 0 # if cut, logs can only keep data for one turn => overwrite
                                     # otherwise, keep writing log
                     old_ind = log_ind
@@ -232,7 +232,7 @@ class Tracker:
             ## write any remainig data
             print('writing remaining ({}) data ...'.format(log_ind-old_ind))
             start = clock()
-            self._write_log(old_ind, log_ind)
+            self.log.write_file(file_handle, old_ind, log_ind)
             print('writing took: {:04.2f} secs'.format(clock()-start))
 
         print('Complete 100 %')
