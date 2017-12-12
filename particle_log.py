@@ -8,6 +8,7 @@ Created on Mon Dec 11 09:01:42 2017
 import numpy as np
 from tables import StringCol
 import rhs
+import copy
     
 from utilities import Bundle
 
@@ -41,7 +42,8 @@ class PLog(np.recarray):
         super(PLog, obj).fill(np.nan)
         obj._last_pnt_marker = -1
         obj.n_ics = n_ics
-        obj.host = ensemble
+        obj._host = ensemble
+        ensemble.log = obj
         
         ics = list()
         for ind, ic in enumerate(ics_dict.values()):
@@ -59,7 +61,14 @@ class PLog(np.recarray):
         
         self._last_pnt_marker = getattr(obj, '_last_pnt_marker', None)
         self.n_ics = getattr(obj, 'n_ics', None)
-        self.host = getattr(obj, 'host', None)
+        self._host = getattr(obj, '_host', None)
+        
+    @classmethod 
+    def from_file(cls, filename, directory='./data/'):
+        pass
+        
+    def update_host(self, new_host):
+        self._host = new_host
         
     def __setitem__(self, i, stamp_vector):
         """Scipy integrator returns a flat array of state vector values
@@ -80,16 +89,103 @@ class PLog(np.recarray):
         
         
     def turn_to_ensemble_log(self):
-        """For compatibility with earlier code; specifically --- Ensemble.plot()
+        """For compatibility with earlier code; specifically --- Ensemble.plot().
+        SHOULD GET RID OF RELIENCE ON THIS.
         """        
         log = Bundle()
         
         particle_num = len(self[0])
         
         for pid in range(particle_num):
-            setattr(log, 'P'+str(pid), self[:,pid])
+            setattr(log, 'P'+str(pid), self[:, pid])
             
         return log
+    
+    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot=True, **kwargs):
+
+        ## reading how to plot data: diff variable with reference value, or otherwise
+        import re
+        x_flags = re.findall('-.', Xlab)
+        y_flags = re.findall('-.', Ylab)
+        Xlab = re.subn('-.* ', '', Xlab)[0]
+        Ylab = re.subn('-.* ', '', Ylab)[0]
+
+        ## reading the reference data from host ensemble
+        try:
+            p_ref = self._host.get_reference()
+        except AttributeError:
+            self._host.set_reference()
+            p_ref = self._host.get_reference()
+            print('Reference not set; using default (pid: {})'.format(p_ref.pid))
+
+
+        ## selecting only the required pids for plot
+        names = self._host.list_names()
+        names.insert(0, names.pop(p_ref.pid))
+        if pids != 'all':
+            pids = set(pids)
+            pids.add(p_ref.pid)
+            names = set(names)
+            not_found = names - pids
+            names = names - not_found
+            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
+
+        ## creating plot
+        from matplotlib import pyplot as PLT
+
+        if new_plot: PLT.figure()
+
+        if mark_special is not None:
+            elems = [re.sub('_.*', '', str(e)).replace("b'", '') for e in self[:, 0]['Element']]
+
+            def cm(elist):
+                d = lambda e: 'red' if e == mark_special else 'black'
+                return [d(e) for e in elist]
+
+            plot = lambda X, Y, lab, **kwargs: PLT.scatter(X, Y, label=mark_special, c=cm(elems), **kwargs)
+            legend = lambda lab: PLT.legend([mark_special])
+        else:
+            plot = lambda X, Y, lab, **kwargs: PLT.plot(X, Y, label=lab, **kwargs)
+            legend = lambda lab: PLT.legend(lab)
+
+        nc = len(self[:, 0][Ylab])
+        dX = np.empty([nc])
+        dY = np.empty([nc])
+
+        not_nan = [not e for e in np.isnan(p_ref.log['Turn'])]
+
+        for i in names:
+            dY = copy.deepcopy(self[:, i][Ylab][not_nan])
+            dX = copy.deepcopy(self[:, i][Xlab][not_nan])
+            if '-D' in x_flags: dX -= p_ref.log[Xlab][not_nan]
+            if '-D' in y_flags: dY -= p_ref.log[Ylab][not_nan]
+            plot(dX, dY, i, **kwargs)
+        legend(names)
+
+        ## creating pretty labels
+        sub_map = {'Theta': '\Theta', 'dK': '\Delta K'}
+
+        def sub(*labels):
+            labels = list(labels) #otherwise labels is a tuple, so can't do assignment
+            for i in range(len(labels)):
+                for k, v in sub_map.items(): labels[i] = labels[i].replace(k, v)
+            return labels
+
+        Xlab, Ylab = sub(Xlab, Ylab)
+        if '-D' in x_flags:
+            Xlab = '${0} - {0}_0$'.format(Xlab)
+        else:
+            Xlab = '${0}$'.format(Xlab)
+        if '-D' in y_flags:
+            Ylab = '${0} - {0}_0$'.format(Ylab)
+        else:
+            Ylab = '${0}$'.format(Ylab)
+
+        PLT.xlabel(Xlab)
+        PLT.ylabel(Ylab)
+        PLT.grid()
+
+        return PLT.gcf()
     
 #%%
     
@@ -110,3 +206,4 @@ if __name__ == '__main__':
     for i in range(1,NRec):
         metadata = (i, 'RF',0,-1)
         log[i] = (metadata, statevec*i)
+        
