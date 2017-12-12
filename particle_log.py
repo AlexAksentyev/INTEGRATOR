@@ -10,9 +10,80 @@ import tables as tbl
 import rhs
 import copy
 import particle as pcl
-#from ensemble import Ensemble
 
 from utilities import Bundle
+
+#%%
+class StateList:
+    def __init__(self, **kwargs):
+
+        keys = kwargs.keys()
+
+        # create defined variables
+        ntot = 1
+        arg_dict = dict()
+        for key, val in kwargs.items():
+            try:
+                lb, ub, num = val
+                val = np.linspace(lb, ub, num)
+            except TypeError: # if key = value, set value for all pcls
+                num = 1
+            ntot *= num
+            arg_dict.update({rhs.IMAP[key]: val})
+
+        # make mesh
+        mesh = dict(zip(keys, np.meshgrid(*list(arg_dict.values()))))
+
+        vartype = list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
+        self.state_list = np.zeros(ntot+1, dtype=vartype) # +1 for genuine refrence particle
+
+        #write data
+        for key, value in mesh.items():
+            self.state_list[key] = np.array([0]+value.reshape(ntot).tolist())
+
+        self.state_list[0]['Sz'] = 1
+
+        #here i should remove any duplicate reference particles
+#        self.state_list = np.unique(self.state_list) # this works but messes up the order
+
+        # convert to list of dicts for use with ensemble
+        self.state_list = [dict(zip(self.state_list.dtype.names, x)) for x in self.state_list]
+        
+    @classmethod
+    def from_list(cls, state_list):
+        if not isinstance(state_list, list):
+            print('Need a list!')
+            return
+        if len(state_list[0]) != rhs.VAR_NUM:
+            print('Wrong state vector length')
+            return
+        if isinstance(state_list[0], list):
+            state_list = [dict(zip(rhs.VAR_NAME, x)) for x in state_list]
+            print('Converted to a list of dicts.')
+        
+        result = cls()
+        result.state_list = state_list
+        
+        return result
+
+    def __len__(self):
+        return len(self.state_list)
+
+    def __getitem__(self, pid):
+        return self.state_list[pid]
+
+    def __repr__(self):
+        from pandas import DataFrame
+        return str(DataFrame(self.state_list))
+
+    def as_list(self):
+        states = list()
+        for d in self.state_list:
+            states.append(list(d.values()))
+        return states
+
+#%%
+
 
 #%%
 
@@ -33,23 +104,28 @@ class PLog(np.recarray):
                 ## i could actually do without it, now that i know that subsetting
                 ## a recarray makes it 1D, and I have to manually reshape it.
 
-    _state_var_1st_ind = len(metadata_type) # len(metadata) + len(PID) - 1
+    _state_var_1st_ind = len(metadata_type) + 1 # len(metadata) + len(PID) - 1 + 1
     last_pnt_marker = -1 # marker of the state vector upon exiting an element
 
-    def __new__(cls, ensemble, n_records):
+    def __new__(cls, ini_states, particle, n_records):
+        
+        if not len(ini_states[0]) == rhs.VAR_NUM:
+            print('Wrong number of state variables')
+            return
+        if not isinstance(ini_states[0], dict):
+            ini_states = [dict(zip(rhs.VAR_NAME, state)) for state in ini_states]
+        
 
-        ics_dict = ensemble.ics
-
-        n_ics = len(ics_dict)
+        n_ics = len(ini_states)
 
         obj = np.recarray((n_records, n_ics), dtype=cls.record_type, order='C').view(cls)
         super(PLog, obj).fill(np.nan)
         obj.n_ics = n_ics
-        obj._host = ensemble
-        ensemble.log = obj
+        obj.ics = ini_states
+        obj.particle = particle
 
         ics = list()
-        for ic in ics_dict.values():
+        for ic in ini_states:
             ics.append(list(ic.values()))
 
         ics = np.array(ics).flatten()
@@ -62,13 +138,9 @@ class PLog(np.recarray):
         if obj is None:
             return
 
+        self.particle = getattr(obj, 'particle', None)
         self.n_ics = getattr(obj, 'n_ics', None)
-        self._host = getattr(obj, '_host', None)
-
-    def update_host(self, new_host):
-        """This is used to point to the new host when deepcopying an ensemble.
-        """
-        self._host = new_host
+        self.ics = getattr(obj, 'ics', None)
 
     @classmethod
     def from_file(cls, filename, directory='./data/'):
@@ -97,20 +169,16 @@ class PLog(np.recarray):
             ics = list() # ics and particle data are required to build _host
             for ind, log in enumerate(log_tables):
                 Log[:, ind] = log.read()
-                ic = list(Log[0, ind])[ind_x:]
-                ics.append(dict(zip(rhs.VAR_NAME, ic)))
+                ics.append(list(Log[0, ind])[ind_x:])
                 
             ## particle data
-            particle = file_handle.root.Particle[0]
+            particle = file_handle.root.particle[0]
             particle = pcl.Particle(particle['Mass0'], particle['KinEn0'], particle['G'])
         
-        ## building _host
-#        _host = Ensemble(ics, particle)
         Log = Log.view(cls)
-        
-        ## cross-referencing
-#        Log._host = _host
-#        Log._host.log = Log
+        Log.particle = particle
+        Log.ics = StateList.from_list(ics)
+        Log.n_ics = len(ics)
 
         return Log
     
@@ -138,20 +206,20 @@ class PLog(np.recarray):
             result[ind] = stamp + (ind,) + tuple(vec)
 
         super(PLog, self).__setitem__(i, result)
+        
+    def __bundle_up(self, pid):
+        log = self[:, pid]
+        current_state = log[len(log)-1]
+        return Bundle(pid=pid,
+                      ics=self.ics[pid],
+                      current_state=current_state,
+                      log=log)
 
-#
-#    def turn_to_ensemble_log(self):
-#        """For compatibility with earlier code; specifically --- Ensemble.plot().
-#        SHOULD GET RID OF RELIENCE ON THIS.
-#        """
-#        log = Bundle()
-#
-#        particle_num = len(self[0])
-#
-#        for pid in range(particle_num):
-#            setattr(log, 'P'+str(pid), self[:, pid])
-#
-#        return log
+    def set_reference(self, pid=0):
+        self._reference_particle = self.__bundle_up(pid)
+        
+    def get_reference(self):
+        return self._reference_particle
 
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot=True, **kwargs):
 
@@ -164,12 +232,12 @@ class PLog(np.recarray):
 
         ## reading the reference data from host ensemble
         try:
-            p_ref = self._host.get_reference()
+            p_ref = self.get_reference()
             if p_ref.log is None: 
                 raise ValueError
         except (AttributeError, ValueError):
-            self._host.set_reference()    
-            p_ref = self._host.get_reference()
+            self.set_reference()    
+            p_ref = self.get_reference()
             print('Reference not set; using default (pid: {})'.format(p_ref.pid))
             
         ## subsetting the p_ref log in accordance w/ log
@@ -177,8 +245,8 @@ class PLog(np.recarray):
 
 
         ## selecting only the required pids for plot
-        names = self._host.list_names()
-        names.insert(0, names.pop(p_ref.pid))
+        names = list(range(self.n_ics))
+        names.insert(0, names.pop(p_ref.pid)) # move reference particle pid to front
         if pids != 'all':
             pids = set(pids)
             pids.add(p_ref.pid)
@@ -253,5 +321,5 @@ if __name__ == '__main__':
 
     NRec = 5
 
-    bunch = Ensemble.populate(Particle(), Sz=1, dK=(0, 1e-4, 1), x=(-1e-3, 1e-3, 1))
-    log = PLog(bunch, NRec)
+    state_list = StateList(Sz=1, dK=(0, 1e-4, 1), x=(-1e-3, 1e-3, 1))
+    log = PLog.from_file('test')
