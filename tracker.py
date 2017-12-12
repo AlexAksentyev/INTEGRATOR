@@ -109,10 +109,10 @@ class Tracker:
         n_ics = self.rhs.n_ics
         n_var = rhs.VAR_NUM
 
-        for i in range(el_num): # element loop
+        for eid in range(el_num): # element loop
             # pick element
-            if self.controls.fwd: element = self.lattice[i]
-            else: element = self.lattice[len(el_num)-1-i]
+            if self.controls.fwd: element = self.lattice[eid]
+            else: element = self.lattice[len(el_num)-1-eid]
 
             # choose if integrate or otherwise advance the state vector
             rf_el = element.bool_skip
@@ -134,9 +134,9 @@ class Tracker:
                 element.rear_kick(state)
                 if not rf_el and self.controls.inner:
                     for k in range(brks-1):
-                        self.log[log_index] = ((current_turn, element.name, i, k), vals[k])
+                        self.log[log_index] = ((current_turn, element.name, eid, k), vals[k])
                         log_index += 1
-                self.log[log_index] = ((current_turn, element.name, i, PLog.last_pnt_marker), state.flatten())
+                self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker), state.flatten())
                 log_index += 1
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
