@@ -6,7 +6,6 @@ Created on Thu Dec  7 17:21:59 2017
 @author: alexa
 
 """
-from particle_log import PLog
 from collections import namedtuple
 from time import clock
 from importlib import reload
@@ -14,6 +13,8 @@ from tables import open_file
 
 import numpy as np
 from scipy.integrate import odeint
+
+from particle_log import PLog, StateList
 
 import rhs
 reload(rhs)
@@ -47,7 +48,7 @@ class Tracker:
         """
         self.controls = TrackerControls(fwd, inner, breaks, ncut)
 
-    def _create_logs(self, nturns):
+    def _create_log(self, particle, ics, nturns):
         """Returns the first index from which to fill the log.
         A filled log will have a number of nan values
         if the lattice contains an RF element with bool_skip = True
@@ -79,7 +80,7 @@ class Tracker:
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
 
-        self.log = PLog(self.ensemble, nrow)
+        self.log = PLog(ics, particle, nrow)
 
         return ind
 
@@ -87,7 +88,7 @@ class Tracker:
         ## setting up file
         self.file_handle = file_handle
         # write particle parameters (Mass0, KinEn0, G)
-        ppar = self.ensemble.particle.get_params()
+        ppar = self.log.particle.get_params()
         self.file_handle.create_table('/', 'particle', ppar)
         # separate group to write p-logs in
         self.file_handle.create_group('/', 'logs', 'particle logs')
@@ -144,21 +145,12 @@ class Tracker:
 
         return state, log_index
 
-#    def _write_log(self, from_, to_):
-#        old_ind, ind = from_, to_
-#        # write data to file
-#        pids = self.log[0]['PID']
-#        for pid in pids:
-#            tbl = getattr(self.file_handle.root.logs, 'P'+str(pid))
-#            tbl.append(self.log[old_ind:ind, pid])
-#            tbl.flush()
-
-    def track(self, ensemble, lattice, n_turns):
+    def track(self, particle, ics, lattice, n_turns):
         """Track ensemble through lattice for n_turns.
         Returns the particle log of type PLog.
         """
-
-        self.ensemble = ensemble
+#        self.particle = particle
+#        self.ics = ics
         self.lattice = lattice
         ## check for controls; if they haven't been set, use defaults
         if getattr(self, 'controls', None) is None:
@@ -170,7 +162,7 @@ class Tracker:
             print('\t\t More than one ({}) RF;\n aborting.'.format(lattice.RF.count))
             return
 
-        log_ind = self._create_logs(n_turns)
+        log_ind = self._create_log(particle, ics, n_turns)
 
         ncut = self.controls.ncut
         cut = True # reset log index after writing to file
@@ -187,11 +179,12 @@ class Tracker:
 
          # initial state vector
         ics = list()
-        for ic in ensemble.ics.values(): ics.append(list(ic.values()))
+        for ic in self.log.ics:
+            ics.append(list(ic.values()))
         state = np.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
 
         # create the RHS
-        self.rhs = rhs.RHS(ensemble, lattice.getRF()) # setting up the RHS
+        self.rhs = rhs.RHS(self.log.particle, self.log.n_ics, lattice.get_RF()) # setting up the RHS
 
         # opening hdf5 file to output data
         # write the used particle parameters (Mass0, KinEn0, G)
@@ -236,24 +229,22 @@ class Tracker:
             print('writing took: {:04.2f} secs'.format(clock()-start))
 
         print('Complete 100 %')
-        
+
         return self.log
 
 #%%
 
 if __name__ == '__main__':
-    from ensemble import Ensemble
     from particle import Particle
     from element import MQuad, Drift
     from lattice import Lattice
     import copy
 
-#    from BNL import BDA
     t = Tracker()
 
     #%%
-    E = Ensemble.populate(Particle(), x=(-5e-3, 5e-3, 3), dK=(0, 1e-4, 3), Sz=1)
-    E_tilted = copy.deepcopy(E)
+    ics = StateList(x=(-5e-3, 5e-3, 3), dK=(0, 1e-4, 3), Sz=1)
+    deuteron = Particle()
 
     mqf = MQuad(5e-2, 8.6, 'QF')
     mqd = MQuad(5e-2, -8.3, 'QD')
@@ -264,14 +255,14 @@ if __name__ == '__main__':
 
     LAT = Lattice(FODO, 'test')
     LAT_tilted = copy.deepcopy(LAT)
-    LAT.insertRF(0, 0, E, E_field=15e7)
-    LAT_tilted.insertRF(0, 0, E_tilted, E_field=15e7)
+    LAT.insert_RF(0, 0, deuteron, E_field=15e7)
+    LAT_tilted.insert_RF(0, 0, deuteron, E_field=15e7)
 
     LAT_tilted.tilt('s', 0, .003)
 
     #%%
     start = clock()
-    log = t.track(E_tilted, LAT_tilted, 10)
+    log = t.track(deuteron, ics, LAT_tilted, 10)
     print('time passed {:04.2f}'.format(clock()-start))
     #%%
-    E_tilted.plot('Sx', 'x')
+    log.plot('-D Sx', 'x')

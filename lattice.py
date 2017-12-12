@@ -97,7 +97,7 @@ class Lattice:
         else:
             raise StopIteration
 
-    def insertRF(self, position, length, ensemble, **ERF_pars):
+    def insert_RF(self, position, length, reference_particle, **ERF_pars):
         if self.RF.index is not None and self.RF.index != position:
             print("""Trying to add a second RF element;
                   current RF position is {}""".format(self.RF.index))
@@ -108,13 +108,13 @@ class Lattice:
 
         # creating an RF element
         full_acc_len = self.length + length
-        rf = ERF(length, ensemble, full_acc_len, **ERF_pars)
+        rf = ERF(length, reference_particle, full_acc_len, **ERF_pars)
 
         self.insert(position, rf)
         self.RF.index = position
         self.RF.count += 1
 
-    def getRF(self):
+    def get_RF(self):
         try:
             return self[self.RF.index]
         except TypeError:
@@ -174,16 +174,16 @@ class Lattice:
         return np.unique([re.sub('_.*', '', e) for e in names])
 
     def tilt(self, order='S', mean_angle=(0,), sigma=(0,), append=False):
-        n = len(order)
+        tilt_num = len(order)
         if not isinstance(mean_angle, cln.Sequence): mean_angle = (mean_angle,)
         if not isinstance(sigma, cln.Sequence): sigma = (sigma,)
         nmean = len(mean_angle)
         nsig = len(sigma)
 
         try:
-            angle = np.random.normal(mean_angle, sigma, size=(self.count, n))
+            angle = np.random.normal(mean_angle, sigma, size=(self.count, tilt_num))
         except ValueError:
-            print('Dimension mismatch: order {}, mean {}, sigma {}'.format(n, nmean, nsig))
+            print('Dimension mismatch: order {}, mean {}, sigma {}'.format(tilt_num, nmean, nsig))
             return
 
         nuids = len(np.unique([id(e.tilt_) for e in self]))
@@ -204,29 +204,30 @@ class Lattice:
             element.tilt(order, *angle[i], append=append)
             ids.add(eid)
             i += 1
-            
+
     def plot_segment(self, segment_name, log, Ylab='-D dK', Xlab='-D Theta', **kwargs):
         try:
             eids = self.segment_map[segment_name]
         except KeyError:
             print('Wrong segment name.')
             return
-        
-        ii = [eid in eids for eid in log[:,0]['EID']]
+
+        ii = [eid in eids for eid in log[:, 0]['EID']]
         segment_log = log[ii]
-        
+
         segment_log.plot(Ylab=Ylab, Xlab=Xlab, **kwargs)
-        
+
 #%%
 if __name__ == '__main__':
-    from ensemble import Ensemble
+    from particle_log import StateList
     from particle import Particle
     from BNL import SSb1H2, SSb1H1
 
-    bunch = Ensemble.populate(Particle(), Sz=1, x=(-1e-3, 1e-3, 3))
+    ini_states = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
+    deuteron = Particle()
 
-    RF0 = ERF(5, bunch, 5)
-    RF1 = ERF(5, bunch, 5)
+    RF0 = ERF(5, deuteron, 5)
+    RF1 = ERF(5, deuteron, 5)
 
     SSb1H2.insert(5, RF1)
     SSb1H2.insert(0, RF0)
@@ -234,11 +235,12 @@ if __name__ == '__main__':
     segment_0 = Lattice(SSb1H1, 'SSb1H1')
     segment_1 = Lattice(SSb1H2, 'SSb1H2')
     section = segment_0 + segment_1
-    section.insertRF(section.segment_map['SSb1H2'][0], 0, bunch, E_field=15e7)
+    section.insert_RF(section.segment_map['SSb1H2'][0], 0, deuteron, E_field=15e7)
 
     from tracker import Tracker
     trkr = Tracker()
-    trkr.set_controls(inner=False,breaks=3)
-    bunch.log = trkr.track(bunch, section, 10)
+    trkr.set_controls(inner=False, breaks=3)
+    log = trkr.track(deuteron, ini_states, section, 10)
 
-    bunch.plot('Sx', 's')
+    log.plot('Sx', 's')
+    section.plot_segment('SSb1H1', log)

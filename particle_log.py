@@ -48,7 +48,7 @@ class StateList:
 
         # convert to list of dicts for use with ensemble
         self.state_list = [dict(zip(self.state_list.dtype.names, x)) for x in self.state_list]
-        
+
     @classmethod
     def from_list(cls, state_list):
         if not isinstance(state_list, list):
@@ -60,10 +60,10 @@ class StateList:
         if isinstance(state_list[0], list):
             state_list = [dict(zip(rhs.VAR_NAME, x)) for x in state_list]
             print('Converted to a list of dicts.')
-        
+
         result = cls()
         result.state_list = state_list
-        
+
         return result
 
     def __len__(self):
@@ -108,13 +108,13 @@ class PLog(np.recarray):
     last_pnt_marker = -1 # marker of the state vector upon exiting an element
 
     def __new__(cls, ini_states, particle, n_records):
-        
+
         if not len(ini_states[0]) == rhs.VAR_NUM:
             print('Wrong number of state variables')
             return
         if not isinstance(ini_states[0], dict):
             ini_states = [dict(zip(rhs.VAR_NAME, state)) for state in ini_states]
-        
+
 
         n_ics = len(ini_states)
 
@@ -147,8 +147,8 @@ class PLog(np.recarray):
         """Returns the multi-D PLog, and a dictionary of initial conditions
         for initializing a corresponding ensemble
         """
-        
-        
+
+
         filename = '{}{}.h5'.format(directory, filename)
         with tbl.open_file(filename) as file_handle:
             try:
@@ -156,32 +156,32 @@ class PLog(np.recarray):
             except tbl.NoSuchNodeError:
                 print('File contains no logs')
                 return
-    
+
             npids = len(file_handle.list_nodes('/logs'))
-    
+
             tbl0 = file_handle.root.logs.P0
             nrow = tbl0.nrows
             rec_type = tbl0.dtype
-    
+
             Log = np.recarray((nrow, npids), dtype=rec_type)
-    
+
             ind_x = cls._state_var_1st_ind
             ics = list() # ics and particle data are required to build _host
             for ind, log in enumerate(log_tables):
                 Log[:, ind] = log.read()
                 ics.append(list(Log[0, ind])[ind_x:])
-                
+
             ## particle data
             particle = file_handle.root.particle[0]
             particle = pcl.Particle(particle['Mass0'], particle['KinEn0'], particle['G'])
-        
+
         Log = Log.view(cls)
         Log.particle = particle
         Log.ics = StateList.from_list(ics)
         Log.n_ics = len(ics)
 
         return Log
-    
+
     def write_file(self, file_handle, from_=0, to_=None):
         if to_ is None: to_ = self.nrow - 1
         pids = self[0]['PID']
@@ -206,7 +206,7 @@ class PLog(np.recarray):
             result[ind] = stamp + (ind,) + tuple(vec)
 
         super(PLog, self).__setitem__(i, result)
-        
+
     def __bundle_up(self, pid):
         log = self[:, pid]
         current_state = log[len(log)-1]
@@ -217,7 +217,7 @@ class PLog(np.recarray):
 
     def set_reference(self, pid=0):
         self._reference_particle = self.__bundle_up(pid)
-        
+
     def get_reference(self):
         return self._reference_particle
 
@@ -233,16 +233,12 @@ class PLog(np.recarray):
         ## reading the reference data from host ensemble
         try:
             p_ref = self.get_reference()
-            if p_ref.log is None: 
+            if p_ref.log is None:
                 raise ValueError
         except (AttributeError, ValueError):
-            self.set_reference()    
+            self.set_reference()
             p_ref = self.get_reference()
             print('Reference not set; using default (pid: {})'.format(p_ref.pid))
-            
-        ## subsetting the p_ref log in accordance w/ log
-        
-
 
         ## selecting only the required pids for plot
         names = list(range(self.n_ics))
@@ -316,10 +312,5 @@ class PLog(np.recarray):
 #%%
 
 if __name__ == '__main__':
-    from ensemble import Ensemble
-    from particle import Particle
-
-    NRec = 5
-
     state_list = StateList(Sz=1, dK=(0, 1e-4, 1), x=(-1e-3, 1e-3, 1))
     log = PLog.from_file('test')

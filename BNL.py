@@ -102,13 +102,7 @@ QFS_segments = dict(SSb1H2=SSb1H2, ARCb2H2=ARCb2H2, SSe1H1=SSe1H1,
                     SSb2H2=SSb2H2, ARCb1H1=ARCb1H1, SSb1H1=SSb1H1)
     
 #%%
-if __name__ is '__main__':
-    ## prepping ensemble of states
-    import ensemble as ens
-    reload(ens) # update   
-    import copy
-    
-    #%%
+if __name__ is '__main__':     
     ## prepping lattice segments
     segments = list()
     for name, segment in  QFS_segments.items():
@@ -124,14 +118,17 @@ if __name__ is '__main__':
     
     #%%
     from tracker import Tracker
+    from particle_log import StateList
+    from particle import Particle
+    
+    deuteron = Particle()
     
     trkr = Tracker()
     trkr.set_controls(inner=False, breaks=3)
     
-    bunch = ens.Ensemble.populate(pcl.Particle(), dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
-    tilt_bunch = copy.deepcopy(bunch)
+    bunch = StateList(dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
     
-    lattice.insertRF(0, 0, bunch, E_field=15e7)
+    lattice.insert_RF(0, 0, deuteron, E_field=15e7)
     
     turns = int(1e0)
     
@@ -139,13 +136,13 @@ if __name__ is '__main__':
     ## tracking clean lattice
     from time import clock
     start = clock()
-    trkr.track(bunch, lattice, turns)
+    log_vanilla = trkr.track(deuteron, bunch, lattice, turns)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
 #%%    
     ## tracking tilted lattice
     lattice.tilt('s', 0, .003)
     start = clock()
-    trkr.track(tilt_bunch, lattice, turns)
+    log_tilted = trkr.track(deuteron, bunch, lattice, turns)
     print("Tracking took {:04.2f} seconds".format(clock()-start))
     
 #%%
@@ -158,18 +155,18 @@ if __name__ is '__main__':
     from matplotlib import pyplot as plt
     plt.figure()
     plt.subplot(2,1,1)
-    bunch.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
+    log_vanilla.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
     plt.title('E+B clean')
     plt.subplot(2,1,2)
-    tilt_bunch.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
+    log_tilted.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
     plt.title('E+B tilted: S (0, .3)')
     
     
     #%%
     import pandas as pds
     plt.figure()
-    df = pds.DataFrame(bunch[0].log)
-    df5 = pds.DataFrame(bunch[5].log)
+    df = pds.DataFrame(log_vanilla[:, 0])
+    df5 = pds.DataFrame(log_vanilla[:, 5])
     Sx = df.loc[df.Element==b'RF']['Sx']
     trn = df.loc[df.Element==b'RF']['Turn']
     Sx5 = df5.loc[df5.Element==b'RF']['Sx']

@@ -24,12 +24,14 @@ class RHS:
     field distributions. Those are called at run time.
     """
 
-    def __init__(self, ensemble, RF):
-        self.n_ics = ensemble.n_ics
-        self.particle = ensemble.particle
-
-        n_var = ensemble.n_var
-        assert n_var == VAR_NUM, "Incorrect number of state variables ({}/{})".format(n_var, VAR_NUM)
+    def __init__(self, particle, ics_num, RF):
+        """Parameter particle is required for computing physical quantities;
+        RF's frequency for the computation of geometrical phase;
+        ics_num (the number of initial conditions) is a vectorization requirement
+        for reshaping the state vector and derivatives
+        """
+        self.n_ics = ics_num
+        self.particle = particle
 
         RF_freq = getattr(RF, 'freq', 0)
         if RF_freq == 0:
@@ -39,6 +41,10 @@ class RHS:
 
 
     def __call__(self, state, at, element, brks):
+        """Computes the RHS of the differential system 
+        defined by the fields of element, at s-coordinate at. 
+        Argument brks is required for computing the delta ds (s, s+ds).
+        """
         if np.isnan(state).any():
             raise ValueError('NaN state variable(s)')
         x, y, s, t, theta, H, px, py, dEn, Sx, Sy, Ss = state.reshape(VAR_NUM, self.n_ics, order='F')
