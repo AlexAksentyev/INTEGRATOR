@@ -130,7 +130,7 @@ class PLog(np.recarray):
 
         ics = np.array(ics).flatten()
 
-        obj[0] = ((0, 'START', 0, cls.last_pnt_marker), ics)
+        obj[0] = ((0, 'START', -1, cls.last_pnt_marker), ics)
 
         return obj
 
