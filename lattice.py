@@ -204,7 +204,19 @@ class Lattice:
             element.tilt(order, *angle[i], append=append)
             ids.add(eid)
             i += 1
-
+            
+    def plot_segment(self, segment_name, log, Ylab='-D dK', Xlab='-D Theta', **kwargs):
+        try:
+            eids = self.segment_map[segment_name]
+        except KeyError:
+            print('Wrong segment name.')
+            return
+        
+        ii = [eid in eids for eid in log[:,0]['EID']]
+        segment_log = log[ii]
+        
+        segment_log.plot(Ylab=Ylab, Xlab=Xlab, **kwargs)
+        
 #%%
 if __name__ == '__main__':
     from ensemble import Ensemble
