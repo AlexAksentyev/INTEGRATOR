@@ -102,7 +102,8 @@ QFS_segments = dict(SSb1H2=SSb1H2, ARCb2H2=ARCb2H2, SSe1H1=SSe1H1,
                     SSb2H2=SSb2H2, ARCb1H1=ARCb1H1, SSb1H1=SSb1H1)
     
 #%%
-if __name__ is '__main__':     
+if __name__ is '__main__':
+    
     ## prepping lattice segments
     segments = list()
     for name, segment in  QFS_segments.items():
@@ -147,12 +148,20 @@ if __name__ is '__main__':
     
 #%%
     #plotting
+    from matplotlib import pyplot as plt
     
     ylab = '-D Sx'
     xlab = 's'    
     
+    
+#%%
+#    lattice.plot_segment('SSb1H1', log_vanilla, 'Sx', 's')
+    log_vanilla.plot(ylab, xlab, pids=[3,6])
+    sec_edges = lattice.segment_edges(log_vanilla)
+    for edge in sec_edges:
+        plt.axvline(x=edge)
+    
     #%%
-    from matplotlib import pyplot as plt
     plt.figure()
     plt.subplot(2,1,1)
     log_vanilla.plot(ylab, xlab, pids=[6,18,15], new_plot=False)

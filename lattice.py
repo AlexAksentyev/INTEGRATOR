@@ -216,12 +216,22 @@ class Lattice:
         segment_log = log[ii]
 
         segment_log.plot(Ylab=Ylab, Xlab=Xlab, **kwargs)
+        
+    def segment_edges(self, log):
+        s_list = list()
+        for ind, seg_ids in enumerate(self.segment_map.values()):
+            i0 = [eid in seg_ids for eid in log[:, 0]['EID']].index(True)
+            ii = np.arange(i0, len(log), self.count)
+            s_list += log[ii, 0]['s'].tolist()
+        
+        return s_list
 
 #%%
 if __name__ == '__main__':
     from particle_log import StateList
     from particle import Particle
     from BNL import SSb1H2, SSb1H1
+    from matplotlib import pyplot as plt
 
     ini_states = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
     deuteron = Particle()
@@ -242,5 +252,8 @@ if __name__ == '__main__':
     trkr.set_controls(inner=False, breaks=3)
     log = trkr.track(deuteron, ini_states, section, 10)
 
-    log.plot('Sx', 's')
-    section.plot_segment('SSb1H1', log)
+#%%
+    section.plot_segment('SSb1H1', log, 'Sx', 's')
+    sec_edges = section.segment_edges(log)
+    for edge in sec_edges:
+        plt.axvline(x=edge)
