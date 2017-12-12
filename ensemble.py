@@ -115,15 +115,19 @@ class Ensemble:
         return ens
     
     def __deepcopy__(self, memo):
-        result = copy.deepcopy(self) ## PLog keeps a reference to host ensemble, 
-                                     ## hence when deepcopying we want that reference 
-                                     ## to update to the current ensemble copy
-        if isinstance(self.log, PLog):
-            self.log.host = self
-        return result
+        cls = self.__class__
+        result = cls.__new__(cls)    
+        memo[id(self)] = result      
+        for k, v in self.__dict__.items(): 
+            setattr(result, k, copy.deepcopy(v, memo))
+        
+        if isinstance(self.log, PLog):   ## PLog keeps a reference to host ensemble, 
+            self.log.update_host(result) ## hence when deepcopying we want that reference 
+        return result                    ## to update to the current ensemble copy
 
     def __bundle_up(self, pid):
-        log = getattr(self.log, 'P'+str(pid), None)
+#        log = getattr(self.log, 'P'+str(pid), None)
+        log = getattr(self, 'log[:, pid]', None)
         try:
             current_state = log[len(log)-1]
         except TypeError:
