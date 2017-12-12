@@ -4,19 +4,20 @@ Created on Sat Dec  9 20:08:45 2017
 
 @author: Аксентьев
 """
-
-import numpy as np
 import copy
 import re
 import collections as cln
+import numpy as np
 from element import ERF
 from utilities import MutableNamedTuple
 
 class RF(MutableNamedTuple):
+    """Container class to keep information about the lattice's RF element
+    """
     __slots__ = ['index', 'count']
 
 class Lattice:
-    def __init__(self, element_sequence, name, segment_map = None):
+    def __init__(self, element_sequence, name, segment_map=None):
         sequence = copy.deepcopy(element_sequence)
         ## ensuring the lattice doesn't have more than one RF element
         self.RF = RF(None, 0)
@@ -170,8 +171,7 @@ class Lattice:
         names = [e.name for e in self]
         if full:
             return names
-        else:
-            return np.unique([re.sub('_.*', '', e) for e in names])
+        return np.unique([re.sub('_.*', '', e) for e in names])
 
     def tilt(self, order='S', mean_angle=(0,), sigma=(0,), append=False):
         n = len(order)
@@ -229,4 +229,4 @@ if __name__ == '__main__':
     trkr.set_controls(inner=False,breaks=3)
     bunch.log = trkr.track(bunch, section, 10)
 
-    bunch.plot('Sx','s')
+    bunch.plot('Sx', 's')
