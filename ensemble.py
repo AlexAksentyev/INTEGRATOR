@@ -102,27 +102,22 @@ class Ensemble:
         with TBL.open_file(filename) as f:
             particle = f.root.Particle[0]
             particle = pcl.Particle(particle['Mass0'], particle['KinEn0'], particle['G'])
-            log = lambda: None
-            ics = list()
-            for tbl in f.root.Logs:
-                setattr(log, tbl.name, tbl.read())
-                ic = list(tbl[0])[3:]
-                ics.append(dict(zip(rhs.VAR_NAME, ic)))
+            log, ic_dict = PLog.from_file(f)
 
-            ens = cls(ics, particle)
+            ens = cls(ic_dict, particle)
             ens.log = log
 
         return ens
-    
+
     def __deepcopy__(self, memo):
         cls = self.__class__
-        result = cls.__new__(cls)    
-        memo[id(self)] = result      
-        for k, v in self.__dict__.items(): 
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
             setattr(result, k, copy.deepcopy(v, memo))
-        
-        if isinstance(self.log, PLog):   ## PLog keeps a reference to host ensemble, 
-            self.log.update_host(result) ## hence when deepcopying we want that reference 
+
+        if isinstance(self.log, PLog):   ## PLog keeps a reference to host ensemble,
+            self.log.update_host(result) ## hence when deepcopying we want that reference
         return result                    ## to update to the current ensemble copy
 
     def __bundle_up(self, pid):
@@ -168,87 +163,87 @@ class Ensemble:
         from pandas import DataFrame
         return str(DataFrame(self.ics).T)
 
-    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot=True, **kwargs):
-
-        ## reading how to plot data: diff variable with reference value, or otherwise
-        import re
-        x_flags = re.findall('-.', Xlab)
-        y_flags = re.findall('-.', Ylab)
-        Xlab = re.subn('-.* ', '', Xlab)[0]
-        Ylab = re.subn('-.* ', '', Ylab)[0]
-
-        try:
-            p_ref = self.get_reference()
-        except AttributeError:
-            self.set_reference()
-            p_ref = self.get_reference()
-            print('Reference not set; using default (pid: {})'.format(p_ref.pid))
-
-
-        ## selecting only the required pids for plot
-        names = self.list_names()
-        names.insert(0, names.pop(p_ref.pid))
-        if pids != 'all':
-            pids = set(pids)
-            pids.add(p_ref.pid)
-            names = set(names)
-            not_found = names - pids
-            names = names - not_found
-            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
-
-        ## creating plot
-        from matplotlib import pyplot as PLT
-
-        if new_plot: PLT.figure()
-
-        if mark_special is not None:
-            elems = [re.sub('_.*', '', str(e)).replace("b'", '') for e in self[0].log['Element']]
-
-            def cm(elist):
-                d = lambda e: 'red' if e == mark_special else 'black'
-                return [d(e) for e in elist]
-
-            plot = lambda X, Y, lab, **kwargs: PLT.scatter(X, Y, label=mark_special, c=cm(elems), **kwargs)
-            legend = lambda lab: PLT.legend([mark_special])
-        else:
-            plot = lambda X, Y, lab, **kwargs: PLT.plot(X, Y, label=lab, **kwargs)
-            legend = lambda lab: PLT.legend(lab)
-
-        nc = len(self[0].log[Ylab])
-        dX = np.empty([nc])
-        dY = np.empty([nc])
-
-        not_nan = [not e for e in np.isnan(p_ref.log['Turn'])]
-
-        for i in names:
-            dY = copy.deepcopy(self[i].log[Ylab][not_nan])
-            dX = copy.deepcopy(self[i].log[Xlab][not_nan])
-            if '-D' in x_flags: dX -= p_ref.log[Xlab][not_nan]
-            if '-D' in y_flags: dY -= p_ref.log[Ylab][not_nan]
-            plot(dX, dY, i, **kwargs)
-        legend(names)
-
-        ## creating pretty labels
-        sub_map = {'Theta': '\Theta', 'dK': '\Delta K'}
-
-        def sub(*labels):
-            labels = list(labels) #otherwise labels is a tuple, so can't do assignment
-            for i in range(len(labels)):
-                for k, v in sub_map.items(): labels[i] = labels[i].replace(k, v)
-            return labels
-
-        Xlab, Ylab = sub(Xlab, Ylab)
-        if '-D' in x_flags:
-            Xlab = '${0} - {0}_0$'.format(Xlab)
-        else:
-            Xlab = '${0}$'.format(Xlab)
-        if '-D' in y_flags:
-            Ylab = '${0} - {0}_0$'.format(Ylab)
-        else:
-            Ylab = '${0}$'.format(Ylab)
-
-        PLT.xlabel(Xlab)
-        PLT.ylabel(Ylab)
-        PLT.grid()
-
-        return PLT.gcf()
+#    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot=True, **kwargs):
+#
+#        ## reading how to plot data: diff variable with reference value, or otherwise
+#        import re
+#        x_flags = re.findall('-.', Xlab)
+#        y_flags = re.findall('-.', Ylab)
+#        Xlab = re.subn('-.* ', '', Xlab)[0]
+#        Ylab = re.subn('-.* ', '', Ylab)[0]
+#
+#        try:
+#            p_ref = self.get_reference()
+#        except AttributeError:
+#            self.set_reference()
+#            p_ref = self.get_reference()
+#            print('Reference not set; using default (pid: {})'.format(p_ref.pid))
+#
+#
+#        ## selecting only the required pids for plot
+#        names = self.list_names()
+#        names.insert(0, names.pop(p_ref.pid))
+#        if pids != 'all':
+#            pids = set(pids)
+#            pids.add(p_ref.pid)
+#            names = set(names)
+#            not_found = names - pids
+#            names = names - not_found
+#            print("Discarded PIDs: " + ','.join([str(e) for e in not_found]))
+#
+#        ## creating plot
+#        from matplotlib import pyplot as PLT
+#
+#        if new_plot: PLT.figure()
+#
+#        if mark_special is not None:
+#            elems = [re.sub('_.*', '', str(e)).replace("b'", '') for e in self[0].log['Element']]
+#
+#            def cm(elist):
+#                d = lambda e: 'red' if e == mark_special else 'black'
+#                return [d(e) for e in elist]
+#
+#            plot = lambda X, Y, lab, **kwargs: PLT.scatter(X, Y, label=mark_special, c=cm(elems), **kwargs)
+#            legend = lambda lab: PLT.legend([mark_special])
+#        else:
+#            plot = lambda X, Y, lab, **kwargs: PLT.plot(X, Y, label=lab, **kwargs)
+#            legend = lambda lab: PLT.legend(lab)
+#
+#        nc = len(self[0].log[Ylab])
+#        dX = np.empty([nc])
+#        dY = np.empty([nc])
+#
+#        not_nan = [not e for e in np.isnan(p_ref.log['Turn'])]
+#
+#        for i in names:
+#            dY = copy.deepcopy(self[i].log[Ylab][not_nan])
+#            dX = copy.deepcopy(self[i].log[Xlab][not_nan])
+#            if '-D' in x_flags: dX -= p_ref.log[Xlab][not_nan]
+#            if '-D' in y_flags: dY -= p_ref.log[Ylab][not_nan]
+#            plot(dX, dY, i, **kwargs)
+#        legend(names)
+#
+#        ## creating pretty labels
+#        sub_map = {'Theta': '\Theta', 'dK': '\Delta K'}
+#
+#        def sub(*labels):
+#            labels = list(labels) #otherwise labels is a tuple, so can't do assignment
+#            for i in range(len(labels)):
+#                for k, v in sub_map.items(): labels[i] = labels[i].replace(k, v)
+#            return labels
+#
+#        Xlab, Ylab = sub(Xlab, Ylab)
+#        if '-D' in x_flags:
+#            Xlab = '${0} - {0}_0$'.format(Xlab)
+#        else:
+#            Xlab = '${0}$'.format(Xlab)
+#        if '-D' in y_flags:
+#            Ylab = '${0} - {0}_0$'.format(Ylab)
+#        else:
+#            Ylab = '${0}$'.format(Ylab)
+#
+#        PLT.xlabel(Xlab)
+#        PLT.ylabel(Ylab)
+#        PLT.grid()
+#
+#        return PLT.gcf()

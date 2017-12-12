@@ -6,6 +6,7 @@ Created on Thu Dec  7 17:21:59 2017
 @author: alexa
 
 """
+from particle_log import PLog
 from collections import namedtuple
 from time import clock
 from importlib import reload
@@ -16,8 +17,6 @@ from scipy.integrate import odeint
 
 import rhs
 reload(rhs)
-
-from particle_log import PLog
 
 
 TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut'])
@@ -30,13 +29,13 @@ class Tracker:
     """Handles tracking of ensembles thru lattices."""
     def __init__(self):
         self.controls = None
-        self._last_pnt = -1 # marker of the state vector upon exiting an element
 
         ## created in Tracker::track
         self.lattice = None
         self.ensemble = None
         self.rhs = None # needs to know lattice and ensemble data to set up
         self.file_handle = None # for data backup
+        self.log = None # need to know the number of records, particles
 
     def set_controls(self, fwd=True, inner=False, breaks=101, ncut=0):
         """Choose whether to track a lattice forward/backward (fwd),
@@ -52,9 +51,9 @@ class Tracker:
         """Returns the first index from which to fill the log.
         A filled log will have a number of nan values
         if the lattice contains an RF element with bool_skip = True
-        and the control inner = True. That's normal; it's because when counting 
-        the number nrow at case inner, we assume ALL elements will return 
-        a brks number of states, whereas in _run_turn we explicitly say that if 
+        and the control inner = True. That's normal; it's because when counting
+        the number nrow at case inner, we assume ALL elements will return
+        a brks number of states, whereas in _run_turn we explicitly say that if
         bool_skip = True, only the last state is written to log.
         Hence we preallocate a brks*nturns more rows than necessary.
         """
@@ -89,28 +88,30 @@ class Tracker:
         self.file_handle = file_handle
         # write particle parameters (Mass0, KinEn0, G)
         ppar = self.ensemble.particle.get_params()
-        self.file_handle.create_table('/', 'Particle', ppar)
+        self.file_handle.create_table('/', 'particle', ppar)
         # separate group to write p-logs in
-        self.file_handle.create_group('/', 'Logs', 'Particle logs')
+        self.file_handle.create_group('/', 'logs', 'particle logs')
 
         ## creating data tables to fill
-        for p in self.ensemble:
-            self.file_handle.create_table(self.file_handle.root.Logs,
-                                          'P'+str(p.pid), self.log.dtype)
+        pids = self.log[0]['PID']
+        nrow = len(self.log)
+        for pid in pids:
+            self.file_handle.create_table(self.file_handle.root.logs,
+                                          'P'+str(pid), self.log.dtype,
+                                          expectedrows=nrow)
 
     def _run_turn(self, current_turn, log_index, state):
         brks = self.controls.breaks
 
         el_num = self.lattice.count
-        el_seq = self.lattice._sequence
 
         n_ics = self.rhs.n_ics
         n_var = rhs.VAR_NUM
 
         for i in range(el_num): # element loop
             # pick element
-            if self.controls.fwd: element = el_seq[i]
-            else: element = el_seq[len(el_num)-1-i]
+            if self.controls.fwd: element = self.lattice[i]
+            else: element = self.lattice[len(el_num)-1-i]
 
             # choose if integrate or otherwise advance the state vector
             rf_el = element.bool_skip
@@ -134,7 +135,7 @@ class Tracker:
                     for k in range(brks-1):
                         self.log[log_index] = ((current_turn, element.name, i, k), vals[k])
                         log_index += 1
-                self.log[log_index] = ((current_turn, element.name, i, self._last_pnt), state.flatten())
+                self.log[log_index] = ((current_turn, element.name, i, PLog.last_pnt_marker), state.flatten())
                 log_index += 1
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
@@ -146,9 +147,10 @@ class Tracker:
     def _write_log(self, from_, to_):
         old_ind, ind = from_, to_
         # write data to file
-        for p in self.ensemble:
-            tbl = getattr(self.file_handle.root.Logs, 'P'+str(p.pid))
-            tbl.append(self.log[old_ind:ind, p.pid])
+        pids = self.log[0]['PID']
+        for pid in pids:
+            tbl = getattr(self.file_handle.root.logs, 'P'+str(pid))
+            tbl.append(self.log[old_ind:ind, pid])
             tbl.flush()
 
     def track(self, ensemble, lattice, n_turns):
@@ -234,7 +236,7 @@ class Tracker:
             print('writing took: {:04.2f} secs'.format(clock()-start))
 
         print('Complete 100 %')
-        
+
         del self.log
 
 #%%
@@ -264,7 +266,7 @@ if __name__ == '__main__':
     LAT_tilted = copy.deepcopy(LAT)
     LAT.insertRF(0, 0, E, E_field=15e7)
     LAT_tilted.insertRF(0, 0, E_tilted, E_field=15e7)
-    
+
     LAT_tilted.tilt('s', 0, .003)
 
     #%%
