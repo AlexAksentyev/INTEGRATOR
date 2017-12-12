@@ -8,7 +8,6 @@ Created on Mon Dec 11 09:01:42 2017
 import numpy as np
 from tables import StringCol
 import rhs
-import copy
     
 from utilities import Bundle
 

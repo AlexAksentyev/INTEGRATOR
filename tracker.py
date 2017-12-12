@@ -9,7 +9,7 @@ Created on Thu Dec  7 17:21:59 2017
 from collections import namedtuple
 from time import clock
 from importlib import reload
-from tables import open_file, StringCol
+from tables import open_file
 
 import numpy as np
 from scipy.integrate import odeint
