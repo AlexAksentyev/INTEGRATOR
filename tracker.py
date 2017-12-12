@@ -269,7 +269,7 @@ if __name__ == '__main__':
 
     #%%
     start = clock()
-    log = t.track(E_tilted, LAT_tilted, 10)
+    t.track(E_tilted, LAT_tilted, 10)
     print('time passed {:04.2f}'.format(clock()-start))
     #%%
-    E_tilted.plot('Sx', 'x')
+#    E_tilted.plot('Sx', 'x')

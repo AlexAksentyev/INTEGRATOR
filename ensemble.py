@@ -126,8 +126,7 @@ class Ensemble:
         return result                    ## to update to the current ensemble copy
 
     def __bundle_up(self, pid):
-#        log = getattr(self.log, 'P'+str(pid), None)
-        log = getattr(self, 'log[:, pid]', None)
+        log = self.log[:, pid]
         try:
             current_state = log[len(log)-1]
         except TypeError:
