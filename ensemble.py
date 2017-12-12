@@ -98,18 +98,9 @@ class Ensemble:
 
     @classmethod
     def from_file(cls, filename, directory='./data/'):
-        import tables as TBL
+        log = PLog.from_file(filename, directory)
 
-        filename = '{}{}.h5'.format(directory, filename)
-        with TBL.open_file(filename) as f:
-            particle = f.root.Particle[0]
-            particle = pcl.Particle(particle['Mass0'], particle['KinEn0'], particle['G'])
-            log, ic_dict = PLog.from_file(f)
-
-            ens = cls(ic_dict, particle)
-            ens.log = log
-
-        return ens
+        return log._host
 
     def __deepcopy__(self, memo):
         cls = self.__class__

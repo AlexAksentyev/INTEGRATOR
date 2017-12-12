@@ -9,7 +9,8 @@ import numpy as np
 import tables as tbl
 import rhs
 import copy
-
+import particle as pcl
+#from ensemble import Ensemble
 
 from utilities import Bundle
 
@@ -70,32 +71,56 @@ class PLog(np.recarray):
         self._host = new_host
 
     @classmethod
-    def from_file(cls, file_handle):
+    def from_file(cls, filename, directory='./data/'):
         """Returns the multi-D PLog, and a dictionary of initial conditions
         for initializing a corresponding ensemble
         """
-        try:
-            log_tables = file_handle.root.logs
-        except tbl.NoSuchNodeError:
-            print('File contains no logs')
-            return
+        
+        
+        filename = '{}{}.h5'.format(directory, filename)
+        with tbl.open_file(filename) as file_handle:
+            try:
+                log_tables = file_handle.root.logs
+            except tbl.NoSuchNodeError:
+                print('File contains no logs')
+                return
+    
+            npids = len(file_handle.list_nodes('/logs'))
+    
+            tbl0 = file_handle.root.logs.P0
+            nrow = tbl0.nrows
+            rec_type = tbl0.dtype
+    
+            Log = np.recarray((nrow, npids), dtype=rec_type)
+    
+            ind_x = cls._state_var_1st_ind
+            ics = list() # ics and particle data are required to build _host
+            for ind, log in enumerate(log_tables):
+                Log[:, ind] = log.read()
+                ic = list(Log[0, ind])[ind_x:]
+                ics.append(dict(zip(rhs.VAR_NAME, ic)))
+                
+            ## particle data
+            particle = file_handle.root.Particle[0]
+            particle = pcl.Particle(particle['Mass0'], particle['KinEn0'], particle['G'])
+        
+        ## building _host
+#        _host = Ensemble(ics, particle)
+        Log = Log.view(cls)
+        
+        ## cross-referencing
+#        Log._host = _host
+#        Log._host.log = Log
 
-        npids = len(file_handle.list_nodes('/logs'))
-
-        tbl0 = file_handle.root.logs.P0
-        nrow = tbl0.nrows
-        rec_type = tbl0.dtype
-
-        Log = np.recarray((nrow, npids), dtype=rec_type)
-
-        ind_x = cls._state_var_1st_ind
-        ics = list()
-        for ind, log in enumerate(log_tables):
-            Log[:, ind] = log.read()
-            ic = list(Log[0, ind])[ind_x:]
-            ics.append(dict(zip(rhs.VAR_NAME, ic)))
-
-        return Log.view(cls), ics
+        return Log
+    
+    def write_file(self, file_handle, from_=0, to_=None):
+        if to_ is None: to_ = self.nrow - 1
+        pids = self[0]['PID']
+        for pid in pids:
+            tbl = getattr(file_handle.root.logs, 'P'+str(pid))
+            tbl.append(self[from_: to_, pid])
+            tbl.flush()
 
     def __setitem__(self, i, stamp_vector):
         """Scipy integrator returns a flat array of state vector values
@@ -143,9 +168,12 @@ class PLog(np.recarray):
             if p_ref.log is None: 
                 raise ValueError
         except (AttributeError, ValueError):
-            self._host.set_reference()
+            self._host.set_reference()    
             p_ref = self._host.get_reference()
             print('Reference not set; using default (pid: {})'.format(p_ref.pid))
+            
+        ## subsetting the p_ref log in accordance w/ log
+        
 
 
         ## selecting only the required pids for plot
