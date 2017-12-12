@@ -114,19 +114,19 @@ class PLog(np.recarray):
 
         super(PLog, self).__setitem__(i, result)
 
-
-    def turn_to_ensemble_log(self):
-        """For compatibility with earlier code; specifically --- Ensemble.plot().
-        SHOULD GET RID OF RELIENCE ON THIS.
-        """
-        log = Bundle()
-
-        particle_num = len(self[0])
-
-        for pid in range(particle_num):
-            setattr(log, 'P'+str(pid), self[:, pid])
-
-        return log
+#
+#    def turn_to_ensemble_log(self):
+#        """For compatibility with earlier code; specifically --- Ensemble.plot().
+#        SHOULD GET RID OF RELIENCE ON THIS.
+#        """
+#        log = Bundle()
+#
+#        particle_num = len(self[0])
+#
+#        for pid in range(particle_num):
+#            setattr(log, 'P'+str(pid), self[:, pid])
+#
+#        return log
 
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot=True, **kwargs):
 
@@ -140,7 +140,9 @@ class PLog(np.recarray):
         ## reading the reference data from host ensemble
         try:
             p_ref = self._host.get_reference()
-        except AttributeError:
+            if p_ref.log is None: 
+                raise ValueError
+        except (AttributeError, ValueError):
             self._host.set_reference()
             p_ref = self._host.get_reference()
             print('Reference not set; using default (pid: {})'.format(p_ref.pid))
