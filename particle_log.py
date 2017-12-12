@@ -6,9 +6,11 @@ Created on Mon Dec 11 09:01:42 2017
 @author: alexa
 """
 import numpy as np
-from tables import StringCol, open_file
+from tables import StringCol
 import rhs
 import copy
+
+import tables as tbl
     
 from utilities import Bundle
 
@@ -65,6 +67,27 @@ class PLog(np.recarray):
         
     def update_host(self, new_host):
         self._host = new_host
+        
+    @classmethod
+    def from_file(cls, file_handle):
+        try:
+            log_tables = file_handle.root.logs
+        except tbl.NoSuchNodeError:
+            print('File contains no logs')
+            return
+        
+        npids = len(file_handle.list_nodes('/logs'))
+        
+        P0 = file_handle.root.logs.P0
+        nrow = P0.nrows
+        rec_type = P0.dtype
+        
+        Log = np.recarray((nrow, npids), dtype=rec_type)
+        
+        for ind, log in enumerate(log_tables):
+            Log[:, i] = log.read()
+            
+        return Log
         
     def __setitem__(self, i, stamp_vector):
         """Scipy integrator returns a flat array of state vector values
