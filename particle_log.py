@@ -6,8 +6,9 @@ Created on Mon Dec 11 09:01:42 2017
 @author: alexa
 """
 import numpy as np
-from tables import StringCol
+from tables import StringCol, open_file
 import rhs
+import copy
     
 from utilities import Bundle
 
@@ -61,10 +62,6 @@ class PLog(np.recarray):
         self._last_pnt_marker = getattr(obj, '_last_pnt_marker', None)
         self.n_ics = getattr(obj, 'n_ics', None)
         self._host = getattr(obj, '_host', None)
-        
-    @classmethod 
-    def from_file(cls, filename, directory='./data/'):
-        pass
         
     def update_host(self, new_host):
         self._host = new_host
