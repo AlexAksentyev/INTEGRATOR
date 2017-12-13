@@ -45,9 +45,9 @@ class Lattice:
             self.segment_map = {name: list(range(self.count))}
         else:
             self.segment_map = segment_map
-            
+
         self._state = 0
-        
+
     @property
     def state(self):
         return self._state
@@ -212,10 +212,11 @@ class Lattice:
             element.tilt(order, *angle[i], append=append)
             ids.add(eid)
             i += 1
-            
-        self._state += 1 # the lattice is in a new state => write into a new group
 
-    def plot_segment(self, segment_name, log, Ylab='-D dK', Xlab='-D Theta', **kwargs):
+        self._state += 1  # the lattice is in a new state => write into a new group
+
+    def plot_segment(self, segment_name, log,
+                     Ylab='-D dK', Xlab='-D Theta', **kwargs):
         try:
             eids = self.segment_map[segment_name]
         except KeyError:
@@ -226,7 +227,7 @@ class Lattice:
         segment_log = log[ii]
 
         segment_log.plot(Ylab=Ylab, Xlab=Xlab, **kwargs)
-        
+
     def segment_edges(self, log):
         s_list = list()
         for ind, key_val in enumerate(self.segment_map.items()):
@@ -234,14 +235,14 @@ class Lattice:
             i0 = [eid in seg_ids for eid in log[:, 0]['EID']].index(True)
             ii = np.arange(i0, len(log), self.count)
             s_list += log[ii, 0]['s'].tolist()
-        
+
 #        s_list.sort()
-#        
+#
 #        for i in range(len(s_list)-1):
 #            s0 = s_list[i]
 #            s1 = s_list[i+1]
 #            s_middle = .5*(s0 + s1)
-        
+
         return s_list
 
 #%%
@@ -251,30 +252,36 @@ if __name__ == '__main__':
     import BNL
     from matplotlib import pyplot as plt
     from tracker import Tracker
-    
+
+    import element as ent
+
     trkr = Tracker()
     trkr.set_controls(inner=False, breaks=3)
-    
+
     #%%
-    ini_states = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK=(0,1e-4,4))
+    ini_states = StateList(Sz=1)
     deuteron = Particle()
 
     segment_0 = Lattice(BNL.SSb1H2, 'SS')
     segment_1 = Lattice(BNL.ARCb2H2, 'ARC')
     segment_2 = Lattice(BNL.SSe1H1, 'SS')
-    
+
     #%%
-    
+
     section = segment_0 + segment_1 + segment_2
     section.insert_RF(0, 0, deuteron, E_field=15e7)
 
-    
-    log = trkr.track(deuteron, ini_states, section, 1)
-
 #%%
+    R3 = ent.Wien(361.55403e-2, 5e-2, deuteron, -120e5, 10*.082439761, R=42, name="R3")
+
+    section = Lattice([R3], 'Wien')
+
+    log = trkr.track(deuteron, ini_states, section, 100)
+
+    #%%
 #    section.plot_segment('RF', log, 'Sx', 's')
-    log.plot('px','s')
-    sec_edges = section.segment_edges(log)
-    for edge in sec_edges:
-        plt.axvline(x=edge, linewidth=.8, color='b')
-    plt.title(section.name)
+    log.plot('x', 's')
+#    sec_edges = section.segment_edges(log)
+#    for edge in sec_edges:
+#        plt.axvline(x=edge, linewidth=.8, color='b')
+#    plt.title(section.name)
