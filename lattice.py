@@ -12,7 +12,7 @@ from element import ERF
 from utilities import MutableNamedTuple
 
 class RF(MutableNamedTuple):
-    """Container class to keep information about the lattice's RF element
+    """Container class to keep information about the lattice's RF element.
     """
     __slots__ = ['index', 'count']
 
@@ -45,6 +45,12 @@ class Lattice:
             self.segment_map = {name: list(range(self.count))}
         else:
             self.segment_map = segment_map
+            
+        self._state = 0
+        
+    @property
+    def state(self):
+        return self._state
 
     def __add__(self, other):
         if not isinstance(other, Lattice):
@@ -206,6 +212,8 @@ class Lattice:
             element.tilt(order, *angle[i], append=append)
             ids.add(eid)
             i += 1
+            
+        self._state += 1 # the lattice is in a new state => write into a new group
 
     def plot_segment(self, segment_name, log, Ylab='-D dK', Xlab='-D Theta', **kwargs):
         try:
