@@ -109,10 +109,9 @@ if __name__ is '__main__':
     for name, segment in  QFS_segments.items():
         segments.append(ltc.Lattice(segment, name))
         
-    ## creating lattice
+    ## creating the E+B lattice
     lattice = ltc.Lattice(QFS_segments['SSb1H2'],'SSb1H2')
-    segments.pop(0)
-    for segment in segments:
+    for segment in segments[1:]:
         lattice = lattice + segment
     
     lattice.name = 'E+B'
@@ -150,16 +149,17 @@ if __name__ is '__main__':
     #plotting
     from matplotlib import pyplot as plt
     
-    ylab = '-D Sx'
+    ylab = 'Sx'
     xlab = 's'    
     
     
 #%%
 #    lattice.plot_segment('SSb1H1', log_vanilla, 'Sx', 's')
-    log_vanilla.plot(ylab, xlab, pids=[3,6])
+    log_vanilla.plot(ylab, xlab, pids=[0])
     sec_edges = lattice.segment_edges(log_vanilla)
     for edge in sec_edges:
-        plt.axvline(x=edge)
+        plt.axvline(x=edge, color='r', linewidth=.5)
+    plt.title('E+B; 1 turn; section edges in vertical red')
     
     #%%
     plt.figure()

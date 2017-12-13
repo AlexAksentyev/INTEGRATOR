@@ -230,9 +230,14 @@ class Lattice:
 if __name__ == '__main__':
     from particle_log import StateList
     from particle import Particle
-    from BNL import SSb1H2, SSb1H1
+    from BNL import SSb1H2, SSb1H1, ARCb1H1
     from matplotlib import pyplot as plt
-
+    from tracker import Tracker
+    
+    trkr = Tracker()
+    trkr.set_controls(inner=False, breaks=3)
+    
+    #%%
     ini_states = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
     deuteron = Particle()
 
@@ -244,16 +249,18 @@ if __name__ == '__main__':
 
     segment_0 = Lattice(SSb1H1, 'SSb1H1')
     segment_1 = Lattice(SSb1H2, 'SSb1H2')
-    section = segment_0 + segment_1
-    section.insert_RF(section.segment_map['SSb1H2'][0], 0, deuteron, E_field=15e7)
+    segment_2 = Lattice(ARCb1H1, 'ARCb1H1')
+    
+    #%%
+    
+    section = segment_0 + segment_1 + segment_2
+    section.insert_RF(0, 0, deuteron, E_field=15e7)
 
-    from tracker import Tracker
-    trkr = Tracker()
-    trkr.set_controls(inner=False, breaks=3)
+    
     log = trkr.track(deuteron, ini_states, section, 10)
 
 #%%
-    section.plot_segment('SSb1H1', log, 'Sx', 's')
+    section.plot_segment('SSb1H1', log, '-D Sx', 's')
     sec_edges = section.segment_edges(log)
     for edge in sec_edges:
-        plt.axvline(x=edge)
+        plt.axvline(x=edge, linewidth=.5)
