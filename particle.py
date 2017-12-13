@@ -6,6 +6,7 @@ Created on Thu Nov 30 11:05:49 2017
 @author: alexa
 """
 import numpy as np
+import pandas as pds
 
 EZERO = 1.602176462e-19 # Coulomb
 CLIGHT = 2.99792458e8 # m/s
@@ -55,3 +56,7 @@ class Particle:
         _, beta = self.GammaBeta(self._kin_nrg_0)
         v = beta*CLIGHT
         return v/lattice_length
+    
+    def __repr__(self):
+        data = dict(Mass0=self.mass0, KinEn0=self.kinetic_energy, gamma=self.gamma, G=self.G)
+        return str(pds.DataFrame(data, index=[0]))
