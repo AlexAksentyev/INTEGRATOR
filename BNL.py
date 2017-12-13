@@ -130,7 +130,8 @@ if __name__ is '__main__':
     
     lattice.insert_RF(0, 0, deuteron, E_field=15e7)
     
-    turns = int(1e0)
+    turns = int(1e1)
+    track_tilt = False
     
 #%%
     ## tracking clean lattice
@@ -140,10 +141,11 @@ if __name__ is '__main__':
     print("Tracking took {:04.2f} seconds".format(clock()-start))
 #%%    
     ## tracking tilted lattice
-    lattice.tilt('s', 0, .003)
-    start = clock()
-    log_tilted = trkr.track(deuteron, bunch, lattice, turns)
-    print("Tracking took {:04.2f} seconds".format(clock()-start))
+    if track_tilt:
+        lattice.tilt('s', 0, .003)
+        start = clock()
+        log_tilted = trkr.track(deuteron, bunch, lattice, turns)
+        print("Tracking took {:04.2f} seconds".format(clock()-start))
     
 #%%
     #plotting
@@ -155,32 +157,34 @@ if __name__ is '__main__':
     
 #%%
 #    lattice.plot_segment('SSb1H1', log_vanilla, 'Sx', 's')
-    log_vanilla.plot(ylab, xlab, pids=[0])
+    log_vanilla.plot(ylab, xlab, pids=[3, 6])
     sec_edges = lattice.segment_edges(log_vanilla)
     for edge in sec_edges:
         plt.axvline(x=edge, color='r', linewidth=.5)
     plt.title('E+B; 1 turn; section edges in vertical red')
     
     #%%
-    plt.figure()
-    plt.subplot(2,1,1)
-    log_vanilla.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
-    plt.title('E+B clean')
-    plt.subplot(2,1,2)
-    log_tilted.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
-    plt.title('E+B tilted: S (0, .3)')
+    if track_tilt:
+        plt.figure()
+        plt.subplot(2,1,1)
+        log_vanilla.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
+        plt.title('E+B clean')
+        plt.subplot(2,1,2)
+        log_tilted.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
+        plt.title('E+B tilted: S (0, .3)')
     
     
     #%%
-    import pandas as pds
-    plt.figure()
-    df = pds.DataFrame(log_vanilla[:, 0])
-    df5 = pds.DataFrame(log_vanilla[:, 5])
-    Sx = df.loc[df.Element==b'RF']['Sx']
-    trn = df.loc[df.Element==b'RF']['Turn']
-    Sx5 = df5.loc[df5.Element==b'RF']['Sx']
-    plt.plot(trn,Sx,label='lab')
-    plt.plot(trn,Sx-Sx5,label='ref')
-    plt.legend()
-    plt.title('Turn by turn, after RF')
+    if turns > 1:
+        import pandas as pds
+        plt.figure()
+        df = pds.DataFrame(log_vanilla[:, 0])
+        df5 = pds.DataFrame(log_vanilla[:, 5])
+        Sx = df.loc[df.Element==b'RF']['Sx']
+        trn = df.loc[df.Element==b'RF']['Turn']
+        Sx5 = df5.loc[df5.Element==b'RF']['Sx']
+        plt.plot(trn,Sx,label='lab')
+        plt.plot(trn,Sx-Sx5,label='ref')
+        plt.legend()
+        plt.title('Turn by turn, after RF')
 

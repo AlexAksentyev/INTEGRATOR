@@ -246,7 +246,7 @@ if __name__ == '__main__':
     trkr.set_controls(inner=False, breaks=3)
     
     #%%
-    ini_states = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
+    ini_states = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK=(0,1e-4,4))
     deuteron = Particle()
 
     segment_0 = Lattice(BNL.SSb1H2, 'SS')
