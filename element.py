@@ -133,10 +133,6 @@ class Element:
     @property
     def skip(self):
         return self.__bool_skip
-    
-#    @skip.setter
-#    def skip(self, value):
-#        print("Element doesn't have the advance method.")
 
     def get_fields(self):
         return self.__E_field, self.__B_field
@@ -409,12 +405,6 @@ class ERF(Element):
                                               'Phase':self.phase}, index=[self.name]).T
 
         self.__U = self.amplitude*length # length instead self.length for compatibility with length 0
-        
-#    @Element.skip.setter
-#    def skip(self, value):
-#        if not isinstance(value, bool):
-#            raise ValueError('Must be boolean.')
-#        self._Element__bool_skip = value
 
     def EField(self, arg):
         i_t, = index(arg, 't')

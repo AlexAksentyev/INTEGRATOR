@@ -56,12 +56,14 @@ class Lattice:
         if rf0 is not None:
             self.RF.count -= 1
             self.RF.index = None
+            print('Achtung! segment {} was updated.'.format(self.name))
         rf1 = other.pop(other.RF.index)
         if rf1 is not None:
             other.RF.count -= 1
             other.RF.index = None
+            print('Achtung! segment {} was updated.'.format(other.name))
         print('New lattice w/o RF elements.')
-        print('Achtung! the segments {}, {} were updated.'.format(self.name, other.name))
+
 
         # make a sections map:
         # (segment_name, {indices in lattice})
