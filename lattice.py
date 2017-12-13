@@ -74,7 +74,7 @@ class Lattice:
 
         # make the common sequence, compound lattice name
         el_sequence = self._sequence + other._sequence
-        name = self.name + '_' + other.name
+        name = self.name + '+' + other.name
 
         return Lattice(el_sequence, name, segment_map)
 
@@ -219,10 +219,18 @@ class Lattice:
         
     def segment_edges(self, log):
         s_list = list()
-        for ind, seg_ids in enumerate(self.segment_map.values()):
+        for ind, key_val in enumerate(self.segment_map.items()):
+            name, seg_ids = key_val
             i0 = [eid in seg_ids for eid in log[:, 0]['EID']].index(True)
             ii = np.arange(i0, len(log), self.count)
             s_list += log[ii, 0]['s'].tolist()
+        
+#        s_list.sort()
+#        
+#        for i in range(len(s_list)-1):
+#            s0 = s_list[i]
+#            s1 = s_list[i+1]
+#            s_middle = .5*(s0 + s1)
         
         return s_list
 
@@ -230,7 +238,7 @@ class Lattice:
 if __name__ == '__main__':
     from particle_log import StateList
     from particle import Particle
-    from BNL import SSb1H2, SSb1H1, ARCb1H1
+    import BNL
     from matplotlib import pyplot as plt
     from tracker import Tracker
     
@@ -241,15 +249,9 @@ if __name__ == '__main__':
     ini_states = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
     deuteron = Particle()
 
-    RF0 = ERF(5, deuteron, 5)
-    RF1 = ERF(5, deuteron, 5)
-
-    SSb1H2.insert(5, RF1)
-    SSb1H2.insert(0, RF0)
-
-    segment_0 = Lattice(SSb1H1, 'SSb1H1')
-    segment_1 = Lattice(SSb1H2, 'SSb1H2')
-    segment_2 = Lattice(ARCb1H1, 'ARCb1H1')
+    segment_0 = Lattice(BNL.SSb1H2, 'SS')
+    segment_1 = Lattice(BNL.ARCb2H2, 'ARC')
+    segment_2 = Lattice(BNL.SSe1H1, 'SS')
     
     #%%
     
@@ -260,7 +262,9 @@ if __name__ == '__main__':
     log = trkr.track(deuteron, ini_states, section, 10)
 
 #%%
-    section.plot_segment('SSb1H1', log, '-D Sx', 's')
+#    section.plot_segment('RF', log, 'Sx', 's')
+    log.plot('Sx','s')
     sec_edges = section.segment_edges(log)
     for edge in sec_edges:
-        plt.axvline(x=edge, linewidth=.5)
+        plt.axvline(x=edge, linewidth=.8, color='b')
+    plt.title(section.name)
