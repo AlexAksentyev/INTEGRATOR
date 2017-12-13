@@ -12,10 +12,32 @@ CLIGHT = 2.99792458e8 # m/s
 
 class Particle:
 
-    def __init__(self, mass=1876.5592, kin_nrg=270.11275, G=-.142987):
+    def __init__(self, mass=1876.5592, gamma=1.14394, G=-.142987):
         self.mass0 = mass
-        self.kin_nrg_0 = kin_nrg
+        self._gamma = gamma
+        self._kin_nrg_0 = mass*(gamma - 1)
         self.G = G
+        
+    @property
+    def gamma(self):
+        return self._gamma
+    
+    @gamma.setter
+    def gamma(self, value):
+        assert value > 0, "Negative gamma!"
+        self._gamma = value
+        self._kin_nrg_0 = self.mass0*(value - 1)
+        
+    @property
+    def kin_nrg_0(self):
+        return self._kin_nrg_0
+    
+    @kin_nrg_0.setter
+    def kin_nrg_0(self, value):
+        assert value > 0, "Negative energy!"
+        self._kin_nrg_0 = value
+        self._gamma = 1 + value/self.mass0
+    
 
     def get_params(self):
         return np.array([(self.mass0, self.kin_nrg_0, self.G)],
