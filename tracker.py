@@ -142,7 +142,7 @@ class Tracker:
                 log_index += 1
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
-                raise StopTracking
+                raise StopTracking('Stopping tracking due to a ValueError in _run_turn')
         # end element loop
 
         return state, log_index
@@ -176,7 +176,7 @@ class Tracker:
                 ncut = 100 # if so, backup every 100 turns
             cut = False
 
-        latname = lattice.name
+        latname = lattice.name + '_' + str(lattice.state)
         print('Saving data to file {} every {} turns'.format(latname, ncut))
 
          # initial state vector
@@ -209,7 +209,9 @@ class Tracker:
                 try:
                     state, log_ind = self._run_turn(turn, log_ind, state)
                 except StopTracking:
-                    return
+                    print('Emergency data-saving')
+                    self.log.write_file(file_handle, old_ind, log_ind)
+                    return self.log
 
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))
