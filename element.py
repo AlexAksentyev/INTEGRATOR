@@ -173,8 +173,14 @@ class Bend:
         self.pardict = {'KinEn0':reference_particle.kinetic_energy, 'Mass0':reference_particle.mass0,
                         'q':q, 'clight':clight,
                         'm0':reference_particle.mass0/clight**2*1e6*q}
+        
+        self.__radius = None
 
         super().__init__(**kwargs)
+        
+    @property
+    def radius(self):
+        return self.__radius
 
     def __GammaBeta(self):
         mass0 = self.pardict['Mass0']
@@ -224,25 +230,25 @@ class MDipole(Element, Bend):
                 By = B_field
             if By == 0:
                 crv = 0 # if By == 0, dipole is turned off == drift space; skip computeRadius
-                self.__radius = np.Inf
+                self._Bend__radius = np.Inf
             else: crv = None # otherwise, computeRadius
         else:
             crv = 1/R
-            self.__radius = R
+            self._Bend__radius = R
 
         super().__init__(curve=crv, length=length, name=name, reference_particle=reference_particle)
 
         if crv is None:
             R = self.compute_radius(reference_particle.kinetic_energy, B_field)
-            self.__radius = R
-            self.curve = 1/self.__radius
+            self._Bend__radius = R
+            self.curve = 1/self._Bend__radius
             self._Element__chars['Curve'] = self.curve
 
         self.set_B_field(B_field)
 
     def set_B_field(self, B_field):
         if B_field is None:
-            R = self.__radius
+            R = self._Bend__radius
             B_field = (0, self.compute_B_strength(self.pardict['KinEn0'], R), 0)
         elif not isinstance(B_field, cln.Sequence): B_field = (0, B_field, 0) # by default B = By
 
@@ -294,7 +300,7 @@ class Wien(Element, Bend):
         if R is None: crv = None
         else:
             crv = 1/R
-            self.__radius = [R, R - h_gap, R**2/(R-h_gap)]
+            self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
 
         self.__h_gap = h_gap
 
@@ -307,13 +313,13 @@ class Wien(Element, Bend):
         P0c = self._Bend__Pc(self.pardict['KinEn0'])
         _, beta = self._Bend__GammaBeta()
         if E_field is None:
-            R = self.__radius
+            R = self._Bend__radius
             E_field = - P0c*beta/R[0] * 1e6
         else:
             assert E_field < 0, "Incorrect field value ({} >= 0)".format(E_field)
             R = - P0c*beta/E_field * 1e6
-            self.__radius = [R, R - self.__h_gap, R**2/(R-self.__h_gap)]
-            R = self.__radius
+            self._Bend__radius = [R, R - self.__h_gap, R**2/(R-self.__h_gap)]
+            R = self._Bend__radius
 
         self.curve = 1/R[0]
         self._Element__E_field = (E_field, 0, 0)
@@ -322,8 +328,8 @@ class Wien(Element, Bend):
 
         #define a subfunction for use in kicks
         R0 = float(R[0])
-        R1 = float(self.__radius[1])
-        R2 = float(self.__radius[2])
+        R1 = float(self._Bend__radius[1])
+        R2 = float(self._Bend__radius[2])
         V = float(self.__volt)
 
         self.__U = lambda x: (-V + 2*V*np.log((R0+x)/R1)/np.log(R2/R1)) # DK = q*U
@@ -363,7 +369,7 @@ class Wien(Element, Bend):
         v = beta*clight
 
         k = 1.18 * qm * ((2 - 3*beta**2 - .75*beta**4)/beta**2 + 1/gamma)
-        h = 1/self.__radius[0]
+        h = 1/self._Bend__radius[0]
 
         B0 = self._Element__B_field[1]
         B1 = .018935*(-B0)*(-h+k*v*B0)*x
