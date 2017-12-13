@@ -124,11 +124,19 @@ class Element:
 
         self.tilt_ = Tilt()
 
-        self.bool_skip = False # for testing ERF.advance()
+        self.__bool_skip = False # for testing ERF.advance()
 
         self.__chars = pds.DataFrame({'Curve':self.curve, 'Length':self.length}, index=[self.name])
 
         super().__init__(**kwargs)
+        
+    @property
+    def skip(self):
+        return self.__bool_skip
+    
+#    @skip.setter
+#    def skip(self, value):
+#        print("Element doesn't have the advance method.")
 
     def get_fields(self):
         return self.__E_field, self.__B_field
@@ -386,7 +394,7 @@ class ERF(Element):
         super().__init__(curve=0, length=length, name=name)
 
         if length == 0:
-            self.bool_skip = True
+            self._Element__bool_skip = True
             length = 5e-4
 
         self.reference_particle = reference_particle
@@ -401,6 +409,12 @@ class ERF(Element):
                                               'Phase':self.phase}, index=[self.name]).T
 
         self.__U = self.amplitude*length # length instead self.length for compatibility with length 0
+        
+#    @Element.skip.setter
+#    def skip(self, value):
+#        if not isinstance(value, bool):
+#            raise ValueError('Must be boolean.')
+#        self._Element__bool_skip = value
 
     def EField(self, arg):
         i_t, = index(arg, 't')
@@ -453,4 +467,24 @@ class Observer:
     """
     
     def __init__(self):
-        self.bool_skip = True
+        self.__bool_skip = True
+        
+    @property
+    def skip(self):
+        return self.__bool_skip
+    
+    def advance(self, state):
+        """In Tracker::track, when an element's skip is true, it uses 
+        the element's advance method. Hence it is defined here.
+        """
+        pass
+        
+        
+#%%
+
+if __name__ == '__main__':
+    from particle import Particle
+    el = Element(0,1)
+    erf = ERF(3,Particle(), 5)
+    erf1 = ERF(0,Particle(), 5)
+    obs = Observer()
