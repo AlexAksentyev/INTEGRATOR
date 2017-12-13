@@ -15,6 +15,8 @@ from utilities import Bundle
 
 #%%
 class StateList:
+    """Create an ensemble of initial conditions.
+    """
     def __init__(self, **kwargs):
 
         keys = kwargs.keys()
@@ -221,7 +223,11 @@ class PLog(np.recarray):
     def get_reference(self):
         return self._reference_particle
 
-    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all', mark_special=None, new_plot=True, **kwargs):
+    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all',
+             mark_special=None, new_plot=True, **kwargs):
+        """Mark special may be redundant in the light of
+        Lattice::plot_segment.
+        """
 
         ## reading how to plot data: diff variable with reference value, or otherwise
         import re
@@ -264,7 +270,8 @@ class PLog(np.recarray):
                 d = lambda e: 'red' if e == mark_special else 'black'
                 return [d(e) for e in elist]
 
-            plot = lambda X, Y, lab, **kwargs: PLT.scatter(X, Y, label=mark_special, c=color_map(elems), **kwargs)
+            plot = lambda X, Y, lab, **kwargs: PLT.scatter(X, Y, label=mark_special,
+                                                           c=color_map(elems), **kwargs)
             legend = lambda lab: PLT.legend([mark_special])
         else:
             plot = lambda X, Y, lab, **kwargs: PLT.plot(X, Y, label=lab, **kwargs)

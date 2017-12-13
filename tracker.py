@@ -138,7 +138,8 @@ class Tracker:
                     for k in range(brks-1):
                         self.log[log_index] = ((current_turn, element.name, eid, k), vals[k])
                         log_index += 1
-                self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker), state.flatten())
+                self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker),
+                                       state.flatten())
                 log_index += 1
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
@@ -151,8 +152,6 @@ class Tracker:
         """Track ensemble through lattice for n_turns.
         Returns the particle log of type PLog.
         """
-#        self.particle = particle
-#        self.ics = ics
         self.lattice = lattice
         ## check for controls; if they haven't been set, use defaults
         if getattr(self, 'controls', None) is None:
@@ -176,7 +175,7 @@ class Tracker:
                 ncut = 100 # if so, backup every 100 turns
             cut = False
 
-        latname = lattice.name + '_' + str(lattice.state)
+        latname = '{}_{}'.format(lattice.name, lattice.state)
         print('Saving data to file {} every {} turns'.format(latname, ncut))
 
          # initial state vector
