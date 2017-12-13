@@ -300,11 +300,14 @@ class Wien(Element, Bend):
         if R is None: crv = None
         else:
             crv = 1/R
-            self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
+#            self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
 
         self.__h_gap = h_gap
 
         super().__init__(curve=crv, length=length, name=name, reference_particle=reference_particle)
+        
+        if R is not None:  # after Bend.__init__ self._Bend__radius = None ALWAYS
+            self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
 
         self.set_E_field(E_field)
         self.set_B_field(B_field)
@@ -317,8 +320,10 @@ class Wien(Element, Bend):
             E_field = - P0c*beta/R[0] * 1e6
         else:
             assert E_field < 0, "Incorrect field value ({} >= 0)".format(E_field)
-            R = - P0c*beta/E_field * 1e6
-            self._Bend__radius = [R, R - self.__h_gap, R**2/(R-self.__h_gap)]
+            if self._Bend__radius is None:
+                print('Setting bend radius.')
+                R = - P0c*beta/E_field * 1e6
+                self._Bend__radius = [R, R - self.__h_gap, R**2/(R-self.__h_gap)]
             R = self._Bend__radius
 
         self.curve = 1/R[0]
