@@ -174,7 +174,7 @@ class Bend:
     def __init__(self, reference_particle, **kwargs):
         q = pcl.EZERO
         clight = pcl.CLIGHT
-        self.pardict = {'KinEn0':reference_particle.kin_nrg_0, 'Mass0':reference_particle.mass0,
+        self.pardict = {'KinEn0':reference_particle.kinetic_energy, 'Mass0':reference_particle.mass0,
                         'q':q, 'clight':clight,
                         'm0':reference_particle.mass0/clight**2*1e6*q}
 
@@ -237,7 +237,7 @@ class MDipole(Element, Bend):
         super().__init__(curve=crv, length=length, name=name, reference_particle=reference_particle)
 
         if crv is None:
-            R = self.compute_radius(reference_particle.kin_nrg_0, B_field)
+            R = self.compute_radius(reference_particle.kinetic_energy, B_field)
             self.__radius = R
             self.curve = 1/self.__radius
             self._Element__chars['Curve'] = self.curve
@@ -443,20 +443,20 @@ class ERF(Element):
         w = self.freq*2*np.pi
         u = self.__U
         i_dK, i_s, i_t = index(state, 'dK', 's', 't')
-        K = self.reference_particle.kin_nrg_0 * (1 + state[i_dK])
+        K = self.reference_particle.kinetic_energy * (1 + state[i_dK])
 
-        state[i_dK] += u*np.cos(w*state[i_t]+self.phase)*1e-6/self.reference_particle.kin_nrg_0
+        state[i_dK] += u*np.cos(w*state[i_t]+self.phase)*1e-6/self.reference_particle.kinetic_energy
         state[i_s] += self.length
         _, beta = self.reference_particle.GammaBeta(K)
         state[i_t] += self.length/beta/pcl.CLIGHT
 
     def front_kick(self, state):
         u = self.__U
-        state[:, IMAP['dK']] -= u*1e-6/self.reference_particle.kin_nrg_0
+        state[:, IMAP['dK']] -= u*1e-6/self.reference_particle.kinetic_energy
 
     def rear_kick(self, state):
         u = self.__U
-        state[:, IMAP['dK']] += u*1e-6/self.reference_particle.kin_nrg_0
+        state[:, IMAP['dK']] += u*1e-6/self.reference_particle.kinetic_energy
 
     def kickVolts(self):
         return self.__U

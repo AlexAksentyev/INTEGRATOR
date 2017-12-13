@@ -29,18 +29,18 @@ class Particle:
         self._kin_nrg_0 = self.mass0*(value - 1)
         
     @property
-    def kin_nrg_0(self):
+    def kinetic_energy(self):
         return self._kin_nrg_0
     
-    @kin_nrg_0.setter
-    def kin_nrg_0(self, value):
+    @kinetic_energy.setter
+    def kinetic_energy(self, value):
         assert value > 0, "Negative energy!"
         self._kin_nrg_0 = value
         self._gamma = 1 + value/self.mass0
     
 
     def get_params(self):
-        return np.array([(self.mass0, self.kin_nrg_0, self.G)],
+        return np.array([(self.mass0, self._kin_nrg_0, self.G)],
                         dtype=[('Mass0', float), ('KinEn0', float), ('G', float)])
 
     def GammaBeta(self, NRG):
@@ -52,6 +52,6 @@ class Particle:
         return np.sqrt((self.mass0 + KNRG)**2 - self.mass0**2)
 
     def revolution_freq(self, lattice_length):
-        _, beta = self.GammaBeta(self.kin_nrg_0)
+        _, beta = self.GammaBeta(self._kin_nrg_0)
         v = beta*CLIGHT
         return v/lattice_length

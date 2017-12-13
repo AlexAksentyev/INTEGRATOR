@@ -49,10 +49,10 @@ class RHS:
             raise ValueError('NaN state variable(s)')
         x, y, s, t, theta, H, px, py, dEn, Sx, Sy, Ss = state.reshape(VAR_NUM, self.n_ics, order='F')
 
-        KinEn = self.particle.kin_nrg_0*(1+dEn) # dEn = (En - En0) / En0
+        KinEn = self.particle.kinetic_energy*(1+dEn) # dEn = (En - En0) / En0
 
         Pc = self.particle.Pc(KinEn) # momentum in MeVs
-        P0c = self.particle.Pc(self.particle.kin_nrg_0) # reference momentum
+        P0c = self.particle.Pc(self.particle.kinetic_energy) # reference momentum
 
         Px, Py = [P0c*x for x in (px, py)] # turn px,py back to MeVs
         Ps = np.sqrt(Pc**2 - Px**2 - Py**2)
@@ -120,7 +120,7 @@ class RHS:
 
         DX = [xp, yp, np.repeat(1, self.n_ics), #xp, yp, sp
               tp, self.w_freq*tp, Hp, #tp, Thetap, Hp
-              Pxp/P0c, Pyp/P0c, dEnp/self.particle.kin_nrg_0, #pxp, pyp, dKp
+              Pxp/P0c, Pyp/P0c, dEnp/self.particle.kinetic_energy, #pxp, pyp, dKp
               Sxp, Syp, Ssp] #Sxp, Syp, Ssp
               # Theta
 
