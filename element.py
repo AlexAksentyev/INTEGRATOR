@@ -446,3 +446,11 @@ class ERF(Element):
 
     def kickVolts(self):
         return self.__U
+
+class Observer:
+    """This element of zero length is put where we want
+    to check the state vector.
+    """
+    
+    def __init__(self):
+        self.bool_skip = True
