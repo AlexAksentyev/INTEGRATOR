@@ -115,7 +115,7 @@ class Tracker:
             else: element = self.lattice[len(el_num)-1-eid]
 
             # choose if integrate or otherwise advance the state vector
-            skip = element.bool_skip
+            skip = element.skip
 
             #integrate at these points
             at = np.linspace(0, element.length, brks)
@@ -123,11 +123,13 @@ class Tracker:
             try:
                 element.front_kick(state)
                 state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
+                ### consider moving this segment to class Element
                 if not skip:
                     vals = odeint(self.rhs, state, at, args=(element, brks))
                     state = vals[brks-1] # [x0,y0,...,x1,y1,...]
                 else:
                     element.advance(state)
+                ###
                 state = state.reshape(n_ics, n_var) # [[x0,y0,...],
                                                     # [x1,y1,...],
                                                     # [x2,y2,...]]
