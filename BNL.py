@@ -121,31 +121,33 @@ if __name__ is '__main__':
     from particle_log import StateList
     from particle import Particle
     
-    deuteron = Particle()
+    import math
+    
+    deuteron_list = list()
+    n_deuteron = 3
+    for i in range(n_deuteron):
+        deu = Particle()
+        deu.kinetic_energy += deu.kinetic_energy*(i - math.floor(n_deuteron/2))*1e-3
+        deuteron_list.append(deu)
     
     trkr = Tracker()
     trkr.set_controls(inner=False, breaks=3)
     
-    bunch = StateList(dK=(0e-3,3e-4,4), x=(-1e-3,1e-3,3), y=(-1e-3,1e-3,3), Sz=1)
-    
-    lattice.insert_RF(0, 0, deuteron, E_field=15e7)
+    bunch = StateList(dK=(-3e-4,3e-4,4), Sz=1)
     
     turns = int(1e1)
-    track_tilt = False
     
 #%%
-    ## tracking clean lattice
-    from time import clock
-    start = clock()
-    log_vanilla = trkr.track(deuteron, bunch, lattice, turns)
-    print("Tracking took {:04.2f} seconds".format(clock()-start))
-#%%    
-    ## tracking tilted lattice
-    if track_tilt:
-        lattice.tilt('s', 0, .003)
+    log_list = list()
+    
+    for deu in deuteron_list:
+        lattice.insert_RF(0, 0, deu, E_field=15e7)
+        ## tracking clean lattice
+        from time import clock
         start = clock()
-        log_tilted = trkr.track(deuteron, bunch, lattice, turns)
+        log_list.append(trkr.track(deu, bunch, lattice, turns))
         print("Tracking took {:04.2f} seconds".format(clock()-start))
+
     
 #%%
     #plotting
@@ -154,37 +156,12 @@ if __name__ is '__main__':
     ylab = 'Sx'
     xlab = 's'    
     
-    
-#%%
-#    lattice.plot_segment('SSb1H1', log_vanilla, 'Sx', 's')
-    log_vanilla.plot(ylab, xlab, pids=[3, 6])
-    sec_edges = lattice.segment_edges(log_vanilla)
-    for edge in sec_edges:
-        plt.axvline(x=edge, color='r', linewidth=.5)
-    plt.title('E+B; 1 turn; section edges in vertical red')
-    
-    #%%
-    if track_tilt:
-        plt.figure()
-        plt.subplot(2,1,1)
-        log_vanilla.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
-        plt.title('E+B clean')
-        plt.subplot(2,1,2)
-        log_tilted.plot(ylab, xlab, pids=[6,18,15], new_plot=False)
-        plt.title('E+B tilted: S (0, .3)')
+#    plt.figure()
+    for i, log in enumerate(log_list):
+        plt.subplot(n_deuteron, 2, 2*i+1)
+        log.plot(new_plot=False)
+        plt.title(deuteron_list[i])
+        plt.subplot(n_deuteron, 2, 2*(i+1))
+        log.plot(ylab, xlab, new_plot=False)
     
     
-    #%%
-    if turns > 1:
-        import pandas as pds
-        plt.figure()
-        df = pds.DataFrame(log_vanilla[:, 0])
-        df5 = pds.DataFrame(log_vanilla[:, 5])
-        Sx = df.loc[df.Element==b'RF']['Sx']
-        trn = df.loc[df.Element==b'RF']['Turn']
-        Sx5 = df5.loc[df5.Element==b'RF']['Sx']
-        plt.plot(trn,Sx,label='lab')
-        plt.plot(trn,Sx-Sx5,label='ref')
-        plt.legend()
-        plt.title('Turn by turn, after RF')
-

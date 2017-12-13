@@ -269,11 +269,11 @@ if __name__ == '__main__':
     section.insert_RF(0, 0, deuteron, E_field=15e7)
 
     
-    log = trkr.track(deuteron, ini_states, section, 10)
+    log = trkr.track(deuteron, ini_states, section, 1)
 
 #%%
 #    section.plot_segment('RF', log, 'Sx', 's')
-    log.plot('Sx','s')
+    log.plot('px','s')
     sec_edges = section.segment_edges(log)
     for edge in sec_edges:
         plt.axvline(x=edge, linewidth=.8, color='b')
