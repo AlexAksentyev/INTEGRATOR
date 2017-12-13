@@ -272,7 +272,7 @@ if __name__ == '__main__':
     section.insert_RF(0, 0, deuteron, E_field=15e7)
 
 #%%
-    R3 = ent.Wien(361.55403e-2, 5e-2, deuteron, -120e5, 10*.082439761, R=42, name="R3")
+    R3 = ent.Wien(361.55403e-2, 5e-2, deuteron, -120e5, .082439761, name="R3")
 
     section = Lattice([R3], 'Wien')
 

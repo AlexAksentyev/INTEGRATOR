@@ -124,7 +124,7 @@ if __name__ is '__main__':
     import math
     
     deuteron_list = list()
-    n_deuteron = 3
+    n_deuteron = 1
     for i in range(n_deuteron):
         deu = Particle()
         deu.kinetic_energy += deu.kinetic_energy*(i - math.floor(n_deuteron/2))*1e-3
@@ -133,7 +133,7 @@ if __name__ is '__main__':
     trkr = Tracker()
     trkr.set_controls(inner=False, breaks=3)
     
-    bunch = StateList(dK=(-3e-4,3e-4,4), Sz=1)
+    bunch = StateList(Sz=1)
     
     turns = int(1e1)
     
@@ -153,7 +153,7 @@ if __name__ is '__main__':
     #plotting
     from matplotlib import pyplot as plt
     
-    ylab = 'Sx'
+    ylab = 'x'
     xlab = 's'    
     
 #    plt.figure()
