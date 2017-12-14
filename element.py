@@ -484,6 +484,8 @@ class Observer:
 #%%
 # setup
 if __name__ == '__main__':
+    """test code to produce log
+    """
     from lattice import Lattice
     from tracker import Tracker
     from particle_log import StateList
