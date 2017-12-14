@@ -259,7 +259,7 @@ if __name__ == '__main__':
     trkr.set_controls(inner=False, breaks=3)
 
     #%%
-    ini_states = StateList(Sz=1)
+    ini_states = StateList(Sz=1, x=1e-3)
     deuteron = Particle()
 
     segment_0 = Lattice(BNL.SSb1H2, 'SS')
@@ -272,15 +272,16 @@ if __name__ == '__main__':
     section.insert_RF(0, 0, deuteron, E_field=15e7)
 
 #%%
-    R3 = ent.Wien(361.55403e-2, 5e-2, deuteron, -120e5, .082439761, name="R3")
+    R3 = ent.Wien(361.55403e-2, 5e-2, deuteron, -120e5, .082439761*0, name="R3")
 
     section = Lattice([R3], 'Wien')
 
-    log = trkr.track(deuteron, ini_states, section, 100)
+    log = trkr.track(deuteron, ini_states, section, 1000)
 
     #%%
 #    section.plot_segment('RF', log, 'Sx', 's')
-    log.plot('x', 's')
+    log.plot('x', 's', pids=[0])
+#    log.plot('Sx', 's', new_plot=False)
 #    sec_edges = section.segment_edges(log)
 #    for edge in sec_edges:
 #        plt.axvline(x=edge, linewidth=.8, color='b')
