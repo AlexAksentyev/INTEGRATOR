@@ -305,7 +305,7 @@ class Wien(Element, Bend):
         self.__h_gap = h_gap
 
         super().__init__(curve=crv, length=length, name=name, reference_particle=reference_particle)
-        
+
         if R is not None:  # after Bend.__init__ self._Bend__radius = None ALWAYS
             self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
 
@@ -518,12 +518,13 @@ if __name__ == '__main__':
     angle = np.arctan(log[:, 1]['Sx']/log[:, 1]['Sz'])
 
     #%%
+    plt.figure()
     plt.plot(xpct_angle, angle, '-b', label='data')
     plt.plot(xpct_angle, xpct_angle, '--r', label='(0,1)')
     plt.legend()
 
     #%%
-
+    plt.figure()
     plt.plot(L, xpct_angle, '-r', label='expectation')
     plt.plot(L, angle, '--b', label='tracking')
     plt.legend()
