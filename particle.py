@@ -62,3 +62,30 @@ class Particle:
     def __repr__(self):
         data = dict(Mass0=self.mass0, KinEn0=self.kinetic_energy, gamma=self.gamma, G=self.G)
         return str(pds.DataFrame(data, index=[0]))
+
+
+#%%
+# analytical formulas to test code
+import rhs
+
+def MDM_frequency(particle, state, element):
+    """Positions argument is a vector of s-coordinates
+    at which to compute the frequency
+    """
+    n_ics = len(state)
+    print(n_ics)
+    state = state.flatten()
+    Ex, Ey, Es = element.EField(state)
+    B_vec = element.BField(state)
+
+    print(n_ics)
+    dK = state.reshape(rhs.VAR_NUM, n_ics, order='F')[rhs.IMAP['dK']]
+    K = particle.kinetic_energy*(1+dK) # dEn = (En - En0) / En0
+
+    gamma, beta = particle.GammaBeta(K)
+    beta_x_E = beta*np.array([Ey, Ex, np.repeat(0, n_ics)])
+    factor = 1/(gamma**2 - 1)
+
+    wG = -EZERO/particle.mass0_kg*(particle.G*B_vec + factor*beta_x_E)
+
+    return wG
