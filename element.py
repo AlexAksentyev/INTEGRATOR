@@ -12,7 +12,7 @@
     x = NP.reshape(x,n_tilt*3*n_state) # for flat array
     x = x.reshape((3,-1)) # for array [[fx00,fx01,..., fxij],[fyij],[fsij]]
     # i -- tilt matrix, j -- state vector index
-    
+
 TODO:
     * think about using slots in elements, tilt, field
 """
@@ -129,7 +129,7 @@ class Element:
         self.__chars = pds.DataFrame({'Curve':self.curve, 'Length':self.length}, index=[self.name])
 
         super().__init__(**kwargs)
-        
+
     @property
     def skip(self):
         return self.__bool_skip
@@ -173,11 +173,11 @@ class Bend:
         self.pardict = {'KinEn0':reference_particle.kinetic_energy, 'Mass0':reference_particle.mass0,
                         'q':q, 'clight':clight,
                         'm0':reference_particle.mass0/clight**2*1e6*q}
-        
+
         self.__radius = None
 
         super().__init__(**kwargs)
-        
+
     @property
     def radius(self):
         return self.__radius
@@ -461,26 +461,41 @@ class Observer:
     """This element of zero length is put where we want
     to check the state vector.
     """
-    
+
     def __init__(self):
         self.__bool_skip = True
-        
+
     @property
     def skip(self):
         return self.__bool_skip
-    
+
     def advance(self, state):
-        """In Tracker::track, when an element's skip is true, it uses 
+        """In Tracker::track, when an element's skip is true, it uses
         the element's advance method. Hence it is defined here.
         """
         pass
-        
-        
-#%%
 
+
+#%%
+# setup
 if __name__ == '__main__':
-    from particle import Particle
-    el = Element(0,1)
-    erf = ERF(3,Particle(), 5)
-    erf1 = ERF(0,Particle(), 5)
-    obs = Observer()
+    import particle as pcl
+    from lattice import Lattice
+    from tracker import Tracker
+    from particle_log import StateList
+
+    deu = pcl.Particle()
+    factor = - pcl.EZERO*deu.G/deu.mass0_kg
+    trkr = Tracker()
+
+    dip = MDipole(1, deu, B_field = 1)
+
+    lat = Lattice([dip], 'dipole')
+
+    istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
+
+    #%%
+    log = trkr.track(deu, istate, lat, 1)
+
+    log.plot('x', 's')
+    log.plot('Sx', 's')
