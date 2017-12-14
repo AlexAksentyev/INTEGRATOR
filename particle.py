@@ -45,7 +45,8 @@ class Particle:
         return np.array([(self.mass0, self._kin_nrg_0, self.G)],
                         dtype=[('Mass0', float), ('KinEn0', float), ('G', float)])
 
-    def GammaBeta(self, NRG):
+    def GammaBeta(self, NRG=None):
+        if NRG is None: NRG=self.kinetic_energy
         gamma = NRG / self.mass0 + 1
         beta = np.sqrt(gamma**2-1)/gamma
         return (gamma, beta)
