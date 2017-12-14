@@ -184,7 +184,7 @@ class PLog(np.recarray):
 
         return Log
 
-    def particles(self, from_=0, to_=None):
+    def trajectories(self, from_=0, to_=None):
         """Returns a generator of particle logs. That is,
         in the expression:
             for p in plog.particles():
