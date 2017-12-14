@@ -479,23 +479,46 @@ class Observer:
 #%%
 # setup
 if __name__ == '__main__':
-    import particle as pcl
     from lattice import Lattice
     from tracker import Tracker
     from particle_log import StateList
+    import matplotlib.pyplot as plt
 
     deu = pcl.Particle()
-    factor = - pcl.EZERO*deu.G/deu.mass0_kg
     trkr = Tracker()
 
-    dip = MDipole(1, deu, B_field = 1)
+    DL = 1
+    dip = MDipole(DL, deu, B_field = 1)
 
     lat = Lattice([dip], 'dipole')
 
     istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
 
     #%%
-    log = trkr.track(deu, istate, lat, 1)
+    # tracking
+    log = trkr.track(deu, istate, lat, 100)
 
-    log.plot('x', 's')
     log.plot('Sx', 's')
+    log.plot('Sx', 'Sz')
+
+    #%%
+    # analytical cross-check
+    v = deu.GammaBeta()[1]*pcl.CLIGHT
+    factor = - pcl.EZERO*deu.G/deu.mass0_kg
+    By = dip.get_B_field()[1]
+    xpct_w = factor*By
+    L = np.arange(0,101,1)
+    xpct_angle = [a if a < np.pi/2 else a-np.pi for a in xpct_w*L/v]
+
+    angle = np.arctan(log[:, 1]['Sx']/log[:, 1]['Sz'])
+
+    #%%
+    plt.plot(xpct_angle, angle, '-b', label='data')
+    plt.plot(xpct_angle, xpct_angle, '--r', label='(0,1)')
+    plt.legend()
+
+    #%%
+
+    plt.plot(L, xpct_angle, '-r', label='expectation')
+    plt.plot(L, angle, '--b', label='tracking')
+    plt.legend()
