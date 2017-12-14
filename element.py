@@ -12,7 +12,7 @@
     x = NP.reshape(x,n_tilt*3*n_state) # for flat array
     x = x.reshape((3,-1)) # for array [[fx00,fx01,..., fxij],[fyij],[fsij]]
     # i -- tilt matrix, j -- state vector index
-    
+
 TODO:
     * think about using slots in elements, tilt, field
 """
@@ -129,7 +129,7 @@ class Element:
         self.__chars = pds.DataFrame({'Curve':self.curve, 'Length':self.length}, index=[self.name])
 
         super().__init__(**kwargs)
-        
+
     @property
     def skip(self):
         return self.__bool_skip
@@ -173,11 +173,11 @@ class Bend:
         self.pardict = {'KinEn0':reference_particle.kinetic_energy, 'Mass0':reference_particle.mass0,
                         'q':q, 'clight':clight,
                         'm0':reference_particle.mass0/clight**2*1e6*q}
-        
+
         self.__radius = None
 
         super().__init__(**kwargs)
-        
+
     @property
     def radius(self):
         return self.__radius
@@ -466,26 +466,64 @@ class Observer:
     """This element of zero length is put where we want
     to check the state vector.
     """
-    
+
     def __init__(self):
         self.__bool_skip = True
-        
+
     @property
     def skip(self):
         return self.__bool_skip
-    
+
     def advance(self, state):
-        """In Tracker::track, when an element's skip is true, it uses 
+        """In Tracker::track, when an element's skip is true, it uses
         the element's advance method. Hence it is defined here.
         """
         pass
-        
-        
-#%%
 
+
+#%%
+# setup
 if __name__ == '__main__':
-    from particle import Particle
-    el = Element(0,1)
-    erf = ERF(3,Particle(), 5)
-    erf1 = ERF(0,Particle(), 5)
-    obs = Observer()
+    from lattice import Lattice
+    from tracker import Tracker
+    from particle_log import StateList
+    import matplotlib.pyplot as plt
+
+    deu = pcl.Particle()
+    trkr = Tracker()
+
+    DL = 1
+    dip = MDipole(DL, deu, B_field = 1)
+
+    lat = Lattice([dip], 'dipole')
+
+    istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
+
+    #%%
+    # tracking
+    log = trkr.track(deu, istate, lat, 100)
+
+    log.plot('Sx', 's')
+    log.plot('Sx', 'Sz')
+
+    #%%
+    # analytical cross-check
+    v = deu.GammaBeta()[1]*pcl.CLIGHT
+    factor = - pcl.EZERO*deu.G/deu.mass0_kg
+    By = dip.get_B_field()[1]
+    xpct_w = factor*By
+    L = np.arange(0,101,1)
+    xpct_angle = [a if a < np.pi/2 else a-np.pi for a in xpct_w*L/v]
+
+    angle = np.arctan(log[:, 1]['Sx']/log[:, 1]['Sz'])
+
+    #%%
+    plt.plot(xpct_angle, angle, '-b', label='data')
+    plt.plot(xpct_angle, xpct_angle, '--r', label='(0,1)')
+    plt.legend()
+
+    #%%
+
+    plt.plot(L, xpct_angle, '-r', label='expectation')
+    plt.plot(L, angle, '--b', label='tracking')
+    plt.legend()

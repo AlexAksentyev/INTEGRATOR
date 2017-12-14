@@ -184,6 +184,20 @@ class PLog(np.recarray):
 
         return Log
 
+    def particles(self, from_=0, to_=None):
+        """Returns a generator of particle logs. That is,
+        in the expression:
+            for p in plog.particles():
+                plot(p['s'], p['x'])
+        p = plog[:, i] for the next i, and hence
+        the code above will plot x vs s for all of the
+        logged particles.
+        """
+        if to_ is None or to_ > self.n_ics:
+            to_ = self.n_ics
+        for pid in range(from_, to_):
+            yield self[:, pid]
+
     def write_file(self, file_handle, from_=0, to_=None):
         if to_ is None: to_ = self.nrow - 1
         pids = self[0]['PID']
@@ -320,4 +334,4 @@ class PLog(np.recarray):
 
 if __name__ == '__main__':
     state_list = StateList(Sz=1, dK=(0, 1e-4, 1), x=(-1e-3, 1e-3, 1))
-    log = PLog.from_file('test')
+    log = PLog.from_file('SS+ARC+SS_0')
