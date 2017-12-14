@@ -188,7 +188,7 @@ class PLog(np.recarray):
         """Returns a generator of particle logs. That is,
         in the expression:
             for p in plog.particles():
-                plot(p['s'],p['x'])
+                plot(p['s'], p['x'])
         p = plog[:, i] for the next i, and hence
         the code above will plot x vs s for all of the
         logged particles.
