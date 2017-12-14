@@ -19,7 +19,7 @@ class Particle:
         self._kin_nrg_0 = mass*(gamma - 1)
         self.G = G
 
-        self.mass0_kg = self.mass0/CLIGHT**2/EZERO*1e6
+        self.mass0_kg = self.mass0/CLIGHT**2*EZERO*1e6
 
     @property
     def gamma(self):
