@@ -494,16 +494,18 @@ if __name__ == '__main__':
     deu = pcl.Particle()
     trkr = Tracker()
 
-    DL = 1
-    dip = MDipole(DL, deu, B_field = 1)
+    DL = 361.55403e-2
+    element = MDipole(DL, deu, B_field = 1)
+#    element = Wien(DL, .05, deu, -120e5, 0*.082439761)
 
-    lat = Lattice([dip], 'dipole')
+    lat = Lattice([element], 'dipole')
 
     istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
 
     #%%
     # tracking
-    log = trkr.track(deu, istate, lat, 100)
+    nturn = 100
+    log = trkr.track(deu, istate, lat, nturn)
 
     log.plot('Sx', 's')
     log.plot('Sx', 'Sz')
@@ -512,9 +514,9 @@ if __name__ == '__main__':
     # analytical cross-check
     v = deu.GammaBeta()[1]*pcl.CLIGHT
     factor = - pcl.EZERO*deu.G/deu.mass0_kg
-    By = dip.get_B_field()[1]
+    By = element.get_B_field()[1]
     xpct_w = factor*By
-    L = np.arange(0,101,1)
+    L = np.arange(0,(nturn+1)*DL,DL)
     xpct_angle = [a if a < np.pi/2 else a-np.pi for a in xpct_w*L/v]
 
     angle = np.arctan(log[:, 1]['Sx']/log[:, 1]['Sz'])

@@ -10,7 +10,7 @@ Analytical formulas to test code
 #%%
 import numpy as np
 import rhs
-from particle import EZERO
+from particle import EZERO, CLIGHT
 from particle_log import PLog
 from numpy.lib.recfunctions import merge_arrays
 
@@ -56,16 +56,18 @@ class Analytics:
         gamma, beta = self.particle.GammaBeta(K)
         beta_x_E = beta*np.array([Ey, Ex, np.repeat(0, self.n_state)])
         factor = 1/(gamma**2 - 1)
-        wG = -EZERO/self.particle.mass0_kg*(self.particle.G*B_vec + factor*beta_x_E)
+        wG = -EZERO/self.particle.mass0_kg*(self.particle.G*B_vec + factor*beta_x_E/CLIGHT)
 
         return list(zip(wG[0], wG[1], wG[2]))
 
     def _delta_phase(self, state, element):
         freq = self._frequency_MDM(state, element)
         t = state[rhs.index(state, 't')][0]
+        dt = t - self._old_time
+        self._old_time = t
 
         for i, w_vec in enumerate(freq):
-            freq[i] = tuple(t*w for w in w_vec)
+            freq[i] = tuple(dt*w for w in w_vec)
 
         return freq
 
@@ -81,6 +83,7 @@ class Analytics:
 
     def compute_MDM_phase(self):
         rec_type = list(zip(['ThX', 'ThY', 'ThS'], np.repeat(float,3)))
+        self._old_time = 0
         Th = self._run_log(self._delta_phase, rec_type)
         return Th
 
@@ -93,11 +96,16 @@ if __name__ == '__main__':
     _log = merge_arrays((log, Wmdm), asrecarray=True, flatten=True) #append fields
 
     state = _read_record(log[5])
-    freq = a._frequency_MDM(state, dip)
+    freq = a._frequency_MDM(state, element)
     t = state[rhs.index(state, 't')][0]
     DTHmdm = a.compute_MDM_phase()
 
+    #%%
+
 #    dthY = DTHmdm[:, 0]['ThY']
-    dthY = [a if a < np.pi/2 else a-np.pi for a in DTHmdm[:, :]['ThY']]
-    angle = np.arctan(log[:, :]['Sx']/log[:, :]['Sz'])
-    plt.plot(dthY, '-r', angle, '--b')
+    pid = 3
+    dthY = [a if a < np.pi/2 else a-np.pi for a in DTHmdm[:, pid]['ThY']]
+    angle = np.arctan(log[:, pid]['Sx']/log[:, pid]['Sz'])
+    plt.plot(log[:, pid]['t'], dthY, '-r', label='analytics')
+    plt.plot(log[:, pid]['t'], angle, '--b', label='tracking')
+    plt.legend()
