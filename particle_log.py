@@ -87,9 +87,6 @@ class StateList:
 #%%
 
 
-#%%
-
-
 class PLog(np.recarray):
     """Particle log is a 3D recarray, where the 1st index refers to the particle (ics),
     the 2nd to the row (record), the 3rd to the variable (like x,y,s, &c).
