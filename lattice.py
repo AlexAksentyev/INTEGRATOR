@@ -92,18 +92,26 @@ class Lattice:
     def __repr__(self):
         return self._sequence.__repr__()
 
-    def __iter__(self):
-        self.__current_id = 0
-        return self
+#    def __iter__(self):
+#        self.__current_id = 0
+#        return self
+#
+#    def __next__(self):
+#        last_id = self.count - 1
+#        if self.__current_id <= last_id:
+#            result = self[self.__current_id]
+#            self.__current_id += 1
+#            return result
+#        else:
+#            raise StopIteration
 
-    def __next__(self):
-        last_id = self.count - 1
-        if self.__current_id <= last_id:
-            result = self[self.__current_id]
-            self.__current_id += 1
-            return result
-        else:
-            raise StopIteration
+    def elements(self, from_=0, to_=None):
+        """Generator for iterating through lattice elements.
+        """
+        if to_ is None or to_ > self.count:
+            to_ = self.count
+        for eid in range(from_, to_):
+            yield self[eid]
 
     def insert_RF(self, position, length, reference_particle, **ERF_pars):
         if self.RF.index is not None and self.RF.index != position:
