@@ -187,7 +187,7 @@ class PLog(np.recarray):
     def trajectories(self, from_=0, to_=None):
         """Returns a generator of particle logs. That is,
         in the expression:
-            for p in plog.particles():
+            for p in plog.trajectories():
                 plot(p['s'], p['x'])
         p = plog[:, i] for the next i, and hence
         the code above will plot x vs s for all of the
