@@ -38,6 +38,16 @@ class Analytics:
         self.log = log
         self.lattice = lattice
 
+    def _run_log(self, function, rec_type):
+        table = np.recarray((self.n_rows, self.n_state), dtype=rec_type)
+        for i, record in enumerate(self.log):
+            flat_state = _read_record(record)
+            eid = record['EID'][0]
+            element = self.lattice[eid]
+            table[i] = function(flat_state, element)
+
+        return table
+
     def _frequency_MDM(self, state, element):
         Ex, Ey, _ = element.EField(state)
         B_vec = element.BField(state)
@@ -50,27 +60,44 @@ class Analytics:
 
         return list(zip(wG[0], wG[1], wG[2]))
 
+    def _delta_phase(self, state, element):
+        freq = self._frequency_MDM(state, element)
+        t = state[rhs.index(state, 't')][0]
+
+        for i, w_vec in enumerate(freq):
+            freq[i] = tuple(t*w for w in w_vec)
+
+        return freq
+
+
     def compute_MDM_frequency(self):
         """Computes the MDM frequency based on the logged state,
         and the fields from lattice elements.
         """
-        # create MDM frequency log
         rec_type = [('Wx', float), ('Wy', float), ('Wz', float)]
-        Wmdm = np.recarray((self.n_rows, self.n_state), dtype=rec_type)
-
-        for i, record in enumerate(self.log):
-            flat_state = _read_record(record)
-            eid = record['EID'][0]
-            element = self.lattice[eid]
-            Wmdm[i] = self._frequency_MDM(flat_state, element)
+        Wmdm = self._run_log(self._frequency_MDM, rec_type)
 
         return Wmdm
 
+    def compute_MDM_phase(self):
+        rec_type = list(zip(['ThX', 'ThY', 'ThS'], np.repeat(float,3)))
+        Th = self._run_log(self._delta_phase, rec_type)
+        return Th
 
 
 #%%
 if __name__ == '__main__':
     pass
-    a = Analytics(deu, _log, _lat)
+    a = Analytics(deu, log, lat)
     Wmdm = a.compute_MDM_frequency()
-    _log = merge_arrays((_log, Wmdm)) #append fields
+    _log = merge_arrays((log, Wmdm), asrecarray=True, flatten=True) #append fields
+
+    state = _read_record(log[5])
+    freq = a._frequency_MDM(state, dip)
+    t = state[rhs.index(state, 't')][0]
+    DTHmdm = a.compute_MDM_phase()
+
+#    dthY = DTHmdm[:, 0]['ThY']
+    dthY = [a if a < np.pi/2 else a-np.pi for a in DTHmdm[:, :]['ThY']]
+    angle = np.arctan(log[:, :]['Sx']/log[:, :]['Sz'])
+    plt.plot(dthY, '-r', angle, '--b')
