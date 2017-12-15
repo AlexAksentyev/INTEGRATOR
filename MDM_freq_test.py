@@ -5,6 +5,7 @@ Created on Thu Dec 14 17:59:07 2017
 
 @author: alexa
 """
+#%%
 
 # analytical formulas to test code
 import numpy as np
@@ -31,15 +32,22 @@ def MDM_frequency(particle, state, element):
 
     return wG
 
+#%%
 if __name__ == '__main__':
     """log, deu, element --- from a previous run
     i.e., work in tandem with element.py
     """
+    element=None
+    for v in globals().values():
+        if isinstance(v, Element):
+            print(v.name)
+            element = v
+
     n_state = len(log[0])
     state = np.empty((n_state, rhs.VAR_NUM))
 
     at = 0
-    for i, p in enumerate(log.particles()):
+    for i, p in enumerate(log.trajectories()):
         state[i] = list(p[at])[5:]
 
     Wmdm = MDM_frequency(deu, state, element)
