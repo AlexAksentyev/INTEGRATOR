@@ -495,8 +495,8 @@ if __name__ == '__main__':
     trkr = Tracker()
 
     DL = 361.55403e-2
-    element = MDipole(DL, deu, B_field = 1)
-#    element = Wien(DL, .05, deu, -120e5, 0*.082439761)
+#    element = MDipole(DL, deu, B_field = 1)
+    element = Wien(DL, .05, deu, -120e5, 0*.082439761)
 
     lat = Lattice([element], 'dipole')
 
@@ -529,7 +529,7 @@ if __name__ == '__main__':
 
     #%%
     plt.figure()
-    rng = slice(None)#slice(26,30)
+    rng = slice(None)
     plt.plot(L[rng], xpct_angle[rng], '-r', label='expectation')
     plt.plot(L[rng], angle[rng], '--b', label='tracking')
     plt.legend()

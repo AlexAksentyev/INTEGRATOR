@@ -5,7 +5,10 @@ Created on Thu Dec 14 17:59:07 2017
 
 @author: alexa
 
-Analytical formulas to test code
+Analytical formulas to test code.
+
+EXPLANATION:
+
 """
 #%%
 import numpy as np
@@ -26,10 +29,20 @@ def _read_record(log_record):
 
     return flat_state
 
+def map_to_right_semicircle(angle):
+    result = [a - np.pi if np.cos(a) < 0 else a for a in angle%(2*np.pi)]
+    return [a - 2*np.pi if a >= 1.5*np.pi else a for a in result]
+
+def cross(a, b):
+    """The cross-product of a and b."""
+    ax, ay, az = a
+    bx, by, bz = b
+
+    return [ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx]
+
 class Analytics:
     """Analytical tests of integrator code.
     """
-
 
     def __init__(self, particle, log, lattice):
         self.particle = particle
@@ -49,12 +62,24 @@ class Analytics:
         return table
 
     def _frequency_MDM(self, state, element):
-        Ex, Ey, _ = element.EField(state)
+        Ex, Ey, Es = element.EField(state)
         B_vec = element.BField(state)
-        dK = state.reshape(rhs.VAR_NUM, self.n_state, order='F')[rhs.IMAP['dK']]
+        dK = state[rhs.index(state, 'dK')]
         K = self.particle.kinetic_energy*(1+dK) # dEn = (En - En0) / En0
         gamma, beta = self.particle.GammaBeta(K)
-        beta_x_E = beta*np.array([Ey, Ex, np.repeat(0, self.n_state)])
+
+        kappa = element.curve
+        x = state[rhs.index(state, 'x')]
+        hs = 1 + kappa*x
+        Pc = self.particle.Pc(K)
+        P0c = self.particle.Pc(self.particle.kinetic_energy)
+        Px = state[rhs.index(state, 'px')]*P0c
+        Py = state[rhs.index(state, 'py')]*P0c
+        Ps = np.sqrt(Pc**2 - Px**2 - Py**2)
+        beta = beta*[Px, Py, Ps/hs]/Pc
+
+        beta_x_E = cross(beta, (Ex, Ey, Es))
+
         factor = 1/(gamma**2 - 1)
         wG = -EZERO/self.particle.mass0_kg*(self.particle.G*B_vec + factor*beta_x_E/CLIGHT)
 
@@ -66,10 +91,13 @@ class Analytics:
         dt = t - self._old_time # time difference
         self._old_time = t # update time for the next function call
 
+        print('dt:', dt)
+
         for i, w_vec in enumerate(freq):
-            self._phase[i] = tuple(x+y for x,y in zip(self._phase[i],
+            self._phase[i] = tuple(x+y for x, y in zip(self._phase[i],
                                                       tuple(dt*w for w in w_vec)))
 
+        print(self._phase)
         return self._phase
 
 
@@ -83,7 +111,7 @@ class Analytics:
         return Wmdm
 
     def compute_MDM_phase(self):
-        rec_type = list(zip(['ThX', 'ThY', 'ThS'], np.repeat(float,3)))
+        rec_type = list(zip(['ThX', 'ThY', 'Thz'], np.repeat(float,3)))
         self._old_time = 0
         self._phase = np.zeros(self.n_state, dtype=rec_type)
         Th = self._run_log(self._phase_MDM, rec_type)
@@ -93,22 +121,49 @@ class Analytics:
 
 #%%
 if __name__ == '__main__':
-    pass
+    import particle as pcl
+    import element as ent
+    from lattice import Lattice
+    from tracker import Tracker
+    from particle_log import StateList
+    import matplotlib.pyplot as plt
+
+    deu = pcl.Particle()
+    trkr = Tracker()
+
+    DL = 361.55403e-2
+    element0 = ent.MDipole(DL, deu, B_field = .001)
+    element1 = ent.Wien(DL, .05, deu, -120e5, 0*.082439761)
+    element2 = ent.MQuad(DL, 8.6)
+    element3 = ent.MQuad(DL, -8.6)
+
+    lat = Lattice([element0, element1, element2, element3], 'test_lat')
+
+    istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
+
+    nturn = 1
+    log = trkr.track(deu, istate, lat, nturn)
+
     a = Analytics(deu, log, lat)
     Wmdm = a.compute_MDM_frequency()
     _log = merge_arrays((log, Wmdm), asrecarray=True, flatten=True) #append fields
 
-    state = _read_record(log[5])
-    freq = a._frequency_MDM(state, element)
+    state = _read_record(log[1])
     t = state[rhs.index(state, 't')][0]
     THmdm = a.compute_MDM_phase()
 
     #%%
 
-    pid = 3
-    dthY = [a-np.pi if np.cos(a) < 0 else a for a in THmdm[:, pid]['ThY']%(2*np.pi)]
-    dthY = [a - 2*np.pi if a >= 1.5*np.pi else a for a in dthY]
-    angle = np.arctan(log[:, pid]['Sx']/log[:, pid]['Sz'])
-    plt.plot(log[:, pid]['t'], dthY, '-r', label='analytics')
-    plt.plot(log[:, pid]['t'], angle, '--b', label='tracking')
+    pid = 1
+    Sx = log[:, pid]['Sx']
+    Sz = log[:, pid]['Sz']
+    dthY = map_to_right_semicircle(THmdm[:, pid]['ThY'])
+    angle = np.arctan(Sx/Sz)
+
+    plt.figure()
+    plt.plot(log[:, pid]['s'], np.sin(dthY), '-r', label='analytics')
+    plt.plot(log[:, pid]['s'], Sx, '--b', label='tracking')
     plt.legend()
+    plt.xlabel('s')
+    plt.ylabel('Sx')
+
