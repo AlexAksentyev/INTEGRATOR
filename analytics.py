@@ -60,16 +60,17 @@ class Analytics:
 
         return list(zip(wG[0], wG[1], wG[2]))
 
-    def _delta_phase(self, state, element):
-        freq = self._frequency_MDM(state, element)
-        t = state[rhs.index(state, 't')][0]
-        dt = t - self._old_time
-        self._old_time = t
+    def _phase_MDM(self, state, element):
+        freq = self._frequency_MDM(state, element) # spin mdm tune inside element
+        t = state[rhs.index(state, 't')][0] # current time
+        dt = t - self._old_time # time difference
+        self._old_time = t # update time for the next function call
 
         for i, w_vec in enumerate(freq):
-            freq[i] = tuple(dt*w for w in w_vec)
+            self._phase[i] = tuple(x+y for x,y in zip(self._phase[i],
+                                                      tuple(dt*w for w in w_vec)))
 
-        return freq
+        return self._phase
 
 
     def compute_MDM_frequency(self):
@@ -84,7 +85,9 @@ class Analytics:
     def compute_MDM_phase(self):
         rec_type = list(zip(['ThX', 'ThY', 'ThS'], np.repeat(float,3)))
         self._old_time = 0
-        Th = self._run_log(self._delta_phase, rec_type)
+        self._phase = np.zeros(self.n_state, dtype=rec_type)
+        Th = self._run_log(self._phase_MDM, rec_type)
+
         return Th
 
 
@@ -98,13 +101,13 @@ if __name__ == '__main__':
     state = _read_record(log[5])
     freq = a._frequency_MDM(state, element)
     t = state[rhs.index(state, 't')][0]
-    DTHmdm = a.compute_MDM_phase()
+    THmdm = a.compute_MDM_phase()
 
     #%%
 
-#    dthY = DTHmdm[:, 0]['ThY']
     pid = 3
-    dthY = [a if a < np.pi/2 else a-np.pi for a in DTHmdm[:, pid]['ThY']]
+    dthY = [a-np.pi if np.cos(a) < 0 else a for a in THmdm[:, pid]['ThY']%(2*np.pi)]
+    dthY = [a - 2*np.pi if a >= 1.5*np.pi else a for a in dthY]
     angle = np.arctan(log[:, pid]['Sx']/log[:, pid]['Sz'])
     plt.plot(log[:, pid]['t'], dthY, '-r', label='analytics')
     plt.plot(log[:, pid]['t'], angle, '--b', label='tracking')

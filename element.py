@@ -517,7 +517,7 @@ if __name__ == '__main__':
     By = element.get_B_field()[1]
     xpct_w = factor*By
     L = np.arange(0,(nturn+1)*DL,DL)
-    xpct_angle = [a if a < np.pi/2 else a-np.pi for a in xpct_w*L/v]
+    xpct_angle = [a if a<np.pi/2 else a-np.pi for a in (xpct_w*L/v)%(2*np.pi)]
 
     angle = np.arctan(log[:, 1]['Sx']/log[:, 1]['Sz'])
 
@@ -529,6 +529,7 @@ if __name__ == '__main__':
 
     #%%
     plt.figure()
-    plt.plot(L, xpct_angle, '-r', label='expectation')
-    plt.plot(L, angle, '--b', label='tracking')
+    rng = slice(None)#slice(26,30)
+    plt.plot(L[rng], xpct_angle[rng], '-r', label='expectation')
+    plt.plot(L[rng], angle[rng], '--b', label='tracking')
     plt.legend()
