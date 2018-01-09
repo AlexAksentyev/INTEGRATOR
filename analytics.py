@@ -84,21 +84,6 @@ class Analytics:
 
         return list(zip(wG[0], wG[1], wG[2]))
 
-    def _phase_MDM(self, state, element):
-        freq = self._frequency_MDM(state, element) # spin mdm tune inside element
-        t = state[rhs.index(state, 't')][0] # current time
-        dt = t - self._old_time # time difference
-        self._old_time = t # update time for the next function call
-
-        print('dt:', dt)
-
-        for i, w_vec in enumerate(freq):
-            self._phase[i] = tuple(x+y for x, y in zip(self._phase[i],
-                                                      tuple(dt*w for w in w_vec)))
-
-        print(self._phase)
-        return self._phase
-
 
     def compute_MDM_frequency(self):
         """Computes the MDM frequency based on the logged state,
@@ -108,14 +93,6 @@ class Analytics:
         Wmdm = self._run_log(self._frequency_MDM, rec_type)
 
         return Wmdm
-
-    def compute_MDM_phase(self):
-        rec_type = list(zip(['ThX', 'ThY', 'Thz'], np.repeat(float,3)))
-        self._old_time = 0
-        self._phase = np.zeros(self.n_state, dtype=rec_type)
-        Th = self._run_log(self._phase_MDM, rec_type)
-
-        return Th
 
 
 #%%
@@ -149,20 +126,4 @@ if __name__ == '__main__':
 
     state = _read_record(log[1])
     t = state[rhs.index(state, 't')][0]
-    THmdm = a.compute_MDM_phase()
-
-    #%%
-
-    pid = 1
-    Sx = log[:, pid]['Sx']
-    Sz = log[:, pid]['Sz']
-    dthY = map_to_right_semicircle(THmdm[:, pid]['ThY'])
-    angle = np.arctan(Sx/Sz)
-
-    plt.figure()
-    plt.plot(log[:, pid]['s'], np.sin(dthY), '-r', label='analytics')
-    plt.plot(log[:, pid]['s'], Sx, '--b', label='tracking')
-    plt.legend()
-    plt.xlabel('s')
-    plt.ylabel('Sx')
 
