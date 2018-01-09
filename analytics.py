@@ -21,11 +21,10 @@ NUM_META = len(PLog.metadata_type)
 def _read_record(log_record):
     n_state = len(log_record)
     flat_state = np.empty(n_state*rhs.VAR_NUM)
-#    metadata = np.empty((n_state, NUM_META), dtype=PLog.metadata_type)
 
     for j, vec in enumerate(log_record):
         flat_state[j*rhs.VAR_NUM:(j+1)*rhs.VAR_NUM] = list(vec)[NUM_META+1:]
-#        metadata[j] = list(vec)[:NUM_META]
+                # everything after metadata + PID is state variables
 
     return flat_state
 

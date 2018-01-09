@@ -495,8 +495,8 @@ if __name__ == '__main__':
     trkr = Tracker()
 
     DL = 361.55403e-2
-#    element = MDipole(DL, deu, B_field = 1)
-    element = Wien(DL, .05, deu, -120e5, 0*.082439761)
+    element = MDipole(DL, deu, B_field = 1)
+#    element = Wien(DL, .05, deu, -120e5, 0*.082439761)
 
     lat = Lattice([element], 'dipole')
 

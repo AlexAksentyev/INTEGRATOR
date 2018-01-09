@@ -99,7 +99,8 @@ class PLog(np.recarray):
     variable_type = list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
     record_type = metadata_type + [('PID', int)] + variable_type
                 ## PID field is weird like this to enable automatic
-                ## pid setting in setitem (if it were metadata, i'd have to supply it)
+                ## pid setting in setitem (if it were metadata, i'd have to supply it,
+                ## and that causes problems in __array_finalize__
                 ## i could actually do without it, now that i know that subsetting
                 ## a recarray makes it 1D, and I have to manually reshape it.
 
