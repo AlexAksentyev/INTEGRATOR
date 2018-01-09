@@ -41,8 +41,8 @@ class RHS:
 
 
     def __call__(self, state, at, element, brks):
-        """Computes the RHS of the differential system 
-        defined by the fields of element, at s-coordinate at. 
+        """Computes the RHS of the differential system
+        defined by the fields of element, at s-coordinate at.
         Argument brks is required for computing the delta ds (s, s+ds).
         """
         if np.isnan(state).any():
@@ -86,7 +86,7 @@ class RHS:
         gammap = dEnp/self.particle.mass0 # gamma prime
 
          ## I don't understand the following formulas
-        betap = (dEnp*(self.particle.mass0)**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
+        betap = (dEnp*self.particle.mass0**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
         D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
 
         # these two are in the original dimensions
@@ -100,9 +100,9 @@ class RHS:
         Px, Py, Ps = [e*q*1e6/CLIGHT for e in (Px, Py, Ps)] # the original formulas use momenta, not P*c
 
         t5 = tp
-        t6 =  t5* (q / (gamma * m0 * self.particle.mass0)) * (self.particle.G + 1/(1 + gamma))
+        t6 =  t5*  q / (gamma * (m0 * CLIGHT)**2 ) * (self.particle.G + 1/(1 + gamma))
         sp1 = t5*(-q / (gamma*m0))*(1 + self.particle.G * gamma)
-        sp2 = t5*( q / (gamma*m0**2 * self.particle.mass0)) * (self.particle.G/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
+        sp2 = t5*  q / (gamma*m0* (m0 * CLIGHT)**2) * self.particle.G/(1 + gamma)*(Px*Bx+Py*By+Ps*Bs)
 
         # this is probably from TBMT
         Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - \
