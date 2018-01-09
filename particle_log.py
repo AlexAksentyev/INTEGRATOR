@@ -74,6 +74,9 @@ class StateList:
     def __getitem__(self, pid):
         return self.state_list[pid]
 
+    def pop(self, index):
+        self.state_list.pop(index)
+
     def __repr__(self):
         from pandas import DataFrame
         return str(DataFrame(self.state_list))
