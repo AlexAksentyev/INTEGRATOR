@@ -5,9 +5,11 @@ Created on Thu Dec 14 17:59:07 2017
 
 @author: alexa
 
-Analytical formulas to test code.
-
-EXPLANATION:
+Here I compute and compare the spin tunes resulting from tracking code
+with those computed according to the TBMT equation. The analytics class
+takes care of the TBMT part; the tracking tunes (Wy specifically) are
+computed from the values of the spin (Sx specifically), at the different
+points inside the test lattice.
 
 """
 #%%
@@ -109,7 +111,7 @@ if __name__ == '__main__':
     trkr = Tracker()
     trkr.set_controls(inner=True)
 
-    DL = 5e-2
+    DL = 300e-2
     element0 = ent.MDipole(DL, deu, B_field=.001)
     element1 = ent.Wien(DL, .05, deu, -120e5, 0*.082439761)
     element2 = ent.MQuad(DL, 8.6)
@@ -117,7 +119,8 @@ if __name__ == '__main__':
 
     lat = Lattice([element0], 'test_lat')
 
-    istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
+    istate = StateList(Sz=1, x=1e-3, px=(-2e-4, 2e-4, 3))
+    istate.pop(2) # remove redundant reference particle state
 
     nturn = 1
     log = trkr.track(deu, istate, lat, nturn)
@@ -132,8 +135,15 @@ if __name__ == '__main__':
 
     #%%
     ## spin value differences for the computation of the vertical MDM frequency
-    Sx_diff = np.diff(log['Sx'], axis=0)
-    eid = log['EID'][1:, 0]
-    lengths = [lat[i].length for i in eid]
+    df = log[['t', 'x', 'Wy', 'Sx']]
+    Sx = df[['t', 'Sx']]
+    Sx_diff = np.zeros((len(Sx)-1, len(Sx[0])), dtype=Sx.dtype)
+    Sx_diff['t'] = np.repeat(np.diff(Sx['t'][:,0], axis=0),3).reshape(-1,3)
+    Sx_diff['Sx'] = np.diff(Sx['Sx'], axis=0)
+    Sx_der = np.divide(Sx_diff['Sx'], Sx_diff['t'])
+    cos_theta = np.sqrt(1 - Sx['Sx'][:-1]**2)
+    Wmdm_trkr = np.divide(Sx_der, cos_theta)
 
-
+    plt.figure()
+    plt.plot(Sx['t'][1:,1], Wmdm_trkr[:,1])
+    plt.plot(Sx['t'][1:,1], Wmdm[1:,1]['Wy'])
