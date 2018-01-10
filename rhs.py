@@ -18,6 +18,9 @@ VAR_NUM = len(VAR_NAME)
 def index(array, *names):
     return [np.arange(IMAP[name], len(array), VAR_NUM) for name in names]
 
+def select(array, *names):
+    return [array[idx] for idx in index(array, *names)]
+
 class RHS:
     """Representation of the differential equation's right hand side;
     The RHS' for different elements are determined by the elements'
@@ -41,8 +44,8 @@ class RHS:
 
 
     def __call__(self, state, at, element, brks):
-        """Computes the RHS of the differential system 
-        defined by the fields of element, at s-coordinate at. 
+        """Computes the RHS of the differential system
+        defined by the fields of element, at s-coordinate at.
         Argument brks is required for computing the delta ds (s, s+ds).
         """
         if np.isnan(state).any():
