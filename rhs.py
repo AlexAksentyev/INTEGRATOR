@@ -129,4 +129,7 @@ class RHS:
               Sxp, Syp, Ssp] #Sxp, Syp, Ssp
               # Theta
 
+        print('element: ', element.name)
+        print('dSx by ds: ', Sxp)
+
         return np.reshape(DX, VAR_NUM*self.n_ics, order='F')
