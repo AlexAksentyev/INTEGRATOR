@@ -80,7 +80,7 @@ class RHS:
         gamma, beta = self.particle.GammaBeta(KinEn)
         q = EZERO
         v = beta*CLIGHT
-        m0 = q*1e6*self.particle.mass0/CLIGHT**2
+        m0 = self.particle.mass0_kg
 
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
 
@@ -102,10 +102,12 @@ class RHS:
 
         Px, Py, Ps = [e*q*1e6/CLIGHT for e in (Px, Py, Ps)] # the original formulas use momenta, not P*c
 
+        G = self.particle.G
+        m0c2 = m0*CLIGHT**2
         t5 = tp
-        t6 =  t5* (q / (gamma * m0 * self.particle.mass0)) * (self.particle.G + 1/(1 + gamma))
-        sp1 = t5*(-q / (gamma*m0))*(1 + self.particle.G * gamma)
-        sp2 = t5*( q / (gamma*m0**2 * self.particle.mass0)) * (self.particle.G/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
+        t6 =  t5* (q / (gamma * m0 * m0c2)) * (G + 1/(1 + gamma))
+        sp1 = t5*(-q / (gamma*m0))*(1 + G * gamma)
+        sp2 = t5*( q / (gamma*m0**2 * m0c2)) * (G/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
 
         # this is probably from TBMT
         Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - \
