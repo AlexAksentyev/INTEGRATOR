@@ -63,7 +63,6 @@ class RHS:
         Ex, Ey, Es = element.EField(state)
 # TESTING
         Exp, Eyp, Esp = element.EField_prime_t(state) #TESTING
-        assert not np.isnan(t).any(), 'NAN time'
         Bx, By, Bs = element.BField(state)
 
         kappa = element.curve
