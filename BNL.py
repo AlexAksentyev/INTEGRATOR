@@ -52,9 +52,6 @@ SSb1H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
         QFA2, OD1, OSF, OD2, ORB, OD2, BPM, OD1, QDA2,
         QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2]
 
-ARCb2H2 = [QFA1, OD1, OSF, OD2, BDA, OD2, BPM, OD1, QDA1,
-        QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1] # check
-    
 ARCb1H2 = [QFA1, OD1, OSF, OD2, BDA, OD2, BPM, OD1, QDA1,
         QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1]
 
@@ -79,6 +76,9 @@ SSe2H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
          QFA2, OD1, OSF, OD2, ORB, OD2, BPM, OD1, QDA2,
          QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2]
 
+ARCb2H2 = [QFA1, OD1, OSF, OD2, BDA, OD2, BPM, OD1, QDA1,
+        QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1]
+
 SSb2H1 = [QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, R3, OD2, BPM, OD1, QFA2,
          QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
@@ -96,50 +96,50 @@ SSb1H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
         QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
         QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2]
 
-QFS_segments = dict(SSb1H2=SSb1H2, ARCb2H2=ARCb2H2, SSe1H1=SSe1H1, 
-                    SSe1H2=SSe1H2, ARCb2H1=ARCb2H1, SSe2H1=SSe2H1, 
-                    SSe2H2=SSe2H2, ARCb1H2=ARCb1H2, SSb2H1=SSb2H1, 
+QFS_segments = dict(SSb1H2=SSb1H2, ARCb1H2=ARCb1H2, SSe1H1=SSe1H1,
+                    SSe1H2=SSe1H2, ARCb2H1=ARCb2H1, SSe2H1=SSe2H1,
+                    SSe2H2=SSe2H2, ARCb2H2=ARCb2H2, SSb2H1=SSb2H1,
                     SSb2H2=SSb2H2, ARCb1H1=ARCb1H1, SSb1H1=SSb1H1)
-    
+
 #%%
 if __name__ is '__main__':
-    
+
     ## prepping lattice segments
     segments = list()
     for name, segment in  QFS_segments.items():
         segments.append(ltc.Lattice(segment, name))
-        
+
     ## creating the E+B lattice
     lattice = ltc.Lattice(QFS_segments['SSb1H2'],'SSb1H2')
     for segment in segments[1:]:
         lattice = lattice + segment
-    
+
     lattice.name = 'E+B'
-    
+
     #%%
     from tracker import Tracker
     from particle_log import StateList
     from particle import Particle
-    
+
     import math
-    
+
     deuteron_list = list()
     n_deuteron = 1
     for i in range(n_deuteron):
         deu = Particle()
         deu.kinetic_energy += deu.kinetic_energy*(i - math.floor(n_deuteron/2))*1e-3
         deuteron_list.append(deu)
-    
+
     trkr = Tracker()
     trkr.set_controls(inner=False, breaks=3)
-    
+
     bunch = StateList(Sz=1)
-    
+
     turns = int(1e1)
-    
+
 #%%
     log_list = list()
-    
+
     for deu in deuteron_list:
         lattice.insert_RF(0, 0, deu, E_field=15e7)
         ## tracking clean lattice
@@ -148,14 +148,14 @@ if __name__ is '__main__':
         log_list.append(trkr.track(deu, bunch, lattice, turns))
         print("Tracking took {:04.2f} seconds".format(clock()-start))
 
-    
+
 #%%
     #plotting
     from matplotlib import pyplot as plt
-    
+
     ylab = 'x'
-    xlab = 's'    
-    
+    xlab = 's'
+
 #    plt.figure()
     for i, log in enumerate(log_list):
         plt.subplot(n_deuteron, 2, 2*i+1)
@@ -163,5 +163,5 @@ if __name__ is '__main__':
         plt.title(deuteron_list[i])
         plt.subplot(n_deuteron, 2, 2*(i+1))
         log.plot(ylab, xlab, new_plot=False)
-    
-    
+
+
