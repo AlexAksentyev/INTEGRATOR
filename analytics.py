@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
     t = log['t']
     Wy = Wmdm['Wy']
-    Sx_dot = Wy*log['Sz']#np.cos(Wy*t)
+    Sx_dot = Wy*np.cos(Wy*t)
     Sx_p = Sx_dot*tp
     ratio = Sx_p/Sxp
     Sx_ana = np.sin(Wy*t)
