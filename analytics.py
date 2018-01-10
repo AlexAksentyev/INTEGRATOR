@@ -69,7 +69,7 @@ class Analytics:
         B_vec = element.BField(state)
         dK = state[rhs.index(state, 'dK')]
         K = self.particle.kinetic_energy*(1+dK) # dEn = (En - En0) / En0
-        gamma, beta = self.particle.GammaBeta(K)
+        gamma, beta_scalar = self.particle.GammaBeta(K)
 
         kappa = element.curve
         x = state[rhs.index(state, 'x')]
@@ -79,12 +79,20 @@ class Analytics:
         Px = state[rhs.index(state, 'px')]*P0c
         Py = state[rhs.index(state, 'py')]*P0c
         Ps = np.sqrt(Pc**2 - Px**2 - Py**2)
-        beta = beta*[Px, Py, Ps/hs]/Pc
+        beta = beta_scalar*[Px, Py, Ps/hs]/Pc
+
+#        B_ll = np.dot(B_vec.transpose(), beta)/beta_scalar**2
+#        B_t = B_vec - B_ll
 
         beta_x_E = cross(beta, (Ex, Ey, Es))
 
         factor = 1/(gamma**2 - 1)
         wG = -EZERO/self.particle.mass0_kg*(self.particle.G*B_vec + factor*beta_x_E/CLIGHT)
+
+#        G = self.particle.G
+#        wG = -EZERO/self.particle.mass0_kg * ((G + 1/gamma)*B_t +\
+#                                              (1+G)/gamma*B_ll -\
+#                                              (G + 1/(gamma+1))*beta_x_E/CLIGHT)
 
         return list(zip(wG[0], wG[1], wG[2]))
 
@@ -112,38 +120,54 @@ if __name__ == '__main__':
     trkr.set_controls(inner=True)
 
     DL = 300e-2
-    element0 = ent.MDipole(DL, deu, B_field=.001)
+    element0 = ent.MDipole(DL, deu, B_field=.1)
     element1 = ent.Wien(DL, .05, deu, -120e5, 0*.082439761)
     element2 = ent.MQuad(DL, 8.6)
     element3 = ent.MQuad(DL, -8.6)
 
-    lat = Lattice([element0], 'test_lat')
+    lat = Lattice([element2], 'test_lat')
+    element = lat[0]
 
-    istate = StateList(Sz=1, x=1e-3, px=(-2e-4, 2e-4, 3))
-    istate.pop(2) # remove redundant reference particle state
+    istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3), px=(-1e-2, 1e-2, 3))
+    istate.pop(0) # remove redundant reference particle state
+    n_state = len(istate)
 
-    nturn = 1
+    nturn = 100
     log = trkr.track(deu, istate, lat, nturn)
+    log.plot('Sx','Sz')
 
     a = Analytics(deu, log, lat)
     Wmdm = a.compute_MDM_frequency()
-    log = merge_arrays((log, Wmdm), #append fields
-                       asrecarray=True, flatten=True).reshape((-1, len(istate))).view(PLog)
 
     state = _read_record(log[1])
     t = state[rhs.index(state, 't')][0]
 
     #%%
-    ## spin value differences for the computation of the vertical MDM frequency
-    df = log[['t', 'x', 'Wy', 'Sx']]
-    Sx = df[['t', 'Sx']]
-    Sx_diff = np.zeros((len(Sx)-1, len(Sx[0])), dtype=Sx.dtype)
-    Sx_diff['t'] = np.repeat(np.diff(Sx['t'][:,0], axis=0),3).reshape(-1,3)
-    Sx_diff['Sx'] = np.diff(Sx['Sx'], axis=0)
-    Sx_der = np.divide(Sx_diff['Sx'], Sx_diff['t'])
-    cos_theta = np.sqrt(1 - Sx['Sx'][:-1]**2)
-    Wmdm_trkr = np.divide(Sx_der, cos_theta)
+    Sxp = np.empty((len(log), n_state))
+    tp = Sxp.copy()
+    _rhs = rhs.RHS(deu, n_state, None)
+    for ind, row in enumerate(log):
+        state = _read_record(row)
+        t = rhs.select(state, 't')
+        deriv = _rhs(state, t[0], element, trkr.controls.breaks)
+        _, tp[ind] = 0, *rhs.select(deriv, 't')
+        _, Sxp[ind] = 0, *rhs.select(deriv, 'Sx')
 
+
+    t = log['t']
+    Wy = Wmdm['Wy']
+    Sx_dot = Wy*log['Sz']#np.cos(Wy*t)
+    Sx_p = Sx_dot*tp
+    ratio = Sx_p/Sxp
+    Sx_ana = np.sin(Wy*t)
+
+#%%
+    ## plotting
+    pid = 5
+    plt.subplots(2, sharex=True)
+    plt.subplot(211); plt.plot(log['x'][:, pid], Sxp[:, pid], label='tracker'); plt.legend()
+    plt.subplot(212); plt.plot(log['x'][:, pid], Sx_p[:, pid], label='analytics'); plt.legend()
     plt.figure()
-    plt.plot(Sx['t'][1:,1], Wmdm_trkr[:,1])
-    plt.plot(Sx['t'][1:,1], Wmdm[1:,1]['Wy'])
+    plt.plot(log['t'][1:, pid], log['Sx'][1:,pid], label='tracker')
+    plt.plot(log['t'][1:, pid], Sx_ana[1:,pid], label='analytics')
+    plt.legend()

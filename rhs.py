@@ -18,6 +18,9 @@ VAR_NUM = len(VAR_NAME)
 def index(array, *names):
     return [np.arange(IMAP[name], len(array), VAR_NUM) for name in names]
 
+def select(array, *names):
+    return [array[idx] for idx in index(array, *names)]
+
 class RHS:
     """Representation of the differential equation's right hand side;
     The RHS' for different elements are determined by the elements'
@@ -43,7 +46,7 @@ class RHS:
     def __call__(self, state, at, element, brks):
         """Computes the RHS of the differential system
         defined by the fields of element, at s-coordinate at.
-        Argument brks is required for computing the delta ds (s, s+ds).
+        Argument brks is required for computing the delta ds: (s, s+ds).
         """
         if np.isnan(state).any():
             raise ValueError('NaN state variable(s)')
@@ -85,7 +88,7 @@ class RHS:
         dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
         gammap = dEnp/self.particle.mass0 # gamma prime
 
-         ## I don't understand the following formulas
+         ## see Andrey's thesis, p. 35, for these formulas
         betap = (dEnp*self.particle.mass0**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
         D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
 
@@ -99,12 +102,14 @@ class RHS:
 
         Px, Py, Ps = [e*q*1e6/CLIGHT for e in (Px, Py, Ps)] # the original formulas use momenta, not P*c
 
-        t5 = tp
-        t6 =  t5*  q / (gamma * (m0 * CLIGHT)**2 ) * (self.particle.G + 1/(1 + gamma))
-        sp1 = t5*(-q / (gamma*m0))*(1 + self.particle.G * gamma)
-        sp2 = t5*  q / (gamma*m0* (m0 * CLIGHT)**2) * self.particle.G/(1 + gamma)*(Px*Bx+Py*By+Ps*Bs)
+        G = self.particle.G
 
-        # this is probably from TBMT
+        t5 = tp
+        t6 =  t5*  q / (gamma * (m0 * CLIGHT)**2) * (G + 1/(1 + gamma))
+        sp1 = t5*(-q / (gamma*m0))*(1 + G * gamma)
+        sp2 = t5*  q / (gamma*m0* (m0 * CLIGHT)**2) * G/(1 + gamma)*(Px*Bx+Py*By+Ps*Bs)
+
+        # this is TBMT in the local coordinate system
         Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - \
                                       (Px * Ey - Py * Ex) * Sy) + \
                                       (sp1*By+sp2*Py)*Ss - \
@@ -114,9 +119,9 @@ class RHS:
                                       (sp1*Bs+sp2*Ps)*Sx - \
                                       (sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
-               (Ps * Ex - Px * Es) * Sx) + \
-               (sp1*Bx+sp2*Px)*Sy - \
-               (sp1*By+sp2*Py)*Sx
+                                      (Ps * Ex - Px * Es) * Sx) + \
+                                      (sp1*Bx+sp2*Px)*Sy - \
+                                      (sp1*By+sp2*Py)*Sx
 
         DX = [xp, yp, np.repeat(1, self.n_ics), #xp, yp, sp
               tp, self.w_freq*tp, Hp, #tp, Thetap, Hp
