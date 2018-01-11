@@ -121,20 +121,20 @@ if __name__ == '__main__':
 
     DL = 300e-2
     element0 = ent.MDipole(DL, deu, B_field=.1)
-    element1 = ent.Wien(DL, .05, deu, -120e5, 0*.082439761)
+    element1 = ent.Wien(DL, .05, deu, -120e5, .082439761*5)
     element2 = ent.MQuad(DL, 8.6)
     element3 = ent.MQuad(DL, -8.6)
 
     lat = Lattice([element2], 'test_lat')
     element = lat[0]
 
-    istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3), px=(-1e-2, 1e-2, 3))
+    istate = StateList(Sz=1, x=(-1e-3, 0, 2), px=(0, 1e-2, 2), dK=(0, 1e-4, 2))
     istate.pop(0) # remove redundant reference particle state
     n_state = len(istate)
 
-    nturn = 100
+    nturn = 10
     log = trkr.track(deu, istate, lat, nturn)
-    log.plot('Sx','Sz')
+#    log.plot('Sx','Sz')
 
     a = Analytics(deu, log, lat)
     Wmdm = a.compute_MDM_frequency()
@@ -163,11 +163,18 @@ if __name__ == '__main__':
 
 #%%
     ## plotting
-    pid = 5
-    plt.subplots(2, sharex=True)
-    plt.subplot(211); plt.plot(log['x'][:, pid], Sxp[:, pid], label='tracker'); plt.legend()
-    plt.subplot(212); plt.plot(log['x'][:, pid], Sx_p[:, pid], label='analytics'); plt.legend()
-    plt.figure()
-    plt.plot(log['t'][1:, pid], log['Sx'][1:,pid], label='tracker')
-    plt.plot(log['t'][1:, pid], Sx_ana[1:,pid], label='analytics')
-    plt.legend()
+
+    fig, axes = plt.subplots(n_state,2, sharex='col')
+    for pid in range(n_state):
+        axes[pid, 0].plot(log['x'][:, pid], Sxp[:, pid], label='tracker')
+        axes[pid, 0].plot(log['x'][:, pid], Sx_p[:, pid], label='analytics')
+
+        axes[pid, 1].plot(log['t'][1:, pid], log['Sx'][1:,pid], label='tracker')
+        axes[pid, 1].plot(log['t'][1:, pid], Sx_ana[1:,pid], label='analytics')
+
+
+    axes[pid, 0].set_xlabel('x')
+    axes[0, 0].set_ylabel('dSx/ds')
+    axes[pid, 1].set_xlabel('t')
+    axes[0, 1].set_ylabel('sx')
+    axes[0, 1].legend()
