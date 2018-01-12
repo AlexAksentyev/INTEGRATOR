@@ -65,9 +65,9 @@ class Analytics:
         return table
 
     def _frequency_MDM(self, state, element):
-        Ex, Ey, Es = element.EField(state)
+        E_vec = element.EField(state)
         B_vec = element.BField(state)
-        dK = state[rhs.index(state, 'dK')]
+        dK, = rhs.select(state, 'dK')
         K = self.particle.kinetic_energy*(1+dK) # dEn = (En - En0) / En0
         gamma, beta_scalar = self.particle.GammaBeta(K)
 
@@ -76,23 +76,14 @@ class Analytics:
         hs = 1 + kappa*x
         Pc = self.particle.Pc(K)
         P0c = self.particle.Pc(self.particle.kinetic_energy)
-        Px = state[rhs.index(state, 'px')]*P0c
-        Py = state[rhs.index(state, 'py')]*P0c
+        Px, Py = [x*P0c for x in rhs.select(state, 'px', 'py')]
         Ps = np.sqrt(Pc**2 - Px**2 - Py**2)
         beta = beta_scalar*[Px, Py, Ps/hs]/Pc
 
-#        B_ll = np.dot(B_vec.transpose(), beta)/beta_scalar**2
-#        B_t = B_vec - B_ll
-
-        beta_x_E = cross(beta, (Ex, Ey, Es))
+        beta_x_E = cross(beta, E_vec)
 
         factor = 1/(gamma**2 - 1)
         wG = -EZERO/self.particle.mass0_kg*(self.particle.G*B_vec + factor*beta_x_E/CLIGHT)
-
-#        G = self.particle.G
-#        wG = -EZERO/self.particle.mass0_kg * ((G + 1/gamma)*B_t +\
-#                                              (1+G)/gamma*B_ll -\
-#                                              (G + 1/(gamma+1))*beta_x_E/CLIGHT)
 
         return list(zip(wG[0], wG[1], wG[2]))
 
@@ -125,22 +116,23 @@ if __name__ == '__main__':
     element2 = ent.MQuad(DL, 8.6)
     element3 = ent.MQuad(DL, -8.6)
 
-    lat = Lattice([element2], 'test_lat')
+    lat = Lattice([element0], 'test_lat')
     element = lat[0]
 
-    istate = StateList(Sz=1, x=(-1e-3, 0, 2), px=(0, 1e-2, 2), dK=(0, 1e-4, 2))
+    istate = StateList(Sz=1, px=(-1e-3, 0, 2))
     istate.pop(0) # remove redundant reference particle state
     n_state = len(istate)
 
-    nturn = 10
+    nturn = 400
     log = trkr.track(deu, istate, lat, nturn)
 #    log.plot('Sx','Sz')
+    state = _read_record(log[1])
+    t = rhs.select(state, 't')[0][0]
+
 
     a = Analytics(deu, log, lat)
     Wmdm = a.compute_MDM_frequency()
 
-    state = _read_record(log[1])
-    t = state[rhs.index(state, 't')][0]
 
     #%%
     Sxp = np.empty((len(log), n_state))
@@ -148,10 +140,10 @@ if __name__ == '__main__':
     _rhs = rhs.RHS(deu, n_state, None)
     for ind, row in enumerate(log):
         state = _read_record(row)
-        t = rhs.select(state, 't')
+        t, = rhs.select(state, 't')
         deriv = _rhs(state, t[0], element, trkr.controls.breaks)
-        _, tp[ind] = 0, *rhs.select(deriv, 't')
-        _, Sxp[ind] = 0, *rhs.select(deriv, 'Sx')
+        tp[ind], = rhs.select(deriv, 't')
+        Sxp[ind], = rhs.select(deriv, 'Sx')
 
 
     t = log['t']
@@ -166,15 +158,32 @@ if __name__ == '__main__':
 
     fig, axes = plt.subplots(n_state,2, sharex='col')
     for pid in range(n_state):
-        axes[pid, 0].plot(log['x'][:, pid], Sxp[:, pid], label='tracker')
-        axes[pid, 0].plot(log['x'][:, pid], Sx_p[:, pid], label='analytics')
+        axes[pid, 0].plot(log['x'][:, pid]*1e3, Sxp[:, pid], label='tracker')
+        axes[pid, 0].plot(log['x'][:, pid]*1e3, Sx_p[:, pid], label='analytics')
 
         axes[pid, 1].plot(log['t'][1:, pid], log['Sx'][1:,pid], label='tracker')
         axes[pid, 1].plot(log['t'][1:, pid], Sx_ana[1:,pid], label='analytics')
 
 
-    axes[pid, 0].set_xlabel('x')
-    axes[0, 0].set_ylabel('dSx/ds')
-    axes[pid, 1].set_xlabel('t')
-    axes[0, 1].set_ylabel('sx')
+    axes[pid, 0].set_xlabel('x [mm]')
+    axes[0, 0].set_ylabel('dSx/ds [1/m]')
+    axes[pid, 1].set_xlabel('t [s]')
+    axes[0, 1].set_ylabel('Sx')
     axes[0, 1].legend()
+
+    #%%
+    pid=0
+    ax1 = plt.subplot(1,2,1)
+    ax2 = plt.subplot(1,2,2)
+    plt.subplot(1,2,1); plt.plot(log['x'][:, pid]*1e3, Sxp[:, pid], label='tracker')
+    plt.subplot(1,2,1); plt.plot(log['x'][:, pid]*1e3, Sx_p[:, pid], label='analytics')
+
+    plt.subplot(1,2,2); plt.plot(log['t'][1:, pid], log['Sx'][1:,pid], label='tracker')
+    plt.subplot(1,2,2); plt.plot(log['t'][1:, pid], Sx_ana[1:,pid], label='analytics')
+
+    ax1.set_xlabel('x [mm]')
+    ax1.set_ylabel('dSx/ds [1/m]')
+    ax2.set_xlabel('t [s]')
+    ax2.set_ylabel('Sx')
+    ax2.legend()
+    ax1.legend()
