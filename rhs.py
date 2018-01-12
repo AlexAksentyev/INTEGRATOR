@@ -84,8 +84,17 @@ class RHS:
 
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
 
+        #test id D001
+#        tp = 6.86887290e-09 *np.ones_like(tp)
+        # i checked that in the dipole the TBMT eq gives a constant Wy,
+        # while tracking showed non-constant (depended on x coord., varied only x)
+        # that's because Sx' in that case is kappa * Sz + a(x) * By * Sz
+        # where a = sp1 = tp * const; tp = const * (1 + kappa * x)
+        # different x gave different hs, Hp, tp, and hence Sxp
+
         ds = element.length/(brks-1)
         dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
+                                    # LAST TERM QUESTIONABLE
         gammap = dEnp/self.particle.mass0 # gamma prime
 
          ## see Andrey's thesis, p. 35, for these formulas
