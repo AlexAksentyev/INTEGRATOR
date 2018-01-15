@@ -85,6 +85,11 @@ class RHS:
 
         ds = element.length/(brks-1)
         dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
+                                    # this last term here is questionable
+                                    # it was added by me and doesn't exist in the
+                                    # original set of equations
+                                    # however, the OSE considered only static fields
+                                    # p 25 Andrey's thesis
         gammap = dEnp/self.particle.mass0 # gamma prime
 
          ## I don't understand the following formulas
