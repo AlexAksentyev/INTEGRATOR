@@ -55,15 +55,13 @@ def test_func(particle, state, element):
     dSds_rhs = np.array((Sxp, Syp, Szp)).flatten()
     dSdt_rhs = dSds_rhs/tp
     w_hat = np.cross(S, dSdt_rhs)/norm(S)/norm(dSdt_rhs)
-    assert norm(w_hat) == 1, 'something wrong'
     W_rhs = norm(dSdt_rhs)/norm(S)/sin_angle * w_hat
 
 
     assert sin_angle == 1, 'non-orthogonal field (testing dipole)'
     assert norm(S) == 1, 'Spin non 1'
-    print(dSds_rhs)
+
     print(tp)
-    print(dSdt_rhs)
 
 
     ## Analytical TBMT frequency

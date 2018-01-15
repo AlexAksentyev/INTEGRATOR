@@ -67,6 +67,7 @@ class RHS:
         Bx, By, Bs = element.BField(state)
 
         kappa = element.curve
+#        kappa = 0 # test id D001
         hs = 1 + kappa*x # look here http://www.iaea.org/inis/collection/NCLCollectionStore/_Public/23/011/23011647.pdf
                             # ds' = (R+x)dphi = (1+x/R)ds = hs ds, ds = Rdphi
                             # slope = Px/Ps = dx/ds' = x'/hs => x' = Px/Ps * hs (eq 2.6)
@@ -84,7 +85,7 @@ class RHS:
 
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
 
-        #test id D001
+        # test id D001
 #        tp = 6.86887290e-09 *np.ones_like(tp)
         # i checked that in the dipole the TBMT eq gives a constant Wy,
         # while tracking showed non-constant (depended on x coord., varied only x)
