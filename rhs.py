@@ -79,8 +79,17 @@ class RHS:
                      # H' = Pc/Ps hs
 
         gamma, beta = self.particle.GammaBeta(KinEn)
+
+#        # test V001
+#        beta_test = (KinEn**2 + 2*KinEn*self.particle.mass0)/(KinEn+self.particle.mass0)
+#        print('TEST V001: \n \t\t', beta/beta_test)
+#
+#        beta = beta_test
+#        #
+
         q = EZERO
         v = beta*CLIGHT
+
         m0 = q*1e6*self.particle.mass0/CLIGHT**2
 
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
