@@ -51,7 +51,8 @@ class Particle:
         beta = np.sqrt(gamma**2-1)/gamma
         return (gamma, beta)
 
-    def Pc(self, KNRG):
+    def Pc(self, KNRG=None):
+        if KNRG is None: KNRG=self.kinetic_energy
         return np.sqrt((self.mass0 + KNRG)**2 - self.mass0**2)
 
     def revolution_freq(self, lattice_length):
