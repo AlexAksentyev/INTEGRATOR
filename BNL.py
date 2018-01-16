@@ -111,14 +111,14 @@ if __name__ is '__main__':
 
     ## creating the E+B lattice
     lattice = ltc.Lattice(QFS_segments['SSb1H2'],'SSb1H2')
-    for segment in segments[1:]:
-        lattice = lattice + segment
+#    for segment in segments[1:]:
+#        lattice = lattice + segment
 
     lattice.name = 'E+B'
 
     #%%
     from tracker import Tracker
-    from particle_log import StateList
+    from particle_log import StateList, read_record
     from particle import Particle
 
     import math
@@ -135,7 +135,7 @@ if __name__ is '__main__':
 
     bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
 
-    turns = int(1e0)
+    turns = int(5e0)
 
 #%%
     log_list = list()
@@ -153,7 +153,7 @@ if __name__ is '__main__':
     #plotting
     from matplotlib import pyplot as plt
 
-    ylab = 'x'
+    ylab = 'Sx'
     xlab = 's'
 
 #    plt.figure()
@@ -165,3 +165,19 @@ if __name__ is '__main__':
         log.plot(ylab, xlab, new_plot=False)
 
 
+#%%
+## some statistics
+import numpy as np
+
+ii = log['Element'] == b'RF'
+
+theta_RF = log['Theta'][ii]
+n = theta_RF[np.arange(0, len(theta_RF), len(bunch))]/(2*np.pi)
+
+
+Es = np.zeros((turns, len(bunch)), dtype=float)
+for i, row in enumerate(log):
+    state = read_record(row)
+    Es[i] = lattice[lattice.RF.index].EField(state)[2]
+
+plt.plot(Es[:, 0], '.')
