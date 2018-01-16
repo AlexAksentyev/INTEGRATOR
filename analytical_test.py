@@ -115,7 +115,7 @@ def test_func(particle, state, element):
     m = particle.mass0_kg
     G = particle.G
     gamma = particle.gamma
-    W = -EZERO/m *(G)*B_vec # only magnetic elements
+    W = -EZERO/m *(1 + gamma*G)*B_vec # only magnetic elements
 
     difference = W - W_rhs
 
