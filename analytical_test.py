@@ -39,35 +39,83 @@ from numpy.linalg import norm
 EZERO = pcl.EZERO
 CLIGHT = pcl.CLIGHT
 
+def ctrans_map(element):
+    """Computes the coordinate transform from 1.11 """
+
+    kappa = element.curve
+    return np.array([[0, 0, kappa], [0, 0, 0,], [-kappa, 0, 0]])
+
+
+def dipole_rhs_S(dipole, particle, state):
+    kappa = dipole.curve
+    gamma = particle.gamma
+    G = particle.G
+    S = np.array(rhs.select(state, 'Sx', 'Sy', 'Sz')).flatten()
+
+    w = gamma*G*kappa
+    M = ctrans_map(element)
+    cs_term = M.dot(S)
+
+    dSds = np.array([-w*S[2], 0, w*S[0]])
+
+    print('dS/ds: ', dSds)
+    print('MS: ', cs_term)
+
+    x, = rhs.select(state, 'x')
+    hs = 1 + kappa*x
+    H = hs
+    _, beta = particle.GammaBeta()
+    v = CLIGHT*beta
+
+    tp = H/v
+    print('tp: ', tp)
+
+    return dSds, (dSds - cs_term)/tp
+
 def test_func(particle, state, element):
-    _rhs = rhs.RHS(particle, 1, None)
+
+    M = ctrans_map(element)
 
     # estimated tracker frequency
     S = np.array(rhs.select(state, 'Sx', 'Sy', 'Sz')).flatten()
+    print('Sx, Sy, Sz: ', S)
     B_vec = element.BField(state).flatten()
 
-    cos_angle = np.dot(S, B_vec)/norm(B_vec)/norm(S)
+    if np.all(B_vec == 0):
+        norm_B_vec = 1
+        print('Zero field')
+    else:
+        norm_B_vec = norm(B_vec)
+
+    cos_angle = np.dot(S, B_vec)/norm_B_vec/norm(S)
     sin_angle = np.sqrt(1 - cos_angle**2)
 
     derivs = _rhs(state, 0, element, 2)
     Sxp, Syp, Szp, tp = rhs.select(derivs, 'Sx', 'Sy', 'Sz', 't')
+    dSds_rhs = np.array((Sxp, Syp, Szp), dtype=float).flatten()
+    dSdt_rhs = (dSds_rhs - M.dot(S))/tp
 
-    dSds_rhs = np.array((Sxp, Syp, Szp)).flatten()
-    dSdt_rhs = dSds_rhs/tp
-    w_hat = np.cross(S, dSdt_rhs)/norm(S)/norm(dSdt_rhs)
+    if np.all(dSdt_rhs == 0):
+        norm_dSdt_rhs = 1
+        print('Zero S derivative')
+    else:
+        norm_dSdt_rhs = norm(dSdt_rhs)
+
+
+    w_hat = np.cross(S, dSdt_rhs)/norm(S)/norm_dSdt_rhs
     W_rhs = norm(dSdt_rhs)/norm(S)/sin_angle * w_hat
 
-
-    assert sin_angle == 1, 'non-orthogonal field (testing dipole)'
+#    assert sin_angle == 1, 'non-orthogonal field (testing dipole)'
     assert norm(S) == 1, 'Spin non 1'
 
-    print(tp)
+    print('tp: ', tp)
 
 
     ## Analytical TBMT frequency
     m = particle.mass0_kg
     G = particle.G
-    W = -EZERO/m * G*B_vec # only magnetic elements
+    gamma = particle.gamma
+    W = -EZERO/m/gamma *(1 + gamma*G)*B_vec # only magnetic elements
 
     difference = W - W_rhs
 
@@ -77,6 +125,9 @@ def test_func(particle, state, element):
 #%%
 deu = pcl.Particle()
 state = StateList(Sz=1, x=1e-3); state.pop(0)
+state_array = np.array(state.as_list()[0])
+
+_rhs = rhs.RHS(deu, 1, None)
 
 
 element = ent.MDipole(25e-2, deu, B_field=1)
