@@ -332,6 +332,21 @@ class PLog(np.recarray):
         return PLT.gcf()
 
 #%%
+NUM_META = len(PLog.metadata_type)
+def read_record(log_record):
+    n_state = len(log_record)
+    flat_state = np.empty(n_state*rhs.VAR_NUM)
+
+    start_id = NUM_META+1
+    end_id = start_id + rhs.VAR_NUM - 1
+    for j, vec in enumerate(log_record):
+        flat_state[j*rhs.VAR_NUM:(j+1)*rhs.VAR_NUM] = list(vec)[start_id:end_id + 1]
+                # everything after metadata + PID is state variables
+
+    return flat_state
+
+
+#%%
 
 if __name__ == '__main__':
     state_list = StateList(Sz=1, dK=(0, 1e-4, 1), x=(-1e-3, 1e-3, 1))
