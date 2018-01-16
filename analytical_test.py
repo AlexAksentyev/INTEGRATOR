@@ -123,7 +123,7 @@ def test_func(particle, state, element):
 
 
 #%%
-deu = pcl.Particle(G=0)
+deu = pcl.Particle(G=-.14*0)
 state = StateList(Sz=1, x=(-1e-3, 1e-3, 5));# state.pop(0)
 state_array = np.array(state.as_list()[0])
 
@@ -172,4 +172,6 @@ lattice = Lattice([element], 'test')
 
 log = trkr.track(deu, state, lattice, 100)
 
+#%%
 log.plot('Sx', 's')
+plt.title('G = {}'.format(deu.G))
