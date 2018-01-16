@@ -131,16 +131,24 @@ class RHS:
         Px, Py, Ps = [e*q*1e6/CLIGHT for e in (Px, Py, Ps)] # the original formulas use momenta, not P*c
 
         G = self.particle.G
+        m0c2 = m0*CLIGHT**2
+        t5 = tp
+        t6 =  t5* (q / (gamma * m0 * m0c2)) * (G + 1/(1 + gamma))
+        sp1 = t5*(-q / (gamma*m0))*(1 + G * gamma)
+        sp2 = t5*( q / (gamma*m0**2 * m0c2)) * (G/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
 
-        k1 = -q/m0*G
-        k3 = -q/m0*1/(gamma**2-1)*1/(gamma*m0*CLIGHT**2)
-        Wx = k1*Bx + k3*(Py*Es - Ey*Ps)
-        Wy = k1*By + k3*(Ps*Ex - Es*Px)
-        Ws = k1*Bs + k3*(Px*Ey - Ex*Py)
-
-        Sxp =      kappa * Ss + tp*(Wy*Ss - Sy*Ws)
-        Syp =                   tp*(Ws*Sx - Ss*Wx)
-        Ssp = (-1)*kappa * Sx + tp*(Wx*Sy - Sx*Wy)
+        Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - \
+                                      (Px * Ey - Py * Ex) * Sy) + \
+                                      (sp1*By+sp2*Py)*Ss - \
+                                      (sp1*Bs+sp2*Ps)*Sy
+        Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - \
+                                      (Py * Es - Ps * Ey) * Ss) + \
+                                      (sp1*Bs+sp2*Ps)*Sx - \
+                                      (sp1*Bx+sp2*Px)*Ss
+        Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
+               (Ps * Ex - Px * Es) * Sx) + \
+               (sp1*Bx+sp2*Px)*Sy - \
+               (sp1*By+sp2*Py)*Sx
 
         DX = [xp, yp, np.repeat(1, self.n_ics), #xp, yp, sp
               tp, self.w_freq*tp, Hp, #tp, Thetap, Hp
