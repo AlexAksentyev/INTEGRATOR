@@ -115,7 +115,7 @@ def test_func(particle, state, element):
     m = particle.mass0_kg
     G = particle.G
     gamma = particle.gamma
-    W = -EZERO/m *(1 + gamma*G)*B_vec # only magnetic elements
+    W = -EZERO/m/gamma*(1 + gamma*G)*B_vec # only magnetic elements
 
     difference = W - W_rhs
 
@@ -123,8 +123,8 @@ def test_func(particle, state, element):
 
 
 #%%
-deu = pcl.Particle()
-state = StateList(Sz=1, x=1e-3); state.pop(0)
+deu = pcl.Particle(G=0)
+state = StateList(Sz=1, x=(-1e-3, 1e-3, 5));# state.pop(0)
 state_array = np.array(state.as_list()[0])
 
 _rhs = rhs.RHS(deu, 1, None)
@@ -135,30 +135,41 @@ element = ent.MDipole(25e-2, deu, B_field=1)
 #element = ent.MSext(25e-2, 3.11)
 
 #%%
-x_coord = np.array([-5, -2, -1, 0, 1, 2, 5])
-n_x = len(x_coord)
-rectype = [('x', float), ('y', float), ('z', float)]
-ana_vec = np.empty(n_x, dtype=rectype)
-trkr_vec = np.empty(n_x, dtype=rectype)
-D_vec = np.empty(n_x, dtype=rectype)
-B_vec = np.empty(n_x, dtype=rectype)
-W_vec = np.empty(n_x, dtype=rectype)
+if False:
+    x_coord = np.array([-5, -2, -1, 0, 1, 2, 5])
+    n_x = len(x_coord)
+    rectype = [('x', float), ('y', float), ('z', float)]
+    ana_vec = np.empty(n_x, dtype=rectype)
+    trkr_vec = np.empty(n_x, dtype=rectype)
+    D_vec = np.empty(n_x, dtype=rectype)
+    B_vec = np.empty(n_x, dtype=rectype)
+    W_vec = np.empty(n_x, dtype=rectype)
 
-for i, x in enumerate(x_coord):
-    state = StateList(Sz=1, x = x*1e-2); state.pop(0)
-    ana, trkr, D, B = test_func(deu, np.array(state.as_list()[0]), element)
+    for i, x in enumerate(x_coord):
+        state = StateList(Sz=1, x = x*1e-2); state.pop(0)
+        ana, trkr, D, B = test_func(deu, np.array(state.as_list()[0]), element)
 
-    ana_vec[i] = ana
-    trkr_vec[i] = trkr
-    D_vec[i] = D
-    B_vec[i] = B
-#    W_vec[i] = W
+        ana_vec[i] = ana
+        trkr_vec[i] = trkr
+        D_vec[i] = D
+        B_vec[i] = B
+    #    W_vec[i] = W
+
+    #%%
+    plt.figure()
+    plt.title(element.name)
+    plt.plot(x_coord, ana_vec['y'], label='analytics')
+    plt.plot(x_coord, trkr_vec['y'], label='tracker')
+    plt.plot(x_coord, D_vec['y'], label='difference')
+    plt.legend()
+    plt.xlabel('x'); plt.ylabel('Wy')
 
 #%%
-plt.figure()
-plt.title(element.name)
-plt.plot(x_coord, ana_vec['y'], label='analytics')
-plt.plot(x_coord, trkr_vec['y'], label='tracker')
-plt.plot(x_coord, D_vec['y'], label='difference')
-plt.legend()
-plt.xlabel('x'); plt.ylabel('Wy')
+from tracker import Tracker
+trkr = Tracker()
+from lattice import Lattice
+lattice = Lattice([element], 'test')
+
+log = trkr.track(deu, state, lattice, 100)
+
+log.plot('Sx', 's')
