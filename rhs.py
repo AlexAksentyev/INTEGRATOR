@@ -63,7 +63,6 @@ class RHS:
         Ex, Ey, Es = element.EField(state)
 # TESTING
         Exp, Eyp, Esp = element.EField_prime_t(state) #TESTING
-        assert not np.isnan(t).any(), 'NAN time'
         Bx, By, Bs = element.BField(state)
 
         kappa = element.curve
@@ -77,6 +76,16 @@ class RHS:
                      # H^2 = ds'^2 + dx^2 + dy^2, dx = x' ds, dy = y' ds, ds' = (1+c*x)ds
                      # H^2 = ds^2 hs^2 *(1 + (Px/Ps)^2 + (Py/Ps)^2) = (ds hs)^2 (Pc)^2/Ps^2
                      # H' = Pc/Ps hs
+
+
+        # test H001
+
+#        H_test = np.sqrt(xp**2 + yp**2 + hs**2)
+#        print('H001: ', Hp/H_test)
+
+#        Hp = H_test
+
+        ##
 
         gamma, beta = self.particle.GammaBeta(KinEn)
 
