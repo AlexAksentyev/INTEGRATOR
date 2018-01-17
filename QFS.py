@@ -111,14 +111,14 @@ if __name__ is '__main__':
 
     ## creating the E+B lattice
     lattice = ltc.Lattice(QFS_segments['SSb1H2'],'SSb1H2')
-    for segment in segments[1:3]:
-        lattice = lattice + segment
+#    for segment in segments[1:]:
+#        lattice = lattice + segment
 
     lattice.name = 'E+B'
 
     #%%
     from tracker import Tracker
-    from particle_log import StateList, read_record
+    from particle_log import StateList
     from particle import Particle
 
     import math
@@ -167,20 +167,29 @@ if __name__ is '__main__':
 #%%
 ## some statistics
 import numpy as np
-import rhs
 
-ii = log['Element'] == b'RF'
+def RF_field(log):
+    """Returns the longitudinal electric field acting on bunch particles,
+    when it is passing the RF element"""
+    import rhs
+    from particle_log import read_record
 
-theta_RF = log['Theta'][ii]
-n = theta_RF[np.arange(0, len(theta_RF), len(bunch))]/(2*np.pi)
+    ii = log['Element'] == b'RF'
 
-n_state = len(bunch)
-Es = np.zeros((turns, n_state), dtype=[('Es', float), ('dK', float), ('Theta', float), ('t', float)])
-for i, row in enumerate(log[ii].reshape((-1, n_state))):
-    state = read_record(row)
-    Es[i] = list(zip(lattice[lattice.RF.index].EField(state)[2], *rhs.select(state, 'dK', 'Theta', 't')))
+    turns = np.sum(ii[:, 0])
+    n_state = len(log[0])
+
+    n_state = len(bunch)
+    Es = np.zeros((turns, n_state), dtype=[('Es', float), ('dK', float), ('Theta', float), ('t', float)])
+    for i, row in enumerate(log[ii].reshape((-1, n_state))):
+        state = read_record(row)
+        Es[i] = list(zip(lattice[lattice.RF.index].EField(state)[2], *rhs.select(state, 'dK', 'Theta', 't')))
+
+    return Es
 
 #%%
+Es = RF_field(log)
+n_state = len(log[0])
 plt.figure()
 xlabel = 'Theta'
 for i in range(n_state):
