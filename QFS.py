@@ -111,8 +111,8 @@ if __name__ is '__main__':
 
     ## creating the E+B lattice
     lattice = ltc.Lattice(QFS_segments['SSb1H2'],'SSb1H2')
-#    for segment in segments[1:]:
-#        lattice = lattice + segment
+    for segment in segments[1:]:
+        lattice = lattice + segment
 
     lattice.name = 'E+B'
 
