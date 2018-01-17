@@ -160,6 +160,7 @@ class Lattice:
         # inserting the element
         self._sequence.insert(index, element)
         self.count += 1
+        self.length += element.length
         # updating segment map
         self._update_segment_map(index, element, 'add')
 
@@ -172,6 +173,7 @@ class Lattice:
             # popping the element
             element = self._sequence.pop(ind)
             self.count -= 1
+            self.length -= element.length
             if isinstance(element, ERF):
                 self.RF.count -= 1
                 self.RF.index = None
