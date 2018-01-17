@@ -112,7 +112,7 @@ class Tracker:
         for eid in range(el_num): # element loop
             # pick element
             if self.controls.fwd: element = self.lattice[eid]
-            else: element = self.lattice[len(el_num)-1-eid]
+            else: element = self.lattice[el_num-1-eid]
 
             # choose if integrate or otherwise advance the state vector
             skip = element.skip
