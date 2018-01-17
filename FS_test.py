@@ -15,7 +15,7 @@ import numpy as np
 
 
 
-def RF_field(log):
+def RF_field(log, lattice):
     """Returns the longitudinal electric field acting on bunch particles,
     when it is passing the RF element"""
     import rhs
@@ -38,25 +38,36 @@ def RF_field(log):
 
 
 deu = Particle()
-bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK=(0, 1e-6, 3))
+bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK=(0, 1e-4, 3))
 
 gamma, beta = deu.GammaBeta()
 B0 = 1
 E0 = -np.abs(CLIGHT*beta*gamma**2*deu.G*B0/(beta**2*gamma**2*deu.G - 1))
 #element = ent.Wien(25e-2, 5e-2, deu, E0, B0)
-element = ent.MDipole(25e-2, deu, B_field=B0)
+E = ent.MDipole(5e-2, deu, B_field=B0)
+F = ent.Wien(25e-2, 5e-2, deu, E0, B0) #ent.MQuad(5e-2, 8.6)
 
-trkr = Tracker()
-lattice = Lattice([element], 'test_FS')
-lattice.insert_RF(0, 0, deu, E_field=15e7)
+E_lat = Lattice([E], 'E_lattice')
+E_lat.insert_RF(0, 0, deu, E_field=15e7)
+F_lat = Lattice([F], 'F_lattice')
+F_lat.insert_RF(0, 0, deu, E_field=15e7)
 
-log = trkr.track(deu, bunch, lattice, int(5e2))
-log.plot()
-
-Es = RF_field(log)
-n_state = len(log[0])
 
 #%%
+
+trkr = Tracker()
+n_turns = 100
+
+E_log = trkr.track(deu, bunch, E_lat, n_turns)
+E_log.plot()
+F_log = trkr.track(deu, bunch, F_lat, n_turns)
+F_log.plot()
+
+#%%
+
+Es = RF_field(F_log)
+n_state = len(F_log[0])
+
 import matplotlib.pyplot as plt
 plt.figure()
 xlabel = 'Theta'
