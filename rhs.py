@@ -121,9 +121,9 @@ class RHS:
                                       (sp1*Bs+sp2*Ps)*Sx - \
                                       (sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
-               (Ps * Ex - Px * Es) * Sx) + \
-               (sp1*Bx+sp2*Px)*Sy - \
-               (sp1*By+sp2*Py)*Sx
+                                      (Ps * Ex - Px * Es) * Sx) + \
+                                      (sp1*Bx+sp2*Px)*Sy - \
+                                      (sp1*By+sp2*Py)*Sx
 
         DX = [xp, yp, np.repeat(1, self.n_ics), #xp, yp, sp
               tp, self.w_freq*tp, Hp, #tp, Thetap, Hp
