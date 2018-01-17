@@ -111,8 +111,8 @@ if __name__ is '__main__':
 
     ## creating the E+B lattice
     lattice = ltc.Lattice(QFS_segments['SSb1H2'],'SSb1H2')
-#    for segment in segments[1:]:
-#        lattice = lattice + segment
+    for segment in segments[1:3]:
+        lattice = lattice + segment
 
     lattice.name = 'E+B'
 
@@ -133,15 +133,15 @@ if __name__ is '__main__':
     trkr = Tracker()
     trkr.set_controls(inner=False, breaks=3)
 
-    bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
+    bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK = (0, 1e-4, 3))
 
-    turns = int(5e0)
+    turns = int(1e2)
 
 #%%
     log_list = list()
 
     for deu in deuteron_list:
-        lattice.insert_RF(0, 0, deu, E_field=15e7)
+        lattice.insert_RF(0, 0, deu, E_field=15e7, H_number=50)
         ## tracking clean lattice
         from time import clock
         start = clock()
@@ -156,7 +156,6 @@ if __name__ is '__main__':
     ylab = 'Sx'
     xlab = 's'
 
-#    plt.figure()
     for i, log in enumerate(log_list):
         plt.subplot(n_deuteron, 2, 2*i+1)
         log.plot(new_plot=False)
@@ -168,16 +167,24 @@ if __name__ is '__main__':
 #%%
 ## some statistics
 import numpy as np
+import rhs
 
 ii = log['Element'] == b'RF'
 
 theta_RF = log['Theta'][ii]
 n = theta_RF[np.arange(0, len(theta_RF), len(bunch))]/(2*np.pi)
 
-
-Es = np.zeros((turns, len(bunch)), dtype=float)
-for i, row in enumerate(log):
+n_state = len(bunch)
+Es = np.zeros((turns, n_state), dtype=[('Es', float), ('dK', float), ('Theta', float), ('t', float)])
+for i, row in enumerate(log[ii].reshape((-1, n_state))):
     state = read_record(row)
-    Es[i] = lattice[lattice.RF.index].EField(state)[2]
+    Es[i] = list(zip(lattice[lattice.RF.index].EField(state)[2], *rhs.select(state, 'dK', 'Theta', 't')))
 
-plt.plot(Es[:, 0], '.')
+#%%
+plt.figure()
+xlabel = 'Theta'
+for i in range(n_state):
+    plt.plot(Es[:, i][xlabel] - Es[:, 0][xlabel], Es[:, i]['Es'], '-.', label=i)
+plt.legend()
+plt.xlabel('{} - {}_0'.format(xlabel, xlabel))
+plt.ylabel('E [V/m]')
