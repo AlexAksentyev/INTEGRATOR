@@ -462,17 +462,18 @@ class ERF(Element):
     def kickVolts(self):
         return self.__U
 
-class Observer:
+class Observer(Element):
     """This element of zero length is put where we want
     to check the state vector.
     """
 
     def __init__(self):
-        self.__bool_skip = True
+        super().__init__(0, 0, 'Observer')
+        self._Element__bool_skip = True
 
     @property
     def skip(self):
-        return self.__bool_skip
+        return self._Element__bool_skip
 
     def advance(self, state):
         """In Tracker::track, when an element's skip is true, it uses
