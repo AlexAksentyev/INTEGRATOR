@@ -5,8 +5,6 @@ Created on Mon Sep 18 16:59:23 2017
 
 @author: alexa
 
-TODO:
-    * check lattice from optim
 """
 #%%
 import particle as pcl
@@ -43,7 +41,7 @@ BDA = ent.MDipole(182.02463e-2, pcl.Particle(), B_field=1.5, name="BDA")
 
 BPM = ent.Drift(15e-2, "BPM")
 
-R3 = ent.StraightWien(361.55403e-2, 5e-2, pcl.Particle(), -120e5, .082426, name="R3")
+R3 = ent.StraightWien(361.55403e-2, 5e-2, pcl.Particle(), 120e5, 0.082426474830636143, name="R3")
 
 #%%
 # lattice definition
@@ -199,3 +197,12 @@ for i in range(n_state):
 plt.legend()
 plt.xlabel('{} - {}_0'.format(xlabel, xlabel))
 plt.ylabel('E [V/m]')
+
+
+#%%
+## segment plots for one turn
+log1 = log[log['Turn']<2].reshape((-1, log.n_ics))
+
+for name in lattice.segment_map.keys():
+     lattice.plot_segment(name, log1, 'Sx','s')
+     plt.title(name)
