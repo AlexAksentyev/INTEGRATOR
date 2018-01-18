@@ -356,7 +356,10 @@ class Wien(Element, Bend):
     def EField(self, arg):
         i_x, = index(arg, 'x')
         x = arg[i_x]
-        Ex = self._Element__E_field[0]/(1+self.curve*x)
+        Ex = self._Element__E_field[0]/(1+self.curve*x) # strange field definition,
+            # or 1/(1+x) ~ 1-x + ...
+            # check this out:
+            # http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
         z = np.zeros(len(x))
         fld = (Ex, z, z)
         return Field(fld, self).tilt()
@@ -392,6 +395,26 @@ class Wien(Element, Bend):
 
     def kickVolts(self, x):
         return (self.__volt, self.__U(x))
+
+
+class StraightWien(Element):
+    """Straight Wien filter."""
+
+    def __init__(self, length, h_gap, reference_particle, E_field, B_field, name="Wien"):
+        self._h_gap = h_gap
+        self._ref_kinetic_energy = reference_particle.kinetic_energy
+
+        super().__init__(curve=0, length=length, name=name)
+
+        self._U = self._h_gap*E_field
+        self._Element__E_field = (E_field, 0, 0)
+        self._Element__B_field = (0, B_field, 0)
+
+    def front_kick(self, state):
+        state[:, IMAP['dK']] -= self._U*1e-6/self._ref_kinetic_energy
+
+    def rear_kick(self, state):
+        state[:, IMAP['dK']] += self._U*1e-6/self._ref_kinetic_energy
 
 
 class ERF(Element):

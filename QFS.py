@@ -43,7 +43,7 @@ BDA = ent.MDipole(182.02463e-2, pcl.Particle(), B_field=1.5, name="BDA")
 
 BPM = ent.Drift(15e-2, "BPM")
 
-R3 = ent.Wien(361.55403e-2, 5e-2, pcl.Particle(), -120e5, .082439761, name="R3")
+R3 = ent.StraightWien(361.55403e-2, 5e-2, pcl.Particle(), -120e5, .082426, name="R3")
 
 #%%
 # lattice definition
@@ -60,7 +60,7 @@ ARCb1H2 = [QFA1, OD1, OSF, OD2, BDA, OD2, BPM, OD1, QDA1,
 
 SSe1H1 = [QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, R3, OD2, BPM, OD1, QFA2,
-         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2, # flyes off here
          QDA2, OD1, SDN, OD2, R3, OD2, BPM, OD1, QFA2]
 
 SSe1H2 = [QFA2, OD1, SFN, OD2, R3, OD2, BPM, OD1, QDA2,
@@ -135,7 +135,7 @@ if __name__ is '__main__':
 
     bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK = (0, 1e-4, 3))
 
-    turns = int(1)
+    turns = int(100)
 
 #%%
     log_list = list()
