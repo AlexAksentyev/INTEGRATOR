@@ -43,7 +43,7 @@ BDA = ent.MDipole(182.02463e-2, pcl.Particle(), B_field=1.5, name="BDA")
 
 BPM = ent.Drift(15e-2, "BPM")
 
-R3 = ent.Wien(361.55403e-2, 5e-2, pcl.Particle(), -120e5, .082439761, name="R3")
+R3 = ent.StraightWien(361.55403e-2, 5e-2, pcl.Particle(), -120e5, .082426, name="R3")
 
 #%%
 # lattice definition
@@ -52,12 +52,15 @@ SSb1H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
         QFA2, OD1, OSF, OD2, ORB, OD2, BPM, OD1, QDA2,
         QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2]
 
+ARCb2H2 = [QFA1, OD1, OSF, OD2, BDA, OD2, BPM, OD1, QDA1,
+        QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1] # check
+
 ARCb1H2 = [QFA1, OD1, OSF, OD2, BDA, OD2, BPM, OD1, QDA1,
         QDA1, OD1, SDP, OD2, BDA, OD2, BPM, OD1, QFA1]
 
 SSe1H1 = [QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, R3, OD2, BPM, OD1, QFA2,
-         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2,
+         QFA2, OD1, SFP, OD2, R3, OD2, BPM, OD1, QDA2, # flyes off here
          QDA2, OD1, SDN, OD2, R3, OD2, BPM, OD1, QFA2]
 
 SSe1H2 = [QFA2, OD1, SFN, OD2, R3, OD2, BPM, OD1, QDA2,
@@ -96,9 +99,9 @@ SSb1H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
         QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
         QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2]
 
-QFS_segments = dict(SSb1H2=SSb1H2, ARCb1H2=ARCb1H2, SSe1H1=SSe1H1,
+QFS_segments = dict(SSb1H2=SSb1H2, ARCb2H2=ARCb2H2, SSe1H1=SSe1H1,
                     SSe1H2=SSe1H2, ARCb2H1=ARCb2H1, SSe2H1=SSe2H1,
-                    SSe2H2=SSe2H2, ARCb2H2=ARCb2H2, SSb2H1=SSb2H1,
+                    SSe2H2=SSe2H2, ARCb1H2=ARCb1H2, SSb2H1=SSb2H1,
                     SSb2H2=SSb2H2, ARCb1H1=ARCb1H1, SSb1H1=SSb1H1)
 
 #%%
@@ -133,15 +136,15 @@ if __name__ is '__main__':
     trkr = Tracker()
     trkr.set_controls(inner=False, breaks=3)
 
-    bunch = StateList(Sz=1)
+    bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK = (0, 1e-4, 3))
 
-    turns = int(1e1)
+    turns = int(100)
 
 #%%
     log_list = list()
 
     for deu in deuteron_list:
-        lattice.insert_RF(0, 0, deu, E_field=15e7)
+        lattice.insert_RF(0, 0, deu, E_field=15e7, H_number=50)
         ## tracking clean lattice
         from time import clock
         start = clock()
@@ -153,10 +156,9 @@ if __name__ is '__main__':
     #plotting
     from matplotlib import pyplot as plt
 
-    ylab = 'x'
+    ylab = 'Sx'
     xlab = 's'
 
-#    plt.figure()
     for i, log in enumerate(log_list):
         plt.subplot(n_deuteron, 2, 2*i+1)
         log.plot(new_plot=False)
@@ -164,4 +166,36 @@ if __name__ is '__main__':
         plt.subplot(n_deuteron, 2, 2*(i+1))
         log.plot(ylab, xlab, new_plot=False)
 
+#%%
+## some statistics
+import numpy as np
 
+def RF_field(log):
+    """Returns the longitudinal electric field acting on bunch particles,
+    when it is passing the RF element"""
+    import rhs
+    from particle_log import read_record
+
+    ii = log['Element'] == b'RF'
+
+    turns = np.sum(ii[:, 0])
+    n_state = len(log[0])
+
+    n_state = len(bunch)
+    Es = np.zeros((turns, n_state), dtype=[('Es', float), ('dK', float), ('Theta', float), ('t', float)])
+    for i, row in enumerate(log[ii].reshape((-1, n_state))):
+        state = read_record(row)
+        Es[i] = list(zip(lattice[lattice.RF.index].EField(state)[2], *rhs.select(state, 'dK', 'Theta', 't')))
+
+    return Es
+
+#%%
+Es = RF_field(log)
+n_state = len(log[0])
+plt.figure()
+xlabel = 'Theta'
+for i in range(n_state):
+    plt.plot(Es[:, i][xlabel] - Es[:, 0][xlabel], Es[:, i]['Es'], '-.', label=i)
+plt.legend()
+plt.xlabel('{} - {}_0'.format(xlabel, xlabel))
+plt.ylabel('E [V/m]')

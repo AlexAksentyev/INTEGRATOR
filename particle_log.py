@@ -74,6 +74,9 @@ class StateList:
     def __getitem__(self, pid):
         return self.state_list[pid]
 
+    def pop(self, index):
+        self.state_list.pop(index)
+
     def __repr__(self):
         from pandas import DataFrame
         return str(DataFrame(self.state_list))
@@ -83,9 +86,6 @@ class StateList:
         for d in self.state_list:
             states.append(list(d.values()))
         return states
-
-#%%
-
 
 #%%
 
@@ -102,7 +102,8 @@ class PLog(np.recarray):
     variable_type = list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
     record_type = metadata_type + [('PID', int)] + variable_type
                 ## PID field is weird like this to enable automatic
-                ## pid setting in setitem (if it were metadata, i'd have to supply it)
+                ## pid setting in setitem (if it were metadata, i'd have to supply it,
+                ## and that causes problems in __array_finalize__
                 ## i could actually do without it, now that i know that subsetting
                 ## a recarray makes it 1D, and I have to manually reshape it.
 
@@ -187,7 +188,7 @@ class PLog(np.recarray):
     def trajectories(self, from_=0, to_=None):
         """Returns a generator of particle logs. That is,
         in the expression:
-            for p in plog.particles():
+            for p in plog.trajectories():
                 plot(p['s'], p['x'])
         p = plog[:, i] for the next i, and hence
         the code above will plot x vs s for all of the
@@ -329,6 +330,21 @@ class PLog(np.recarray):
         PLT.grid()
 
         return PLT.gcf()
+
+#%%
+NUM_META = len(PLog.metadata_type)
+def read_record(log_record):
+    n_state = len(log_record)
+    flat_state = np.empty(n_state*rhs.VAR_NUM)
+
+    start_id = NUM_META+1
+    end_id = start_id + rhs.VAR_NUM - 1
+    for j, vec in enumerate(log_record):
+        flat_state[j*rhs.VAR_NUM:(j+1)*rhs.VAR_NUM] = list(vec)[start_id:end_id + 1]
+                # everything after metadata + PID is state variables
+
+    return flat_state
+
 
 #%%
 

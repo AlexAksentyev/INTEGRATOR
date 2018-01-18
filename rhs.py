@@ -66,6 +66,7 @@ class RHS:
         Bx, By, Bs = element.BField(state)
 
         kappa = element.curve
+#        kappa = 0 # test id D001
         hs = 1 + kappa*x # look here http://www.iaea.org/inis/collection/NCLCollectionStore/_Public/23/011/23011647.pdf
                             # ds' = (R+x)dphi = (1+x/R)ds = hs ds, ds = Rdphi
                             # slope = Px/Ps = dx/ds' = x'/hs => x' = Px/Ps * hs (eq 2.6)
@@ -77,6 +78,7 @@ class RHS:
                      # H' = Pc/Ps hs
 
         gamma, beta = self.particle.GammaBeta(KinEn)
+
         q = EZERO
         v = beta*CLIGHT
         m0 = self.particle.mass0_kg
@@ -90,10 +92,11 @@ class RHS:
                                     # original set of equations
                                     # however, the OSE considered only static fields
                                     # p 25 Andrey's thesis
+
         gammap = dEnp/self.particle.mass0 # gamma prime
 
-         ## I don't understand the following formulas
-        betap = (dEnp*(self.particle.mass0)**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
+         ## see Andrey's thesis, p. 35, for these formulas
+        betap = (dEnp*self.particle.mass0**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
         D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
 
         # these two are in the original dimensions
@@ -113,7 +116,6 @@ class RHS:
         sp1 = t5*(-q / (gamma*m0))*(1 + G * gamma)
         sp2 = t5*( q / (gamma*m0**2 * m0c2)) * (G/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
 
-        # this is probably from TBMT
         Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - \
                                       (Px * Ey - Py * Ex) * Sy) + \
                                       (sp1*By+sp2*Py)*Ss - \
@@ -123,14 +125,14 @@ class RHS:
                                       (sp1*Bs+sp2*Ps)*Sx - \
                                       (sp1*Bx+sp2*Px)*Ss
         Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
-               (Ps * Ex - Px * Es) * Sx) + \
-               (sp1*Bx+sp2*Px)*Sy - \
-               (sp1*By+sp2*Py)*Sx
+                                      (Ps * Ex - Px * Es) * Sx) + \
+                                      (sp1*Bx+sp2*Px)*Sy - \
+                                      (sp1*By+sp2*Py)*Sx
 
         DX = [xp, yp, np.repeat(1, self.n_ics), #xp, yp, sp
               tp, self.w_freq*tp, Hp, #tp, Thetap, Hp
               Pxp/P0c, Pyp/P0c, dEnp/self.particle.kinetic_energy, #pxp, pyp, dKp
               Sxp, Syp, Ssp] #Sxp, Syp, Ssp
-              # Theta
+
 
         return np.reshape(DX, VAR_NUM*self.n_ics, order='F')

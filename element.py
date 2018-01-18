@@ -300,11 +300,14 @@ class Wien(Element, Bend):
         if R is None: crv = None
         else:
             crv = 1/R
-            self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
+#            self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
 
         self.__h_gap = h_gap
 
         super().__init__(curve=crv, length=length, name=name, reference_particle=reference_particle)
+
+        if R is not None:  # after Bend.__init__ self._Bend__radius = None ALWAYS
+            self._Bend__radius = [R, R - h_gap, R**2/(R-h_gap)]
 
         self.set_E_field(E_field)
         self.set_B_field(B_field)
@@ -317,8 +320,10 @@ class Wien(Element, Bend):
             E_field = - P0c*beta/R[0] * 1e6
         else:
             assert E_field < 0, "Incorrect field value ({} >= 0)".format(E_field)
-            R = - P0c*beta/E_field * 1e6
-            self._Bend__radius = [R, R - self.__h_gap, R**2/(R-self.__h_gap)]
+            if self._Bend__radius is None:
+                print('Setting bend radius.')
+                R = - P0c*beta/E_field * 1e6
+                self._Bend__radius = [R, R - self.__h_gap, R**2/(R-self.__h_gap)]
             R = self._Bend__radius
 
         self.curve = 1/R[0]
@@ -351,7 +356,10 @@ class Wien(Element, Bend):
     def EField(self, arg):
         i_x, = index(arg, 'x')
         x = arg[i_x]
-        Ex = self._Element__E_field[0]/(1+self.curve*x)
+        Ex = self._Element__E_field[0]/(1+self.curve*x) # strange field definition,
+            # or 1/(1+x) ~ 1-x + ...
+            # check this out:
+            # http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
         z = np.zeros(len(x))
         fld = (Ex, z, z)
         return Field(fld, self).tilt()
@@ -387,6 +395,26 @@ class Wien(Element, Bend):
 
     def kickVolts(self, x):
         return (self.__volt, self.__U(x))
+
+
+class StraightWien(Element):
+    """Straight Wien filter."""
+
+    def __init__(self, length, h_gap, reference_particle, E_field, B_field, name="Wien"):
+        self._h_gap = h_gap
+        self._ref_kinetic_energy = reference_particle.kinetic_energy
+
+        super().__init__(curve=0, length=length, name=name)
+
+        self._U = self._h_gap*E_field
+        self._Element__E_field = (E_field, 0, 0)
+        self._Element__B_field = (0, B_field, 0)
+
+    def front_kick(self, state):
+        state[:, IMAP['dK']] -= self._U*1e-6/self._ref_kinetic_energy
+
+    def rear_kick(self, state):
+        state[:, IMAP['dK']] += self._U*1e-6/self._ref_kinetic_energy
 
 
 class ERF(Element):
@@ -457,17 +485,18 @@ class ERF(Element):
     def kickVolts(self):
         return self.__U
 
-class Observer:
+class Observer(Element):
     """This element of zero length is put where we want
     to check the state vector.
     """
 
     def __init__(self):
-        self.__bool_skip = True
+        super().__init__(0, 0, 'Observer')
+        self._Element__bool_skip = True
 
     @property
     def skip(self):
-        return self.__bool_skip
+        return self._Element__bool_skip
 
     def advance(self, state):
         """In Tracker::track, when an element's skip is true, it uses
@@ -479,6 +508,8 @@ class Observer:
 #%%
 # setup
 if __name__ == '__main__':
+    """test code to produce log
+    """
     from lattice import Lattice
     from tracker import Tracker
     from particle_log import StateList
@@ -487,16 +518,18 @@ if __name__ == '__main__':
     deu = pcl.Particle()
     trkr = Tracker()
 
-    DL = 1
-    dip = MDipole(DL, deu, B_field = 1)
+    DL = 361.55403e-2
+    element = MDipole(DL, deu, B_field = 1)
+#    element = Wien(DL, .05, deu, -120e5, 0*.082439761)
 
-    lat = Lattice([dip], 'dipole')
+    lat = Lattice([element], 'dipole')
 
     istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
 
     #%%
     # tracking
-    log = trkr.track(deu, istate, lat, 100)
+    nturn = 100
+    log = trkr.track(deu, istate, lat, nturn)
 
     log.plot('Sx', 's')
     log.plot('Sx', 'Sz')
@@ -505,20 +538,22 @@ if __name__ == '__main__':
     # analytical cross-check
     v = deu.GammaBeta()[1]*pcl.CLIGHT
     factor = - pcl.EZERO*deu.G/deu.mass0_kg
-    By = dip.get_B_field()[1]
+    By = element.get_B_field()[1]
     xpct_w = factor*By
-    L = np.arange(0,101,1)
-    xpct_angle = [a if a < np.pi/2 else a-np.pi for a in xpct_w*L/v]
+    L = np.arange(0,(nturn+1)*DL,DL)
+    xpct_angle = [a if a<np.pi/2 else a-np.pi for a in (xpct_w*L/v)%(2*np.pi)]
 
     angle = np.arctan(log[:, 1]['Sx']/log[:, 1]['Sz'])
 
     #%%
+    plt.figure()
     plt.plot(xpct_angle, angle, '-b', label='data')
     plt.plot(xpct_angle, xpct_angle, '--r', label='(0,1)')
     plt.legend()
 
     #%%
-
-    plt.plot(L, xpct_angle, '-r', label='expectation')
-    plt.plot(L, angle, '--b', label='tracking')
+    plt.figure()
+    rng = slice(None)
+    plt.plot(L[rng], xpct_angle[rng], '-r', label='expectation')
+    plt.plot(L[rng], angle[rng], '--b', label='tracking')
     plt.legend()
