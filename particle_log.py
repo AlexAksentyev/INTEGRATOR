@@ -217,12 +217,11 @@ class PLog(np.recarray):
         stamp, vector = stamp_vector
         vector = vector.reshape(self.n_ics, -1)
 
-        result = np.empty(self.n_ics, self.dtype)
-
+        stamped = np.empty(self.n_ics, self.dtype)
         for ind, vec in enumerate(vector):
-            result[ind] = stamp + (ind,) + tuple(vec)
+            stamped[ind] = stamp + (ind,) + tuple(vec)
 
-        super(PLog, self).__setitem__(i, result)
+        super(PLog, self).__setitem__(i, stamped)
 
     def __bundle_up(self, pid):
         log = self[:, pid]
