@@ -136,7 +136,7 @@ if __name__ is '__main__':
 
     bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK = (0, 1e-4, 3))
 
-    turns = int(100)
+    turns = int(10)
 
 #%%
     log_list = list()
