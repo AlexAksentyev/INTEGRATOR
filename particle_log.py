@@ -16,6 +16,24 @@ from utilities import Bundle
 #%%
 class StateList:
     """Create an ensemble of initial conditions.
+    Keyword arguments are the state variables:
+        :x, y:       the particle position in the transverse plane
+        :s:           position along the optical axis
+        :t:           time of injection
+        :Theta:       RF phase at injection
+        :H:           sqrt(x^2 + y^2 + s^2)
+        :px, py:      the reference-momentum-normalized momentum projections Px/P0, Py/P0
+        :dK:          normalized energy deviation (K-K0)/K0
+        :Sx, Sy, Sz:  spin projections.
+
+    Use
+    ----------------
+    To define an ensemble of initial conditions varying in the variable **x**, write: \n
+        StateList(x=(lower_bound, upper_bound, number_of_states), ...)
+
+    To set a variable **y** constant accross all states, write: \n
+        StateList(..., y = shared_value)
+
     """
     def __init__(self, **kwargs):
 
@@ -244,8 +262,16 @@ class PLog(np.recarray):
 
     def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all',
              mark_special=None, new_plot=True, **kwargs):
-        """Mark special may be redundant in the light of
-        Lattice::plot_segment.
+        """
+        Arguments:
+            Ylab, Xlab : string
+                the state variable name; if given in the form "-D *variable_name*",
+                plots the difference between the value of the variable for a given particle
+                and the reference particle.
+            pids : either a list of integers, of the string 'all'
+                specifies with particles' plots to output.
+            new_plot : boolean
+                specifies whether to plot at a new canvas
         """
 
         ## reading how to plot data: diff variable with reference value, or otherwise

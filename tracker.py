@@ -27,7 +27,14 @@ class StopTracking(Exception):
     pass
 
 class Tracker:
-    """Handles tracking of ensembles thru lattices."""
+    """Handles tracking of ensembles through lattices.
+
+    Use
+    ____________
+    Functions
+        :set_controls: to set tracker controls
+        :tracker: to track
+    """
     def __init__(self):
         self.controls = None
 
@@ -39,12 +46,14 @@ class Tracker:
         self.log = None # need to know the number of records, particles
 
     def set_controls(self, fwd=True, inner=False, breaks=101, ncut=0):
-        """Choose whether to track a lattice forward/backward (fwd),
-        log state variable values inside elements (inner),
-        at how many nodes to compute state vars inside an element (breaks),
-        data for how many turns to keep in RAM/how often to do file backup (ncut).
-        If ncut == 0, keep all data in RAM; in this case I still back up every
-        10 % of the total number of turns (see Tracker::track).
+        """
+        Arguments
+        ___________
+            :fwd: track the accelerator in the direction specified by lattice, or the opposite
+            :inner: log state variable values inside elements
+            :breaks: how many nodes to compute the state variables inside an element
+            :ncut: how many turns to keep in RAM; in ncut == 0, keep everything;
+                    in that case, the data are still backed up every 10% of the total number of turns.
         """
         self.controls = TrackerControls(fwd, inner, breaks, ncut)
 
@@ -151,6 +160,7 @@ class Tracker:
     def track(self, particle, ics, lattice, n_turns):
         """Track ensemble through lattice for n_turns.
         Returns the particle log of type PLog.
+        Also backs up the data in an hdf5 file located at "./data/".
         """
         self.lattice = lattice
         ## check for controls; if they haven't been set, use defaults

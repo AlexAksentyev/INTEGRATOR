@@ -114,6 +114,30 @@ class Lattice:
             yield self[eid]
 
     def insert_RF(self, position, length, reference_particle, **ERF_pars):
+        """
+        Arguments:
+            position : integer
+                the index inside the lattice element sequence (starts from 0)
+
+            length : float
+                at length 0 the RF is simulated by an energy kick;
+                internally, for the computation of the potential energy jump,
+                assumes a default length of 5e-4, i.e. V = E_field * 5e-4.
+
+        Keyword arguments (ERF_pars):
+            E_field : float
+                the amplitude of the electric field wave (default 15e5)
+
+            phase : float
+                the time-domain phase of the reference particle (default 1.5*pi)
+
+            H_number : integer
+                the harmonic huimber (default 50)
+
+            name : string
+                defaults to "RF"
+
+        """
         if self.RF.index is not None and self.RF.index != position:
             print("""Trying to add a second RF element;
                   current RF position is {}""".format(self.RF.index))
