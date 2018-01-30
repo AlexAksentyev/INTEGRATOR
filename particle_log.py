@@ -146,9 +146,14 @@ class PLog(np.recarray):
         self.ics = getattr(obj, 'ics', None)
 
     @classmethod
-    def from_file(cls, filename, directory='./data/'):
-        """Returns the multi-D PLog, and a dictionary of initial conditions
-        for initializing a corresponding ensemble
+    def from_file(cls, filename, start=None, stop=None, directory='./data/'):
+        """Returns the multi-D PLog, with a StateList of initial conditions
+        as the ics attribute.
+
+        Parameters:
+        -----
+        start, stop     can be used to select a range of rows
+                        in the tables.
         """
 
 
@@ -163,7 +168,7 @@ class PLog(np.recarray):
             npids = len(file_handle.list_nodes('/logs'))
 
             tbl0 = file_handle.root.logs.P0
-            nrow = tbl0.nrows
+            nrow = stop-start
             rec_type = tbl0.dtype
 
             Log = np.recarray((nrow, npids), dtype=rec_type)
@@ -171,7 +176,7 @@ class PLog(np.recarray):
             ind_x = cls._state_var_1st_ind
             ics = list() # ics and particle data are required to build _host
             for ind, log in enumerate(log_tables):
-                Log[:, ind] = log.read()
+                Log[:, ind] = log.read(start, stop)
                 ics.append(list(Log[0, ind])[ind_x:])
 
             ## particle data
