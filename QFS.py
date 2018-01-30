@@ -132,7 +132,7 @@ if __name__ is '__main__':
         deuteron_list.append(deu)
 
     trkr = Tracker()
-    trkr.set_controls(inner=False, breaks=3)
+    trkr.set_controls(inner=False, breaks=3, ncut=100)
 
     bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK = (0, 1e-4, 3))
 
