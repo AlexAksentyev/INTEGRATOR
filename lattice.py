@@ -216,6 +216,29 @@ class Lattice:
         return np.unique([re.sub('_.*', '', e) for e in names])
 
     def tilt(self, order='S', mean_angle=(0,), sigma=(0,), append=False):
+        """
+        Arguments
+        ________________
+
+        order : string
+            order of axises (x, y, s; case-insensitive) about which
+            rotations are performed, as in: 'xsxy', meaning
+            "rotate about the x axis, then s, then x again, then y"
+
+        mean_angle : tuple
+            sets up a systematic angle deviation;
+            each tuple element corresponds to an *order* letter;
+            if the number of elements in the tuple > than that in the order
+            string, the remaining angles are ignored
+
+        sigma : tuple
+            sets up the rms of the angle distributions
+
+        append : boolean
+            if the lattice has already been rotated, append=True adds new
+            rotations on top of the old ones
+
+        """
         tilt_num = len(order)
         if not isinstance(mean_angle, cln.Sequence): mean_angle = (mean_angle,)
         if not isinstance(sigma, cln.Sequence): sigma = (sigma,)
