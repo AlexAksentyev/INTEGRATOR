@@ -8,7 +8,7 @@ import copy
 import re
 import collections as cln
 import numpy as np
-from element import ERF
+from element import ERF, Tilt
 from utilities import MutableNamedTuple
 
 class RF(MutableNamedTuple):
@@ -259,7 +259,7 @@ class Lattice:
         i = 0
         ids = set()
         cnt = 1
-        for element in self:
+        for element in self.elements():
             eid = id(element.tilt_)
             if eid in ids:
                 print('\t\t {} element {} at lattice index {}'.format(cnt, element.name, i))
@@ -271,6 +271,19 @@ class Lattice:
             i += 1
 
         self._state += 1  # the lattice is in a new state => write into a new group
+
+    def clear_tilt(self):
+        """Resets the lattice to the original state."""
+        ids = set()
+        for element in self.elements():
+            eid = id(element.tilt_)
+            if eid in ids:
+                continue
+            element.tilt_ = Tilt()
+            ids.add(eid)
+
+        self._state = 0
+
 
     def plot_segment(self, segment_name, log,
                      Ylab='-D dK', Xlab='-D Theta', **kwargs):
