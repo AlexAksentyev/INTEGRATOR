@@ -490,8 +490,8 @@ class Observer(Element):
     to check the state vector.
     """
 
-    def __init__(self):
-        super().__init__(0, 0, 'Observer')
+    def __init__(self, name='Observer'):
+        super().__init__(0, 0, name)
         self._Element__bool_skip = True
 
     @property
