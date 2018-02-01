@@ -32,10 +32,10 @@ QFA2 = ent.MQuad(5e-2,  10.11, 'QFA2')
 OSF = ent.MSext(15e-2, 0, "OSF")
 OSD = ent.MSext(15e-2, 0, "OSD")
 
-SDP = ent.MSext(15e-2, 3.39598,"SDP")
-SFP = ent.MSext(15e-2, 2.76958,"SFP")
-SDN = ent.MSext(15e-2, 3.79311,"SDN")
-SFN = ent.MSext(15e-2, 2.09837,"SFN")
+SDP = ent.MSext(15e-2, -3.39598,"SDP")
+SFP = ent.MSext(15e-2,  2.76958,"SFP")
+SDN = ent.MSext(15e-2,  3.79311,"SDN")
+SFN = ent.MSext(15e-2, -2.09837,"SFN")
 
 BDA = ent.MDipole(182.02463e-2, pcl.Particle(), B_field=1.5, name="BDA")
 
