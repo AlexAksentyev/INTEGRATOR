@@ -88,7 +88,7 @@ if __name__ == '__main__':
     #%%
     from particle_log import StateList
 
-    n_turns = int(100)
+    n_turns = int(50)
 
-    bunch = StateList(Sz=1, x=(-1e-3,1e-3,5), dK=(0, 1e-4, 5))
+    bunch = StateList(Sz=1, x=(-1e-3,1e-3,3), dK=(0, 1e-4, 3))
     log = trkr.track(deu, bunch, lattice, n_turns)

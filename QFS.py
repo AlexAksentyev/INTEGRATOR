@@ -127,7 +127,7 @@ if __name__ is '__main__':
     from particle_log import StateList
     bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK = (0, 1e-4, 3))
 
-    turns = int(10) # the number of turns to track
+    turns = int(50) # the number of turns to track
 
 #%%
 ## tracking
@@ -137,14 +137,15 @@ if __name__ is '__main__':
 #%%
 ##plotting
 
-   from matplotlib import pyplot as plt
+    from matplotlib import pyplot as plt
 
     log.plot('Sx', 's')
 
 #%%
 ## segment plots for one turn
-    log1 = log[log['Turn']<2].reshape((-1, log.n_ics))
+    if False:
+        log1 = log[log['Turn']<2].reshape((-1, log.n_ics))
 
-    for name in lattice.segment_map.keys():
-         lattice.plot_segment(name, log1, 'Sx','s')
-         plt.title(name)
+        for name in lattice.segment_map.keys():
+             lattice.plot_segment(name, log1, 'Sx','s')
+             plt.title(name)
