@@ -68,7 +68,7 @@ SS1H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
          QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2]
 
-BNL_segments = dict(SS1H2=SS1H2, ARC1=ARC1, SS2H1=SS2H2,
+BNL_segments = dict(SS1H2=SS1H2, ARC1=ARC1, SS2H1=SS2H1,
                     SS2H2=SS2H2, ARC2=ARC2, SS1H1=SS1H1)
 
 #%%
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     #%%
     from particle_log import StateList
 
-    n_turns = int(500)
+    n_turns = int(50)
 
     bunch = StateList(Sz=1, x=(-1e-3,1e-3,3), dK=(0, 1e-4, 2))
     log = trkr.track(deu, bunch, lattice, n_turns)
