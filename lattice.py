@@ -92,19 +92,6 @@ class Lattice:
     def __repr__(self):
         return self._sequence.__repr__()
 
-#    def __iter__(self):
-#        self.__current_id = 0
-#        return self
-#
-#    def __next__(self):
-#        last_id = self.count - 1
-#        if self.__current_id <= last_id:
-#            result = self[self.__current_id]
-#            self.__current_id += 1
-#            return result
-#        else:
-#            raise StopIteration
-
     def elements(self, from_=0, to_=None):
         """Generator for iterating through lattice elements.
         """
@@ -209,6 +196,21 @@ class Lattice:
 
         return element
 
+    def make_segment(self, name):
+        """Groups all elements with *name* into a separate segment.
+        Doesn't remove the elements from other segments.
+
+        Arguments:
+            name: string
+                for the present, the exact name of the element; i.e, names
+                in the form name_index won't be understood.
+        """
+        # find all elements with name
+        element_names = self.list_names(True)
+        element_indices = [i for i, x in enumerate(element_names) if x == name]
+        self.segment_map.update({name: element_indices})
+
+
     def list_names(self, full=False):
         names = [e.name for e in self]
         if full:
@@ -305,13 +307,6 @@ class Lattice:
             i0 = [eid in seg_ids for eid in log[:, 0]['EID']].index(True)
             ii = np.arange(i0, len(log), self.count)
             s_list += log[ii, 0]['s'].tolist()
-
-#        s_list.sort()
-#
-#        for i in range(len(s_list)-1):
-#            s0 = s_list[i]
-#            s1 = s_list[i+1]
-#            s_middle = .5*(s0 + s1)
 
         return s_list
 
