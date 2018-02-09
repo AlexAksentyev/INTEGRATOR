@@ -289,7 +289,7 @@ class MSext(Element):
         fld = (self.__grad*x*y, .5*self.__grad*(x**2 - y**2), np.zeros(len(x)))
         return Field(fld, self).tilt()
 
-class Wien(Element, Bend):
+class Wien_old(Element, Bend):
     """Wien filter."""
 
     def __init__(self, length, h_gap, reference_particle, E_field=None, B_field=None, R=None, name="Wien"):
@@ -416,6 +416,42 @@ class StraightWien(Element):
     def rear_kick(self, state):
         state[:, IMAP['dK']] += self._U*1e-6/self._ref_kinetic_energy
 
+class Wien(Element):
+    """Curved Wien filter."""
+    def __init__(self, length, h_gap, reference_particle, E_field, B_field, name="Wien"):
+        self._h_gap = h_gap
+        self._ref_kinetic_energy = reference_particle.kinetic_energy
+
+        P0c = reference_particle.Pc(self._ref_kinetic_energy)
+        _, beta = reference_particle.GammaBeta()
+        assert E_field < 0, "Incorrect field value ({} >= 0)".format(E_field)
+        R = - P0c*beta/E_field * 1e6
+
+        super().__init__(curve=1/R, length=length, name=name)
+
+        self._U = lambda x: E_field*R*np.log(1 + x/R)
+        self._Element__E_field = (E_field, 0, 0)
+        self._Element__B_field = (0, B_field, 0)
+
+    def EField(self, arg):
+        i_x, = index(arg, 'x')
+        x = arg[i_x]
+        Ex = -self._Element__E_field[0]*(1- self.curve*x)
+            # or 1/(1+x) ~ 1-x + ...
+            # check this out:
+            # http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
+        z = np.zeros(len(x))
+        fld = (Ex, z, z)
+        return Field(fld, self).tilt()
+
+    def front_kick(self, state):
+        u = self._U(state[:, IMAP['x']])
+        state[:, IMAP['dK']] -= u*1e-6/self._ref_kinetic_energy
+
+    def rear_kick(self, state):
+        u = self._U(state[:, IMAP['x']])
+        state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
+
 
 class ERF(Element):
     """RF element."""
@@ -508,52 +544,6 @@ class Observer(Element):
 #%%
 # setup
 if __name__ == '__main__':
-    """test code to produce log
-    """
-    from lattice import Lattice
-    from tracker import Tracker
-    from particle_log import StateList
-    import matplotlib.pyplot as plt
-
-    deu = pcl.Particle()
-    trkr = Tracker()
-
-    DL = 361.55403e-2
-    element = MDipole(DL, deu, B_field = 1)
-#    element = Wien(DL, .05, deu, -120e5, 0*.082439761)
-
-    lat = Lattice([element], 'dipole')
-
-    istate = StateList(Sz=1, x=(-1e-3, 1e-3, 3))
-
-    #%%
-    # tracking
-    nturn = 100
-    log = trkr.track(deu, istate, lat, nturn)
-
-    log.plot('Sx', 's')
-    log.plot('Sx', 'Sz')
-
-    #%%
-    # analytical cross-check
-    v = deu.GammaBeta()[1]*pcl.CLIGHT
-    factor = - pcl.EZERO*deu.G/deu.mass0_kg
-    By = element.get_B_field()[1]
-    xpct_w = factor*By
-    L = np.arange(0,(nturn+1)*DL,DL)
-    xpct_angle = [a if a<np.pi/2 else a-np.pi for a in (xpct_w*L/v)%(2*np.pi)]
-
-    angle = np.arctan(log[:, 1]['Sx']/log[:, 1]['Sz'])
-
-    #%%
-    plt.figure()
-    plt.plot(xpct_angle, angle, '-b', label='data')
-    plt.plot(xpct_angle, xpct_angle, '--r', label='(0,1)')
-    plt.legend()
-
-    #%%
-    plt.figure()
-    rng = slice(None)
-    plt.plot(L[rng], xpct_angle[rng], '-r', label='expectation')
-    plt.plot(L[rng], angle[rng], '--b', label='tracking')
-    plt.legend()
+    from particle import Particle
+    p = Particle()
+    w = Wien(361e-2, 5e-2, p, -120e5, 0.46)
