@@ -361,6 +361,11 @@ class PLog(np.recarray):
 
         return PLT.gcf()
 
+    def get_turns(self, from_, to_=None):
+        if to_ == None:
+            return self[self.Turn==from_].reshape((-1, self.n_ics))
+        return self[(self.Turn>=from_)&(self.Turn<=to_)].reshape((-1, self.n_ics))
+
 #%%
 NUM_META = len(PLog.metadata_type)
 def read_record(log_record):
