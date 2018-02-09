@@ -416,8 +416,12 @@ class StraightWien(Element):
     def rear_kick(self, state):
         state[:, IMAP['dK']] += self._U*1e-6/self._ref_kinetic_energy
 
+# NOT WORKING
 class Wien(Element):
-    """Curved Wien filter."""
+    """Cylindrical Wien filter. (Unfinished.)
+    Electric field definition taken from:
+        http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
+    """
     def __init__(self, length, h_gap, reference_particle, E_field, B_field, name="Wien"):
         self._h_gap = h_gap
         self._ref_kinetic_energy = reference_particle.kinetic_energy
@@ -434,14 +438,15 @@ class Wien(Element):
         self._Element__B_field = (0, B_field, 0)
 
     def EField(self, arg):
-        i_x, = index(arg, 'x')
-        x = arg[i_x]
-        Ex = -self._Element__E_field[0]*(1- self.curve*x)
+        i_x, i_y = index(arg, 'x', 'y')
+        x, y = arg[i_x], arg[i_y]
+        Ex = -self._Element__E_field[0]*(1 - self.curve*x)
             # or 1/(1+x) ~ 1-x + ...
             # check this out:
             # http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
+        Ey = y*self.curve
         z = np.zeros(len(x))
-        fld = (Ex, z, z)
+        fld = (Ex, Ey, z)
         return Field(fld, self).tilt()
 
     def front_kick(self, state):
