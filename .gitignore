@@ -5,3 +5,4 @@ __pycache__/
 *so
 img/
 data/
+.DS_Store
