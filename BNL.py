@@ -39,7 +39,7 @@ SFN = ent.MSext(15e-2, -2.09836542*0,"SFN")
 
 BPM = ent.Drift(15e-2, "BPM")
 
-RBE = ent.Wien(180.77969e-2, 5e-2, deu, -120e5, 0.46002779, name="RBE")
+RBE = ent.CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
 
 #%%
 ## definition of lattice subsections
