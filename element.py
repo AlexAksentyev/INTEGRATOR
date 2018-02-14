@@ -387,8 +387,9 @@ class CylWien(Element):
         # centrifugal force formula
         gamma, beta = reference_particle.GammaBeta()
         v = pcl.CLIGHT * beta
-        mv2 = gamma*reference_particle.mass0*1e6 * beta**2
-        crv = (E_field - v*B_field) / mv2
+        mv2 = gamma*reference_particle.mass0_kg *  v**2
+        R = mv2 / (- pcl.EZERO * (E_field - v*B_field))
+        crv = 1/R
         if crv < 0:
             print("Negative curvature, bending in the direction -x.")
         else:
@@ -396,12 +397,11 @@ class CylWien(Element):
 
         super().__init__(curve=crv, length=length, name=name)
 
-        R0 = 1/crv
-        R1 = R0 - .5*h_gap
-        R2 = R0 + .5*h_gap
-        V0 = -.5*E_field*R0*np.log(R2/R1)
+        R1 = R - h_gap
+        R2 = R*R/R1
+        V = (E_field * R * np.log(R2 / R1)) / (-2)
 
-        self._U = lambda x: V0 - E_field/crv*np.log(1 + x*crv)
+        self._U = lambda x: -V + 2*V*np.log((R+x)/R1)/np.log(R2/R1)
         self._Element__B_field = (0, B_field, 0)
         self._Element__E_field = (E_field, 0, 0)
 
@@ -544,9 +544,9 @@ if __name__ == '__main__':
     trkr = Tracker()
     trkr.set_controls(inner=True)
 
-    #element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0*.46002779, name="RBE")
+    element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
     R = 42.18697266284172
-    element = ECylDeflector(180.77969e-2, 5e-2, deu, 120e5)
+    #element = ECylDeflector(180.77969e-2, 5e-2, deu, 120e5)
     lattice = Lattice([element], "RBE_test")
 
     bunch = StateList(Sz=1, x=(-1e-3, 5e-3, 3), dK=(0, 1e-4, 2))
