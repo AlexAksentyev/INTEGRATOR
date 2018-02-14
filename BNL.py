@@ -84,11 +84,12 @@ if __name__ == '__main__':
         lattice = lattice + segment
 
     lattice.name = 'BNL'
-    lattice.insert_RF(0, 0, deu)
+    lattice.insert_RF(0, 0, deu, E_field=15e7)
     #%%
     from particle_log import StateList
 
-    n_turns = int(5)
+    n_turns = int(10)
 
     bunch = StateList(Sz=1, x=(-1e-3,1e-3,3), dK=(0, 1e-4, 2))
     log = trkr.track(deu, bunch, lattice, n_turns)
+    log1 = log.get_turns(1)
