@@ -91,5 +91,7 @@ if __name__ == '__main__':
     n_turns = int(10)
 
     bunch = StateList(Sz=1, x=(-1e-3,1e-3,3), dK=(0, 1e-4, 2))
+
+    trkr.set_controls(rtol=1e-6, atol=1e-6)
     log = trkr.track(deu, bunch, lattice, n_turns)
     log1 = log.get_turns(1)

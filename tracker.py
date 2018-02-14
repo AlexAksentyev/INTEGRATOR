@@ -20,7 +20,7 @@ import rhs
 reload(rhs)
 
 
-TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut'])
+TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut', 'rtol', 'atol'])
 
 class StopTracking(Exception):
     """ Raise upon ValueError in RHS() to stop Tracker from tracking."""
@@ -45,7 +45,7 @@ class Tracker:
         self.file_handle = None # for data backup
         self.log = None # need to know the number of records, particles
 
-    def set_controls(self, fwd=True, inner=False, breaks=101, ncut=0):
+    def set_controls(self, fwd=True, inner=False, breaks=101, ncut=0, rtol=None, atol=None):
         """
         Arguments
         ___________
@@ -54,8 +54,9 @@ class Tracker:
             :breaks: how many nodes to compute the state variables inside an element
             :ncut: how many turns to keep in RAM; in ncut == 0, keep everything;
                     in that case, the data are still backed up every 10% of the total number of turns.
+            :rtol:, :atol: solver error tolerance control; if None, use solver defaults (1e-8)
         """
-        self.controls = TrackerControls(fwd, inner, breaks, ncut)
+        self.controls = TrackerControls(fwd, inner, breaks, ncut, rtol, atol)
 
     def _create_log(self, particle, ics, nturns):
         """Returns the first index from which to fill the log.
@@ -134,7 +135,8 @@ class Tracker:
                 state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
                 ### consider moving this segment to class Element
                 if not skip:
-                    vals = odeint(self.rhs, state, at, args=(element, brks))
+                    vals = odeint(self.rhs, state, at, args=(element, brks),
+                                  rtol=self.controls.rtol, atol=self.controls.atol)
                     state = vals[brks-1] # [x0,y0,...,x1,y1,...]
                 else:
                     element.advance(state)
