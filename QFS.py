@@ -140,12 +140,3 @@ if __name__ is '__main__':
     from matplotlib import pyplot as plt
 
     log.plot('Sx', 's')
-
-#%%
-## segment plots for one turn
-    if False:
-        log1 = log[log['Turn']<2].reshape((-1, log.n_ics))
-
-        for name in lattice.segment_map.keys():
-             lattice.plot_segment(name, log1, 'Sx','s')
-             plt.title(name)
