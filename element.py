@@ -289,6 +289,90 @@ class MSext(Element):
         fld = (self.__grad*x*y, .5*self.__grad*(x**2 - y**2), np.zeros(len(x)))
         return Field(fld, self).tilt()
 
+class ECylDeflector0(Element):
+    """Electrostatic cylindrical deflector, as defined in Andrey's matlab code.
+    """
+
+    def __init__(self, length, h_gap, reference_particle, R, name="ECylDefl"):
+        self._ref_kinetic_energy = reference_particle.kinetic_energy
+
+        crv = 1/R
+        R1 = R - h_gap
+        R2 = R*R/R1
+
+        # Lorentz force is not necessarily zero
+        # Reference bend radius R0 is computed via the
+        # centrifugal force formula
+        gamma, beta = reference_particle.GammaBeta()
+        v = pcl.CLIGHT * beta
+        mv2 = gamma*reference_particle.mass0_kg *  v**2
+        E0 = mv2 / (- pcl.EZERO * R)
+        V = (E0 * R * np.log(R2 / R1)) / (-2)
+
+        super().__init__(curve=crv, length=length, name=name)
+
+        self._U = lambda x: -V + 2*V*np.log((R+x)/R1)/np.log(R2/R1)
+        self._Element__E_field = (E0, 0, 0)
+
+    def EField(self, arg):
+        x, = select(arg, 'x')
+        Ex = self._Element__E_field[0]/(1+self.curve*x)
+
+        z = np.zeros(len(x))
+        fld = (Ex, z, z)
+        return Field(fld, self).tilt()
+
+    def front_kick(self, state):
+        u = self._U(state[:, IMAP['x']])
+        state[:, IMAP['dK']] -= u*1e-6/self._ref_kinetic_energy
+
+    def rear_kick(self, state):
+        u = self._U(state[:, IMAP['x']])
+        state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
+
+class ECylDeflector(Element):
+    """Electrostatic cylindrical deflector, as defined in Andrey's matlab code.
+    Changed: instead of passing curvature radius R in the constructor, pass
+    the radial electric field magnitude (signed).
+    """
+
+    def __init__(self, length, h_gap, reference_particle, E_field, name="ECylDefl"):
+        self._ref_kinetic_energy = reference_particle.kinetic_energy
+
+        # Lorentz force is not necessarily zero
+        # Reference bend radius R0 is computed via the
+        # centrifugal force formula
+        gamma, beta = reference_particle.GammaBeta()
+        v = pcl.CLIGHT * beta
+        mv2 = gamma*reference_particle.mass0_kg *  v**2
+        R = mv2 / (- pcl.EZERO * E_field )
+        crv = 1/R
+
+        R1 = R - h_gap
+        R2 = R*R/R1
+        V = (E_field * R * np.log(R2 / R1)) / (-2)
+
+        super().__init__(curve=crv, length=length, name=name)
+
+        self._U = lambda x: -V + 2*V*np.log((R+x)/R1)/np.log(R2/R1)
+        self._Element__E_field = (E_field, 0, 0)
+
+    def EField(self, arg):
+        x, = select(arg, 'x')
+        Ex = self._Element__E_field[0]/(1+self.curve*x)
+
+        z = np.zeros(len(x))
+        fld = (Ex, z, z)
+        return Field(fld, self).tilt()
+
+    def front_kick(self, state):
+        u = self._U(state[:, IMAP['x']])
+        state[:, IMAP['dK']] -= u*1e-6/self._ref_kinetic_energy
+
+    def rear_kick(self, state):
+        u = self._U(state[:, IMAP['x']])
+        state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
+
 class CylWien(Element):
     """Cylindtical Wien filter.
     For the field definitnion confer:
@@ -301,24 +385,32 @@ class CylWien(Element):
         # Lorentz force is not necessarily zero
         # Reference bend radius R0 is computed via the
         # centrifugal force formula
-        _, beta = reference_particle.GammaBeta()
-        mv2 = reference_particle.mass0_kg * beta**2 * pcl.CLIGHT**2
-        crv = pcl.EZERO*(E_field + beta*pcl.CLIGHT*B_field) / mv2
+        gamma, beta = reference_particle.GammaBeta()
+        v = pcl.CLIGHT * beta
+        mv2 = gamma*reference_particle.mass0*1e6 * beta**2
+        crv = (E_field - v*B_field) / mv2
+        if crv < 0:
+            print("Negative curvature, bending in the direction -x.")
+        else:
+            print("Positive curvature, bending in the direction +x.")
 
         super().__init__(curve=crv, length=length, name=name)
 
-        self._U = lambda x: E_field/crv*np.log(1 + x*crv)
+        R0 = 1/crv
+        R1 = R0 - .5*h_gap
+        R2 = R0 + .5*h_gap
+        V0 = -.5*E_field*R0*np.log(R2/R1)
+
+        self._U = lambda x: V0 - E_field/crv*np.log(1 + x*crv)
         self._Element__B_field = (0, B_field, 0)
         self._Element__E_field = (E_field, 0, 0)
 
     def EField(self, arg):
-        x, y = select(arg, 'x', 'y')
-        Ex = -self._Element__E_field[0]/(1+self.curve*x)
-        Ey = self.curve*y
-            # from here:
-            # http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
+        x, = select(arg, 'x')
+        Ex = self._Element__E_field[0]/(1+self.curve*x)
+
         z = np.zeros(len(x))
-        fld = (Ex, Ey, z)
+        fld = (Ex, z, z)
         return Field(fld, self).tilt()
 
     def front_kick(self, state):
@@ -347,6 +439,7 @@ class StraightWien(Element):
 
     def rear_kick(self, state):
         state[:, IMAP['dK']] += self._U*1e-6/self._ref_kinetic_energy
+
 
 
 class ERF(Element):
@@ -449,12 +542,15 @@ if __name__ == '__main__':
 
     deu = Particle()
     trkr = Tracker()
+    trkr.set_controls(inner=True)
 
-    element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
+    #element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0*.46002779, name="RBE")
+    R = 42.18697266284172
+    element = ECylDeflector(180.77969e-2, 5e-2, deu, 120e5)
     lattice = Lattice([element], "RBE_test")
 
-    bunch = StateList(Sz=1, x=(-1e-3, 1e-3, 3), dK=(0, 1e-4, 2))
+    bunch = StateList(Sz=1, x=(-1e-3, 5e-3, 3), dK=(0, 1e-4, 2))
 
     log = trkr.track(deu, bunch, lattice, 5)
 
-    log.plot('x', 's')
+    log.plot('x', 's', pids=[5])
