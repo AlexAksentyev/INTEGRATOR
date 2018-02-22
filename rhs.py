@@ -43,7 +43,7 @@ class RHS:
         self.w_freq = 2*np.pi*RF_freq
 
 
-    def __call__(self, state, at, element, brks):
+    def __call__(self, state, at, element):
         """Computes the RHS of the differential system
         defined by the fields of element, at s-coordinate at.
         Argument brks is required for computing the delta ds (s, s+ds).
@@ -62,7 +62,7 @@ class RHS:
 
         Ex, Ey, Es = element.EField(state)
 # TESTING
-        Exp, Eyp, Esp = element.EField_prime_t(state) #TESTING
+        Exp, Eyp, Esp = element.EField_prime_s(state) #TESTING
         Bx, By, Bs = element.BField(state)
 
         kappa = element.curve
@@ -85,8 +85,7 @@ class RHS:
 
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
 
-        ds = element.length/(brks-1)
-        dEnp = (Ex*xp +Ey*yp +Es + Esp*tp*ds) * 1e-6 # added Kinetic energy prime (in MeV)
+        dEnp = (Ex*xp +Ey*yp +Es + Esp*s) * 1e-6 # added Kinetic energy prime (in MeV)
                                     # this last term here is questionable
                                     # it was added by me and doesn't exist in the
                                     # original set of equations

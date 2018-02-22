@@ -140,7 +140,7 @@ class Element:
     def EField(self, arg):
         return Field(self.__E_field, self).vectorize(arg).tilt()
 
-    def EField_prime_t(self, arg): # added for testing with ERF
+    def EField_prime_s(self, arg): # added for testing with ERF
         return Field((0, 0, 0), self).vectorize(arg).tilt()
 
     def BField(self, arg):
@@ -445,7 +445,7 @@ class StraightWien(Element):
 class ERF(Element):
     """RF element."""
 
-    def __init__(self, length, reference_particle, acc_length, E_field=15e5, phase=1.5*np.pi, H_number=50, name="RF"):
+    def __init__(self, length, reference_particle, acc_length, E_field=15e5, phase=0.5*np.pi, H_number=50, name="RF"):
         super().__init__(curve=0, length=length, name=name)
 
         if length == 0:
@@ -457,6 +457,8 @@ class ERF(Element):
         self.amplitude = E_field
         self.phase = phase
         self.freq = self.reference_particle.revolution_freq(acc_length) * H_number
+        _, beta = reference_particle.GammaBeta()
+        self.wave_num = self.freq*2*np.pi/pcl.CLIGHT/beta
         self.__H_number = H_number
 
         self._Element__chars = pds.DataFrame({'Amplitude':self.amplitude,
@@ -466,23 +468,21 @@ class ERF(Element):
         self.__U = self.amplitude*length # length instead self.length for compatibility with length 0
 
     def EField(self, arg):
-        i_t, = index(arg, 't')
-        t = arg[i_t]
+        s, = select(arg, 's')
         A = self.amplitude
-        w = self.freq*2*np.pi
+        wave_num = self.wave_num
         phi = self.phase
-        z = np.zeros(len(t))
-        fld = (z, z, A*np.cos(w*t+phi))
+        z = np.zeros(len(s))
+        fld = (z, z, A*np.cos(wave_num*s+phi))
         return Field(fld, self).tilt()
 
-    def EField_prime_t(self, arg): # Es prime divided by time prime
-        i_t, = index(arg, 't')
-        t = arg[i_t]
+    def EField_prime_s(self, arg): # Es prime divided by time prime
+        s, = select(arg, 's')
         A = self.amplitude
-        w = self.freq*2*np.pi
+        wave_num = self.wave_num
         phi = self.phase
-        z = np.zeros(len(t))
-        fld = (z, z, -A*w*np.sin(w*t+phi))
+        z = np.zeros(len(s))
+        fld = (z, z, -wave_num*A*np.sin(wave_num*s+phi))
         return Field(fld, self).tilt()
 
     def advance(self, state):
