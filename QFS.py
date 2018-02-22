@@ -133,6 +133,7 @@ if __name__ is '__main__':
 ## tracking
 
     log = trkr.track(deu, bunch, lattice, turns)
+    log1 = log.get_turns(1)
 
 #%%
 ##plotting
