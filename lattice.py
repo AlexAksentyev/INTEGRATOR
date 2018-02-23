@@ -38,8 +38,19 @@ class Lattice:
         for ind in remove_indices:
             sequence.pop(ind)
 
-        self._sequence = sequence
         self.count = len(sequence)
+
+        ## creating _sequence of elements from pointers
+        self._sequence = sequence
+        ids = set()
+        for index, element in enumerate(self._sequence):
+            eid = id(element)
+            if eid in ids:
+                print('Repeated element; copying...')
+                self._sequence[index] = copy.deepcopy(element)
+            ids.add(eid)
+        ##
+
         self.name = name
         if segment_map is None:
             self.segment_map = {name: list(range(self.count))}
@@ -47,6 +58,15 @@ class Lattice:
             self.segment_map = segment_map
 
         self._state = 0
+
+    def unique_ids(self):
+        ids = set()
+        for element in self.elements():
+            eid = id(element)
+            if eid in ids:
+                continue
+            ids.add(eid)
+        return ids
 
     @property
     def state(self):
