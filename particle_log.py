@@ -105,6 +105,12 @@ class StateList:
             states.append(list(d.values()))
         return states
 
+    def write_to_file(self, filename, directory):
+        from pandas import DataFrame
+        from rhs import VAR_NAME
+        DataFrame(self.state_list).to_csv(directory+'/'+filename,
+                 columns=VAR_NAME, index=False)
+
 #%%
 
 

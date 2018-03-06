@@ -63,3 +63,10 @@ class Particle:
     def __repr__(self):
         data = dict(Mass0=self.mass0, KinEn0=self.kinetic_energy, gamma=self.gamma, G=self.G)
         return str(pds.DataFrame(data, index=[0]))
+
+    def write_to_file(self, filename, directory):
+        data = dict(Mass0=self.mass0, KinEn0=self.kinetic_energy, gamma=self.gamma, G=self.G)
+        data_header = list(data.keys())
+        data = pds.DataFrame(data, index=[0])
+        data.to_csv(directory+'/'+filename,
+                 columns=data_header, index=False)
