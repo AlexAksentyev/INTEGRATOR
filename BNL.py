@@ -91,11 +91,14 @@ if __name__ == '__main__':
 
     from particle_log import StateList
 
-    n_turns = int(450)
+    n_turns = int(10)
 
-    bunch = StateList(Sz=1, dK=(-1e-4, 1e-4, 5))
+    bunch = StateList(Sz=1)#, dK=(-1e-4, 1e-4, 5), x=(-1e-3, 2e-4, 4))
 
     trkr.set_controls(rtol=1e-6, atol=1e-6)
+    from time import clock
+    start = clock()
     log = trkr.track(deu, bunch, lattice, n_turns)
+    print("Tracking took {} secs".format(clock()-start))
     log1 = log.get_turns(1)
     log.plot('Sx', 's', )
