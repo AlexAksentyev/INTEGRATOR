@@ -10,9 +10,15 @@ import element as ent
 import lattice as ltc
 from tracker import Tracker
 from particle import Particle
+import matplotlib.pyplot as plt
+import math
+from rhs import RHS
+import numpy as np
 
 trkr = Tracker()
 deu = Particle()
+deu.kinetic_energy += .5e-6*deu.kinetic_energy
+deu.gamma -= deu.gamma*2e-5/1.42
 
 #%%
 ## lattice elements
@@ -39,7 +45,14 @@ SFN = ent.MSext(15e-2, -2.09836542*0,"SFN")
 
 BPM = ent.Drift(15e-2, "BPM")
 
-RBE = ent.CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
+# TESTING
+By = 0.46002779
+tilt_s = .57 # degrees, 1e-4 rad
+RBE = ent.CylWien(180.77969e-2, 5e-2, deu, 120e5, By, name="RBE")
+RBE1 = ent.CylWien(180.77969e-2, 5e-2, deu, 120e5, By, name="RBE_tilted")
+RBE1.tilt('s', tilt_s)
+Bx = By*math.tan(math.radians(tilt_s))
+E_comp = ent.EVert(deu, -Bx)
 
 #%%
 ## definition of lattice subsections
@@ -51,6 +64,8 @@ SS1H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
 ARC1 = [QFA1, OD1, SFP, OD2, RBE, OD2, BPM, OD1, QDA1,
         QDA1, OD1, SDP, OD2, RBE, OD2, BPM, OD1, QFA1]
 ARC1 = ARC1*8
+ARC1[4] = RBE1 # TESTING
+ARC1[5] = E_comp
 
 SS2H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
@@ -85,20 +100,52 @@ if __name__ == '__main__':
 
     lattice.name = 'BNL'
 
+    # print('tilting')
+    # lattice.tilt('s', 0, .0057) # 1e-4 rad
+
     #%%
-    deu.kinetic_energy += .5e-6*deu.kinetic_energy
     lattice.insert_RF(0, 0, deu, E_field=15e7)
 
     from particle_log import StateList
 
     n_turns = int(10)
 
-    bunch = StateList(Sz=1)#, dK=(-1e-4, 1e-4, 5), x=(-1e-3, 2e-4, 4))
+    bunch = StateList(Sz=1, dK=(-1e-4, 1e-4, 5), x=(-1e-3, 2e-4, 4))
+    state = np.array(bunch.as_list()).flatten()
 
     trkr.set_controls(rtol=1e-6, atol=1e-6)
     from time import clock
+    
     start = clock()
     log = trkr.track(deu, bunch, lattice, n_turns)
     print("Tracking took {} secs".format(clock()-start))
     log1 = log.get_turns(1)
-    log.plot('Sx', 's', )
+    log.plot('y', 's', pids=[0])
+    plt.show()
+
+    pid = 0
+    Sx = log['Sx'][:, pid]
+    Sy = log['Sy'][:, pid]
+    s = log['s'][:, pid]
+
+    plt.plot(s, Sx, '-b', s, Sy, '-.r')
+    plt.show()
+
+    rhs = RHS(deu, len(bunch), lattice[0])
+
+    #%%
+    mini_lattice = ltc.Lattice([RBE1, E_comp], "RBE+comp")
+    mini_log = trkr.track(deu, bunch, mini_lattice, 10)
+
+    pid = 0
+    var1 = mini_log['x'][:, pid]
+    var2 = mini_log['y'][:, pid]
+    s = mini_log['s'][:, pid]
+
+    plt.plot(s, var1, '-b', s, var2, '-.r')
+    plt.title('RBE_tilted + Ey compensatory lattice')
+    plt.xlabel('s [m]')
+    plt.ylabel('x, y')
+    plt.legend()
+    plt.show()
+    
