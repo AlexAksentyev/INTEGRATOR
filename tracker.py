@@ -135,8 +135,10 @@ class Tracker:
                 state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
                 ### consider moving this segment to class Element
                 if not skip:
+                    start = clock()
                     vals = odeint(self.rhs, state, at, args=(element, ),
                                   rtol=self.controls.rtol, atol=self.controls.atol)
+                    print("{} odeint: {}".format(element.name, clock()-start))
                     state = vals[brks-1] # [x0,y0,...,x1,y1,...]
                 else:
                     element.advance(state)
