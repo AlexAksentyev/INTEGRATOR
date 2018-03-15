@@ -138,8 +138,8 @@ if __name__ == '__main__':
     mini_log = trkr.track(deu, bunch, mini_lattice, 10)
 
     pid = 0
-    var1 = mini_log['x'][:, pid]
-    var2 = mini_log['y'][:, pid]
+    var1 = mini_log['Sx'][:, pid]
+    var2 = mini_log['Sy'][:, pid]
     s = mini_log['s'][:, pid]
 
     plt.plot(s, var1, '-b', s, var2, '-.r')

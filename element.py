@@ -115,8 +115,23 @@ class Element:
     def EField_prime_s(self, arg): # added for testing with ERF
         return Field((0, 0, 0), self).vectorize(arg)
 
-    def BField(self, arg):
-        return Field(self.__B_field, self).vectorize(arg)
+    # def BField(self, arg):
+    #     return Field(self.__B_field, self).vectorize(arg)
+    ### THIS SHOULD NOW BE THE BEHAVIOR OF
+    ### * MDipole
+    ### * CylWien
+    ### * StraightWien
+    ### * ECylDEflector[0] (no effect)
+    ### * Drift (no effect)
+    ### * Solenoid (no effect)
+    ### * ERF (no effect)
+    ### * etc (Observer, EVert, ... no effect)
+    def BField(self, arg): 
+        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
+        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
+        fld = Field(self.__B_field, self).vectorize(arg)
+        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
+        return fld    
 
     def front_kick(self, state):
         """If I want not to reshape the state vector before writing to
@@ -240,12 +255,12 @@ class MDipole(Element, Bend):
     def compute_radius(self, KinEn, B_field):
         return self._Bend__Pc(KinEn)*1e6/(B_field*pcl.CLIGHT)
 
-    def BField(self, arg):
-        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
-        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
-        fld = Field(self._Element__B_field, self).vectorize(arg)
-        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
-        return fld
+    # def BField(self, arg):
+    #     tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
+    #     tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
+    #     fld = Field(self._Element__B_field, self).vectorize(arg)
+    #     fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
+    #     return fld
 
 class Solenoid(Element):
 
@@ -393,12 +408,12 @@ class CylWien(Element):
         fld = (Ex, z, z)
         return Field(fld, self)
 
-    def BField(self, arg):
-        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
-        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
-        fld = Field(self._Element__B_field, self).vectorize(arg)
-        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
-        return fld
+    # def BField(self, arg):
+    #     tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
+    #     tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
+    #     fld = Field(self._Element__B_field, self).vectorize(arg)
+    #     fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
+    #     return fld
 
     def front_kick(self, state):
         u = self._U(state[:, IMAP['x']])
