@@ -43,13 +43,13 @@ class Field(np.ndarray):
 
     def vectorize(self, arg):
         vec_num = len(index(arg, 'x')[0])
-        return np.repeat(self, vec_num).reshape(3, vec_num) # Field type is preserved        
+        return np.repeat(self, vec_num).reshape(3, vec_num) # Field type is preserved
 
 #%%
 class Tilt:
     def __init__(self):
         self.angle = {'X':0, 'S':0} # angles in rads
-        self.__set_rep_str()        
+        self.__set_rep_str()
 
     def __call__(self, order, *degree_angles, append=False):
         order = order.upper()
@@ -63,13 +63,13 @@ class Tilt:
         # remove the corresponding anglesand the corresponding angles
         angle_x = math.radians(np.sum(np.array(degree_angles)[x_index])) if x_index.size else 0
         angle_s = math.radians(np.sum(np.array(degree_angles)[s_index])) if s_index.size else 0
-        
+
         if append:
             angle_x += self.angle['X']
             angle_s += self.angle['S']
 
         self.angle.update({'X':angle_x, 'S':angle_s})
-        
+
         self.__set_rep_str()
 
     def __set_rep_str(self):
@@ -136,6 +136,7 @@ class Element:
         return str(self.__chars)
 
     def tilt(self, order, *args, append=False):
+        print('calling element.tilt()')
         self.tilt_(order, *args, append=append)
 
 class Bend:
@@ -392,6 +393,13 @@ class CylWien(Element):
         fld = (Ex, z, z)
         return Field(fld, self)
 
+    def BField(self, arg):
+        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
+        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
+        fld = Field(self._Element__B_field, self).vectorize(arg)
+        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
+        return fld
+
     def front_kick(self, state):
         u = self._U(state[:, IMAP['x']])
         state[:, IMAP['dK']] -= u*1e-6/self._ref_kinetic_energy
@@ -508,6 +516,15 @@ class Observer(Element):
         """
         pass
 
+class EVert(Observer):
+    """Adds a vertical field Ey."""
+    def __init__(self, particle, B_hor, name="Ey"):
+        super().__init__(name)
+        _, beta = particle.GammaBeta()
+        v = pcl.CLIGHT*beta
+        
+        self._Element__E_field = (0, v*B_hor, 0)
+
 
 #%%
 # setup
@@ -518,7 +535,7 @@ if __name__ == '__main__':
     from tracker import Tracker
     from particle_log import StateList
     from lattice import Lattice
-    from matplotlib.pyplot import show
+    import matplotlib.pyplot as plt
 
     deu = Particle()
     trkr = Tracker()
@@ -527,13 +544,33 @@ if __name__ == '__main__':
     #element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
     #R = 42.18697266284172
     #element = ECylDeflector(180.77969e-2, 5e-2, deu, 120e5)
+
+    el0 = EVert(deu, 1)
+    
     element0 = MDipole(180e-2, deu, B_field=1, name="DIP")
     element1 = MQuad(25e-2, 8.6, name="QF")
-    lattice = Lattice([element0, element1], "RBE_test")
+    lattice = Lattice([element0], "unitlted_dip")
+    #element0.tilt('s', .0057)
+    lattice_1 = Lattice([element0], "tilted_dip")
+    lattice_1.tilt('s', .0057)
 
     bunch = StateList(Sz=1, x=(-1e-3, 5e-3, 3), dK=(0, 1e-4, 2))
+    state = np.array(bunch.as_list()).flatten()
 
     log = trkr.track(deu, bunch, lattice, 5)
+    log_1 = trkr.track(deu, bunch, lattice_1, 5)
 
-    log.plot('x', 's', pids=[5])
-    show()
+    # log.plot('Sx', 's', pids=[5])
+    # log_1.plot('Sx', 's', pids=[5])
+
+    pid=0
+    Sx = log['Sx'][:, pid]
+    Sx_1 = log_1['Sx'][:, pid]
+    s = log['s'][:, pid]
+
+    plt.plot(s, Sx, '-b', s, Sx_1, '-.r')
+    plt.legend()
+    plt.xlabel('s, m')
+    plt.ylabel('Sx, unit')
+
+    plt.show()
