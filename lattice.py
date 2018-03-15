@@ -261,23 +261,28 @@ class Lattice:
             rotations on top of the old ones
 
         """
+        # prepping tilt sigma, mean
         tilt_num = len(order)
         if not isinstance(mean_angle, cln.Sequence): mean_angle = (mean_angle,)
         if not isinstance(sigma, cln.Sequence): sigma = (sigma,)
         nmean = len(mean_angle)
         nsig = len(sigma)
 
+        # make tilt angles
         try:
             angle = np.random.normal(mean_angle, sigma, size=(self.count, tilt_num))
         except ValueError:
             print('Dimension mismatch: order {}, mean {}, sigma {}'.format(tilt_num, nmean, nsig))
             return
 
+        # this code block should no longer execute, b/c Lattice now contains copies of elements
+        # instead of multiple references to the same element
         nuids = len(np.unique([id(e.tilt_) for e in self]))
         if nuids != self.count:
             print('Non-unique elements ({}/{}) in lattice. Smart tilting.'.format(self.count-nuids, self.count))
             print('\t Not tilting:')
 
+        # tilting proper
         i = 0
         ids = set()
         cnt = 1
