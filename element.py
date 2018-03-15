@@ -43,69 +43,41 @@ class Field(np.ndarray):
 
     def vectorize(self, arg):
         vec_num = len(index(arg, 'x')[0])
-        return np.repeat(self, vec_num).reshape(3, vec_num) # Field type is preserved
-
-    def tilt(self):
-        return Field(self.host.tilt_.matrix.dot(self).A, self.host)
-
-#    def updateHost(self, new_host):
-#        """In case i have to implement element::deepcopy, to use in there."""
-#        self.Host = new_host
+        return np.repeat(self, vec_num).reshape(3, vec_num) # Field type is preserved        
 
 #%%
 class Tilt:
     def __init__(self):
-        self.angle = {}
-        self.matrix = np.matrix(np.identity(3))
-        self.__set_rep_str()
-
-        # rotation matrices for tilting
-        Rx = lambda c, s: np.matrix([[1, 0, 0], [0, c, -s], [0, s, c]])
-        Ry = lambda c, s: np.matrix([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-        Rs = lambda c, s: np.matrix([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-
-        self.rotation = {'X': Rx, 'Y': Ry, 'S': Rs}
+        self.angle = {'X':0, 'S':0} # angles in rads
+        self.__set_rep_str()        
 
     def __call__(self, order, *degree_angles, append=False):
-        i0 = 0
-        if append:
-            keys = list(self.angle.keys())
-            try:
-                i0 = keys[len(keys)-1][1] # index of the last made rotation
-                i0 += 1 # start writing from next one
-            except IndexError:
-                pass
-
         order = order.upper()
-        i0 = np.repeat(i0, len(degree_angles))
-        i = list(range(len(degree_angles)))
-        keys = list(zip(order, i0 + i))
-        ang = dict(zip(keys, zip(degree_angles, np.deg2rad(degree_angles))))
 
+        find_axis = lambda axis_name: np.array([i for i, axis in enumerate(order) if axis == axis_name])
+
+        # find the positions of 'X' and 'S', but not 'Y', b/c rotations about 'Y'
+        # don't have any effect on the dipole field
+        x_index = find_axis("X")
+        s_index = find_axis("S")
+        # remove the corresponding anglesand the corresponding angles
+        angle_x = math.radians(np.sum(np.array(degree_angles)[x_index])) if x_index.size else 0
+        angle_s = math.radians(np.sum(np.array(degree_angles)[s_index])) if s_index.size else 0
+        
         if append:
-            self.angle.update(ang)
-        else:
-            self.angle = ang.copy()
+            angle_x += self.angle['X']
+            angle_s += self.angle['S']
 
-        c = {key:np.cos(x[1]) for key, x in ang.items()}
-        s = {key:np.sin(x[1]) for key, x in ang.items()}
-
-        if append:
-            res = self.matrix
-        else:
-            res = np.matrix(np.identity(3))
-        for key in ang.keys():
-            res = self.rotation[key[0]](c[key], s[key]).dot(res)
-
-        self.matrix = res
-
+        self.angle.update({'X':angle_x, 'S':angle_s})
+        
         self.__set_rep_str()
 
     def __set_rep_str(self):
-        axis = [x[0] for x in self.angle.keys()]
-        adeg = [x[0] for x in self.angle.values()]
-        arad = [x[1] for x in self.angle.values()]
-        df = pds.DataFrame({'Axis': axis, 'Deg': adeg, 'Rad': arad}).T
+        ## to update
+        axis = ['X', 'S']
+        adeg = [ math.degrees(x) for x in [self.angle['X'], self.angle['S']] ]
+        arad = [self.angle['X'], self.angle['S']]
+        df = pds.DataFrame({'Axis': axis, 'Deg': adeg, 'Rad': arad})
         self.__rep_str = str(df)
 
     def __repr__(self):
@@ -138,13 +110,13 @@ class Element:
         return self.__E_field, self.__B_field
 
     def EField(self, arg):
-        return Field(self.__E_field, self).vectorize(arg).tilt()
+        return Field(self.__E_field, self).vectorize(arg)
 
     def EField_prime_s(self, arg): # added for testing with ERF
-        return Field((0, 0, 0), self).vectorize(arg).tilt()
+        return Field((0, 0, 0), self).vectorize(arg)
 
     def BField(self, arg):
-        return Field(self.__B_field, self).vectorize(arg).tilt()
+        return Field(self.__B_field, self).vectorize(arg)
 
     def front_kick(self, state):
         """If I want not to reshape the state vector before writing to
@@ -213,7 +185,7 @@ class MQuad(Element):
         x = arg[i_x]
         y = arg[i_y]
         fld = (self.__grad*y, self.__grad*x, np.zeros(len(x)))
-        return  Field(fld, self).tilt()
+        return  Field(fld, self)
 
 
 class MDipole(Element, Bend):
@@ -267,6 +239,13 @@ class MDipole(Element, Bend):
     def compute_radius(self, KinEn, B_field):
         return self._Bend__Pc(KinEn)*1e6/(B_field*pcl.CLIGHT)
 
+    def BField(self, arg):
+        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
+        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
+        fld = Field(self._Element__B_field, self).vectorize(arg)
+        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
+        return fld
+
 class Solenoid(Element):
 
     def __init__(self, length, Bs, name="Solenoid"):
@@ -287,7 +266,7 @@ class MSext(Element):
         x = arg[i_x]
         y = arg[i_y]
         fld = (self.__grad*x*y, .5*self.__grad*(x**2 - y**2), np.zeros(len(x)))
-        return Field(fld, self).tilt()
+        return Field(fld, self)
 
 class ECylDeflector0(Element):
     """Electrostatic cylindrical deflector, as defined in Andrey's matlab code.
@@ -320,7 +299,7 @@ class ECylDeflector0(Element):
 
         z = np.zeros(len(x))
         fld = (Ex, z, z)
-        return Field(fld, self).tilt()
+        return Field(fld, self)
 
     def front_kick(self, state):
         u = self._U(state[:, IMAP['x']])
@@ -363,7 +342,7 @@ class ECylDeflector(Element):
 
         z = np.zeros(len(x))
         fld = (Ex, z, z)
-        return Field(fld, self).tilt()
+        return Field(fld, self)
 
     def front_kick(self, state):
         u = self._U(state[:, IMAP['x']])
@@ -411,7 +390,7 @@ class CylWien(Element):
 
         z = np.zeros(len(x))
         fld = (Ex, z, z)
-        return Field(fld, self).tilt()
+        return Field(fld, self)
 
     def front_kick(self, state):
         u = self._U(state[:, IMAP['x']])
@@ -474,7 +453,7 @@ class ERF(Element):
         phi = self.phase
         z = np.zeros(len(s))
         fld = (z, z, A*np.cos(wave_num*s+phi))
-        return Field(fld, self).tilt()
+        return Field(fld, self)
 
     def EField_prime_s(self, arg): # Es prime divided by time prime
         s, = select(arg, 's')
@@ -483,7 +462,7 @@ class ERF(Element):
         phi = self.phase
         z = np.zeros(len(s))
         fld = (z, z, -wave_num*A*np.sin(wave_num*s+phi))
-        return Field(fld, self).tilt()
+        return Field(fld, self)
 
     def advance(self, state):
         """ alternative to integration,
@@ -539,18 +518,22 @@ if __name__ == '__main__':
     from tracker import Tracker
     from particle_log import StateList
     from lattice import Lattice
+    from matplotlib.pyplot import show
 
     deu = Particle()
     trkr = Tracker()
     trkr.set_controls(inner=True)
 
-    element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
-    R = 42.18697266284172
+    #element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
+    #R = 42.18697266284172
     #element = ECylDeflector(180.77969e-2, 5e-2, deu, 120e5)
-    lattice = Lattice([element], "RBE_test")
+    element0 = MDipole(180e-2, deu, B_field=1, name="DIP")
+    element1 = MQuad(25e-2, 8.6, name="QF")
+    lattice = Lattice([element0, element1], "RBE_test")
 
     bunch = StateList(Sz=1, x=(-1e-3, 5e-3, 3), dK=(0, 1e-4, 2))
 
     log = trkr.track(deu, bunch, lattice, 5)
 
     log.plot('x', 's', pids=[5])
+    show()
