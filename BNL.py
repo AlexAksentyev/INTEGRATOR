@@ -12,7 +12,6 @@ from tracker import Tracker
 from particle import Particle
 import matplotlib.pyplot as plt
 import math
-from rhs import RHS
 import numpy as np
 
 trkr = Tracker()
@@ -47,10 +46,10 @@ BPM = ent.Drift(15e-2, "BPM")
 
 # TESTING
 By = 0.46002779
-tilt_s = .57 # degrees, 1e-4 rad
+# tilt_s = .57 # degrees, 1e-4 rad
 RBE = ent.CylWien(deu, 180.77969e-2, 5e-2, 120e5, By, name="RBE")
-RBE1 = ent.CylWien(deu, 180.77969e-2, 5e-2,120e5, By, name="RBE_tilted")
-RBE1.tilt('s', tilt_s)
+# RBE1 = ent.CylWien(deu, 180.77969e-2, 5e-2,120e5, By, name="RBE_tilted")
+# RBE1.tilt('s', tilt_s)
 
 #%%
 ## definition of lattice subsections
@@ -62,7 +61,7 @@ SS1H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
 ARC1 = [QFA1, OD1, SFP, OD2, RBE, OD2, BPM, OD1, QDA1,
         QDA1, OD1, SDP, OD2, RBE, OD2, BPM, OD1, QFA1]
 ARC1 = ARC1*8
-ARC1[4] = RBE1 # TESTING
+# ARC1[4] = RBE1 # TESTING
 
 SS2H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
@@ -97,8 +96,7 @@ if __name__ == '__main__':
 
     lattice.name = 'BNL'
 
-    # print('tilting')
-    # lattice.tilt('s', 0, .0057) # 1e-4 rad
+    lattice.tilt('s', 0, .0057) # 1e-4 rad
 
     #%%
     lattice.insert_RF(0, 0, deu, E_field=15e7)
@@ -128,21 +126,21 @@ if __name__ == '__main__':
     plt.plot(s, Sx, '-b', s, Sy, '-.r')
     plt.show()
 
-    rhs = RHS(deu, len(bunch), lattice[0])
-
     #%%
-    mini_lattice = ltc.Lattice([RBE1], "RBE_comp_integrated")
-    mini_log = trkr.track(deu, bunch, mini_lattice, 10)
+    ## run thru elements
+    ## if an RBE, get its angle of tilt about s
+    theta_s = lambda : None
+    theta_s.rad = []
+    for element in lattice.elements():
+        if isinstance(element, ent.CylWien):
+            theta_s.rad.append(element.tilt_.angle['S'])
 
-    pid = 0
-    var1 = mini_log['Sx'][:, pid]
-    var2 = mini_log['Sy'][:, pid]
-    s = mini_log['s'][:, pid]
-
-    plt.plot(s, var1, '-b', s, var2, '-.r')
-    plt.title('RBE_tilted w/ Ey compensatory inside lattice')
-    plt.xlabel('s [m]')
-    plt.ylabel('x, y')
-    plt.legend()
-    plt.show()
-    
+    theta_s.deg = np.rad2deg(theta_s.rad)
+    theta_s.rad = np.array(theta_s.rad)
+    import statistics
+    theta_s.sd = lambda : None
+    theta_s.sd.deg = statistics.stdev(theta_s.deg)
+    theta_s.sd.rad = statistics.stdev(theta_s.rad)
+    theta_s.mean = lambda : None
+    theta_s.mean.deg = statistics.mean(theta_s.deg)
+    theta_s.mean.rad = statistics.mean(theta_s.rad)
