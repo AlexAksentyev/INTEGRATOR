@@ -48,11 +48,9 @@ BPM = ent.Drift(15e-2, "BPM")
 # TESTING
 By = 0.46002779
 tilt_s = .57 # degrees, 1e-4 rad
-RBE = ent.CylWien(180.77969e-2, 5e-2, deu, 120e5, By, name="RBE")
-RBE1 = ent.CylWien(180.77969e-2, 5e-2, deu, 120e5, By, name="RBE_tilted")
+RBE = ent.CylWien(deu, 180.77969e-2, 5e-2, 120e5, By, name="RBE")
+RBE1 = ent.CylWien(deu, 180.77969e-2, 5e-2,120e5, By, name="RBE_tilted")
 RBE1.tilt('s', tilt_s)
-Bx = By*math.tan(math.radians(tilt_s))
-E_comp = ent.EVert(deu, -Bx)
 
 #%%
 ## definition of lattice subsections
@@ -65,7 +63,6 @@ ARC1 = [QFA1, OD1, SFP, OD2, RBE, OD2, BPM, OD1, QDA1,
         QDA1, OD1, SDP, OD2, RBE, OD2, BPM, OD1, QFA1]
 ARC1 = ARC1*8
 ARC1[4] = RBE1 # TESTING
-ARC1[5] = E_comp
 
 SS2H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
@@ -134,7 +131,7 @@ if __name__ == '__main__':
     rhs = RHS(deu, len(bunch), lattice[0])
 
     #%%
-    mini_lattice = ltc.Lattice([RBE1, E_comp], "RBE+comp")
+    mini_lattice = ltc.Lattice([RBE1], "RBE_comp_integrated")
     mini_log = trkr.track(deu, bunch, mini_lattice, 10)
 
     pid = 0
@@ -143,7 +140,7 @@ if __name__ == '__main__':
     s = mini_log['s'][:, pid]
 
     plt.plot(s, var1, '-b', s, var2, '-.r')
-    plt.title('RBE_tilted + Ey compensatory lattice')
+    plt.title('RBE_tilted w/ Ey compensatory inside lattice')
     plt.xlabel('s [m]')
     plt.ylabel('x, y')
     plt.legend()

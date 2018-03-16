@@ -26,21 +26,21 @@ import particle as pcl
 
 from rhs import IMAP, index, select, VAR_NUM
 
-def tilted(pure_field): # accepts an untilted field function
-    """Decorator for the fields of those elements, which should be tilted; 
-    i.e.:
-    * MDipole
-    * CylWien
-    * StraightWien"""
-    def tilted_field(self, arg): # the current tilt method works for state-independent
-        # fields (specifically the magnetic field); the guiding vertical field is preserved
-        # under tilt, the effeect of tilt is in adding the radial, longitudinal field components
-        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
-        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
-        fld = pure_field(self, arg)
-        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
-        return fld
-    return tilted_field
+# def tilted(pure_field): # accepts an untilted field function
+#     """Decorator for the fields of those elements, which should be tilted; 
+#     i.e.:
+#     * MDipole
+#     * CylWien
+#     * StraightWien"""
+#     def tilted_field(self, arg): # the current tilt method works for state-independent
+#         # fields (specifically the magnetic field); the guiding vertical field is preserved
+#         # under tilt, the effeect of tilt is in adding the radial, longitudinal field components
+#         tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
+#         tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
+#         fld = pure_field(self, arg)
+#         fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
+#         return fld
+#     return tilted_field
 
 
 class Field(np.ndarray):
@@ -89,6 +89,8 @@ class Tilt:
 
         self.__set_rep_str()
 
+        return angle_x, angle_s
+
     def __set_rep_str(self):
         ## to update
         axis = ['X', 'S']
@@ -101,6 +103,38 @@ class Tilt:
         return self.__rep_str
 #%%
 
+class Tiltable:
+
+    def __init__(self, reference_particle, **kwargs):
+        _, self.ref_beta = reference_particle.GammaBeta()
+
+        self.__delta_B_field = (0,0,0)
+        self.__delta_E_field = (0,0,0)
+
+        super().__init__(**kwargs)
+
+    def tilt(self, order, *deg_angles, append=False):
+        angle_x, angle_s = Element.tilt(self, order, *deg_angles, append)
+        tan_angle_x = math.tan(angle_x)
+        tan_angle_s = math.tan(angle_s)
+        By = self._Element__B_field[1]
+        dBx = By*tan_angle_s
+        v = self.ref_beta * pcl.CLIGHT
+        self.__delta_B_field = (dBx, 0, By*tan_angle_x)
+        self.__delta_E_field = (0, -v*dBx, 0)
+
+    def BField(self, arg):
+        pure_fld = Element.BField(self, arg)
+        delta = Field(self.__delta_B_field, self).vectorize(arg)
+        return pure_fld + delta
+
+    def EField(self, arg):
+        pure_fld = Element.EField(self, arg)
+        comp = Field(self.__delta_E_field, self).vectorize(arg)
+        return pure_fld + comp
+
+#%%
+
 class Element:
 
     def __init__(self, curve, length, name="Element", **kwargs):
@@ -110,10 +144,12 @@ class Element:
 
         self.__E_field = (0, 0, 0)
         self.__B_field = (0, 0, 0)
+        self.__delta_B_field = (0, 0, 0)
+        self.__delta_E_field = (0, 0, 0)
 
         self.tilt_ = Tilt()
 
-        self.__bool_skip = False # for testing ERF.advance()
+        self.__bool_skip = False # for ERF.advance()
 
         self.__chars = pds.DataFrame({'Curve':self.curve, 'Length':self.length}, index=[self.name])
 
@@ -129,7 +165,7 @@ class Element:
     def EField(self, arg):
         return Field(self.__E_field, self).vectorize(arg)
 
-    def EField_prime_s(self, arg): # added for testing with ERF
+    def EField_prime_s(self, arg): # added for ERF
         return Field((0, 0, 0), self).vectorize(arg)
 
     def BField(self, arg):
@@ -153,7 +189,7 @@ class Element:
         return str(self.__chars)
 
     def tilt(self, order, *args, append=False):
-        self.tilt_(order, *args, append=append)
+        return self.tilt_(order, *args, append=append)
 #%%
 class Drift(Element):
     """Drift space."""
@@ -178,10 +214,10 @@ class MQuad(Element):
         return  Field(fld, self)
 
 
-class MDipole(Element):
+class MDipole(Tiltable, Element):
     """(Horizontally) Bending magnetic dipole."""
 
-    def __init__(self, length, reference_particle, R=None, B_field=None, name="MDipole"):
+    def __init__(self, reference_particle, length, R=None, B_field=None, name="MDipole"):
         if all([e is None for e in [B_field, R]]):
             raise Exception("Either the B-field, or Radius must be defined")
 
@@ -196,9 +232,8 @@ class MDipole(Element):
             else: crv = None # otherwise, computeRadius
         else:
             crv = 1/R
-            self._Bend__radius = R
 
-        super().__init__(curve=crv, length=length, name=name)
+        super().__init__(reference_particle=reference_particle, curve=crv, length=length, name=name)
 
         if crv is None:
             R = reference_particle.Pc()*1e6/(B_field*pcl.CLIGHT)
@@ -206,7 +241,6 @@ class MDipole(Element):
             self._Element__chars['Curve'] = self.curve
 
         if B_field is None:
-            R = self._Bend__radius
             B_field = (0, reference_particle.Pc()*1e6/(R*pcl.CLIGHT), 0)
         elif not isinstance(B_field, cln.Sequence): B_field = (0, B_field, 0) # by default B = By
 
@@ -218,9 +252,11 @@ class MDipole(Element):
     def get_B_field(self):
         return self._Element__B_field[:]
 
-    @tilted
     def BField(self, arg):
-        return super().BField(arg)
+        return Tiltable.BField(self, arg)
+
+    def EField(self, arg):
+       return Tiltable.EField(self, arg)
        
 
 class Solenoid(Element):
@@ -249,7 +285,7 @@ class ECylDeflector0(Element):
     """Electrostatic cylindrical deflector, as defined in Andrey's matlab code.
     """
 
-    def __init__(self, length, h_gap, reference_particle, R, name="ECylDefl"):
+    def __init__(self, reference_particle, length, h_gap, R, name="ECylDefl"):
         self._ref_kinetic_energy = reference_particle.kinetic_energy
 
         crv = 1/R
@@ -292,7 +328,7 @@ class ECylDeflector(Element):
     the radial electric field magnitude (signed).
     """
 
-    def __init__(self, length, h_gap, reference_particle, E_field, name="ECylDefl"):
+    def __init__(self, reference_particle, length, h_gap, E_field, name="ECylDefl"):
         self._ref_kinetic_energy = reference_particle.kinetic_energy
 
         # Lorentz force is not necessarily zero
@@ -329,13 +365,13 @@ class ECylDeflector(Element):
         u = self._U(state[:, IMAP['x']])
         state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
 
-class CylWien(Element):
+class CylWien(Tiltable, Element):
     """Cylindtical Wien filter.
     For the field definitnion confer:
         http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
     """
 
-    def __init__(self, length, h_gap, reference_particle, E_field, B_field, name="Wien"):
+    def __init__(self, reference_particle, length, h_gap, E_field, B_field, name="Wien"):
         self._ref_kinetic_energy = reference_particle.kinetic_energy
 
         # Lorentz force is not necessarily zero
@@ -351,7 +387,7 @@ class CylWien(Element):
         else:
             print("Positive curvature, bending in the direction +x.")
 
-        super().__init__(curve=crv, length=length, name=name)
+        super().__init__(reference_particle=reference_particle, curve=crv, length=length, name=name)
 
         R1 = R - h_gap
         R2 = R*R/R1
@@ -369,7 +405,6 @@ class CylWien(Element):
         fld = (Ex, z, z)
         return Field(fld, self)
 
-    @tilted
     def BField(self, arg):
         return super().BField(arg)
 
@@ -382,13 +417,13 @@ class CylWien(Element):
         state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
 
 
-class StraightWien(Element):
+class StraightWien(Tiltable, Element):
     """Straight Wien filter."""
 
-    def __init__(self, length, h_gap, reference_particle, E_field, B_field, name="Wien"):
+    def __init__(self, reference_particle, length, h_gap, E_field, B_field, name="Wien"):
         self._ref_kinetic_energy = reference_particle.kinetic_energy
 
-        super().__init__(curve=0, length=length, name=name)
+        super().__init__(reference_particle=reference_particle, curve=0, length=length, name=name)
 
         self._U = h_gap*E_field
         self._Element__E_field = (E_field, 0, 0)
@@ -405,7 +440,7 @@ class StraightWien(Element):
 class ERF(Element):
     """RF element."""
 
-    def __init__(self, length, reference_particle, acc_length, E_field=15e5, phase=0.5*np.pi, H_number=50, name="RF"):
+    def __init__(self, reference_particle, length, acc_length, E_field=15e5, phase=0.5*np.pi, H_number=50, name="RF"):
         super().__init__(curve=0, length=length, name=name)
 
         if length == 0:
@@ -489,14 +524,13 @@ class Observer(Element):
         """
         pass
 
-class EVert(Observer):
-    """Adds a vertical field Ey."""
-    def __init__(self, particle, B_hor, name="Ey"):
-        super().__init__(name)
-        _, beta = particle.GammaBeta()
-        v = pcl.CLIGHT*beta
+# class EVert(Observer):
+#     """Adds a vertical field Ey."""
+#     def __init__(self, reference_particle, B_hor, name="Ey"):
+#         super().__init__(name)
+#         v = pcl.CLIGHT*self.ref_beta # WRONG GET BETA FROM REFERENCE PARTICLE
         
-        self._Element__E_field = (0, v*B_hor, 0)
+#         self._Element__E_field = (0, v*B_hor, 0)
 
 
 #%%
@@ -518,9 +552,9 @@ if __name__ == '__main__':
     #R = 42.18697266284172
     #element = ECylDeflector(180.77969e-2, 5e-2, deu, 120e5)
 
-    el0 = EVert(deu, 1)
+    # el0 = EVert(deu, 1)
     
-    element0 = MDipole(180e-2, deu, B_field=1, name="DIP")
+    element0 = MDipole(deu, 180e-2, B_field=1, name="DIP")
     element1 = MQuad(25e-2, 8.6, name="QF")
     lattice = Lattice([element0], "unitlted_dip")
     #element0.tilt('s', .0057)

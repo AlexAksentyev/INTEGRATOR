@@ -155,7 +155,7 @@ class Lattice:
 
         # creating an RF element
         full_acc_len = self.length + length
-        rf = ERF(length, reference_particle, full_acc_len, **ERF_pars)
+        rf = ERF(reference_particle, length, full_acc_len, **ERF_pars)
 
         self.insert(position, rf)
         self.RF.index = position
