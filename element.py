@@ -103,38 +103,6 @@ class Tilt:
         return self.__rep_str
 #%%
 
-class Tiltable:
-
-    def __init__(self, reference_particle, **kwargs):
-        _, self.ref_beta = reference_particle.GammaBeta()
-
-        self.__delta_B_field = (0,0,0)
-        self.__delta_E_field = (0,0,0)
-
-        super().__init__(**kwargs)
-
-    def tilt(self, order, *deg_angles, append=False):
-        angle_x, angle_s = Element.tilt(self, order, *deg_angles, append)
-        tan_angle_x = math.tan(angle_x)
-        tan_angle_s = math.tan(angle_s)
-        By = self._Element__B_field[1]
-        dBx = By*tan_angle_s
-        v = self.ref_beta * pcl.CLIGHT
-        self.__delta_B_field = (dBx, 0, By*tan_angle_x)
-        self.__delta_E_field = (0, -v*dBx, 0)
-
-    def BField(self, arg):
-        pure_fld = Element.BField(self, arg)
-        delta = Field(self.__delta_B_field, self).vectorize(arg)
-        return pure_fld + delta
-
-    def EField(self, arg):
-        pure_fld = Element.EField(self, arg)
-        comp = Field(self.__delta_E_field, self).vectorize(arg)
-        return pure_fld + comp
-
-#%%
-
 class Element:
 
     def __init__(self, curve, length, name="Element", **kwargs):
@@ -190,6 +158,39 @@ class Element:
 
     def tilt(self, order, *args, append=False):
         return self.tilt_(order, *args, append=append)
+
+#%%
+
+class TiltableElement(Element):
+
+    def __init__(self, reference_particle, **kwargs):
+        _, self.ref_beta = reference_particle.GammaBeta()
+
+        self.__delta_B_field = (0,0,0)
+        self.__delta_E_field = (0,0,0)
+
+        super().__init__(**kwargs)
+
+    def tilt(self, order, *deg_angles, append=False):
+        angle_x, angle_s = super().tilt(order, *deg_angles, append)
+        tan_angle_x = math.tan(angle_x)
+        tan_angle_s = math.tan(angle_s)
+        By = self._Element__B_field[1]
+        dBx = By*tan_angle_s
+        v = self.ref_beta * pcl.CLIGHT
+        self.__delta_B_field = (dBx, 0, By*tan_angle_x)
+        self.__delta_E_field = (0, -v*dBx, 0)
+
+    def BField(self, arg):
+        pure_fld = super().BField(arg)
+        delta = Field(self.__delta_B_field, self).vectorize(arg)
+        return pure_fld + delta
+
+    def EField(self, arg):
+        pure_fld = super().EField(arg)
+        comp = Field(self.__delta_E_field, self).vectorize(arg)
+        return pure_fld + comp
+
 #%%
 class Drift(Element):
     """Drift space."""
@@ -214,7 +215,7 @@ class MQuad(Element):
         return  Field(fld, self)
 
 
-class MDipole(Tiltable, Element):
+class MDipole(TiltableElement):
     """(Horizontally) Bending magnetic dipole."""
 
     def __init__(self, reference_particle, length, R=None, B_field=None, name="MDipole"):
@@ -253,10 +254,10 @@ class MDipole(Tiltable, Element):
         return self._Element__B_field[:]
 
     def BField(self, arg):
-        return Tiltable.BField(self, arg)
+        return super().BField(arg)
 
     def EField(self, arg):
-       return Tiltable.EField(self, arg)
+       return super().EField(arg)
        
 
 class Solenoid(Element):
@@ -365,7 +366,7 @@ class ECylDeflector(Element):
         u = self._U(state[:, IMAP['x']])
         state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
 
-class CylWien(Tiltable, Element):
+class CylWien(TiltableElement):
     """Cylindtical Wien filter.
     For the field definitnion confer:
         http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
@@ -417,7 +418,7 @@ class CylWien(Tiltable, Element):
         state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
 
 
-class StraightWien(Tiltable, Element):
+class StraightWien(TiltableElement):
     """Straight Wien filter."""
 
     def __init__(self, reference_particle, length, h_gap, E_field, B_field, name="Wien"):
