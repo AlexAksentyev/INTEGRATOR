@@ -154,33 +154,6 @@ class Element:
 
     def tilt(self, order, *args, append=False):
         self.tilt_(order, *args, append=append)
-
-class Bend:
-    def __init__(self, reference_particle, **kwargs):
-        q = pcl.EZERO
-        clight = pcl.CLIGHT
-        self.pardict = {'KinEn0':reference_particle.kinetic_energy, 'Mass0':reference_particle.mass0,
-                        'q':q, 'clight':clight,
-                        'm0':reference_particle.mass0/clight**2*1e6*q}
-
-        self.__radius = None
-
-        super().__init__(**kwargs)
-
-    @property
-    def radius(self):
-        return self.__radius
-
-    def __GammaBeta(self):
-        mass0 = self.pardict['Mass0']
-        K0 = self.pardict['KinEn0']
-        gamma = K0 / mass0 + 1
-        beta = math.sqrt(gamma**2-1)/gamma
-        return (gamma, beta)
-
-    def __Pc(self, KNRG):
-        return math.sqrt((self.pardict['Mass0'] + KNRG)**2 - self.pardict['Mass0']**2)
-
 #%%
 class Drift(Element):
     """Drift space."""
@@ -205,7 +178,7 @@ class MQuad(Element):
         return  Field(fld, self)
 
 
-class MDipole(Element, Bend):
+class MDipole(Element):
     """(Horizontally) Bending magnetic dipole."""
 
     def __init__(self, length, reference_particle, R=None, B_field=None, name="MDipole"):
@@ -219,26 +192,22 @@ class MDipole(Element, Bend):
                 By = B_field
             if By == 0:
                 crv = 0 # if By == 0, dipole is turned off == drift space; skip computeRadius
-                self._Bend__radius = np.Inf
+                R = np.Inf
             else: crv = None # otherwise, computeRadius
         else:
             crv = 1/R
             self._Bend__radius = R
 
-        super().__init__(curve=crv, length=length, name=name, reference_particle=reference_particle)
+        super().__init__(curve=crv, length=length, name=name)
 
         if crv is None:
-            R = self.compute_radius(reference_particle.kinetic_energy, B_field)
-            self._Bend__radius = R
-            self.curve = 1/self._Bend__radius
+            R = reference_particle.Pc()*1e6/(B_field*pcl.CLIGHT)
+            self.curve = 1/R
             self._Element__chars['Curve'] = self.curve
 
-        self.set_B_field(B_field)
-
-    def set_B_field(self, B_field):
         if B_field is None:
             R = self._Bend__radius
-            B_field = (0, self.compute_B_strength(self.pardict['KinEn0'], R), 0)
+            B_field = (0, reference_particle.Pc()*1e6/(R*pcl.CLIGHT), 0)
         elif not isinstance(B_field, cln.Sequence): B_field = (0, B_field, 0) # by default B = By
 
         self._Element__B_field = B_field[:]
@@ -246,15 +215,8 @@ class MDipole(Element, Bend):
         self._Element__chars['By'] = B_field[1]
         self._Element__chars['Bs'] = B_field[2]
 
-
     def get_B_field(self):
         return self._Element__B_field[:]
-
-    def compute_B_strength(self, KinEn, R):
-        return self._Bend__Pc(KinEn)*1e6/(R*pcl.CLIGHT)
-
-    def compute_radius(self, KinEn, B_field):
-        return self._Bend__Pc(KinEn)*1e6/(B_field*pcl.CLIGHT)
 
     @tilted
     def BField(self, arg):
