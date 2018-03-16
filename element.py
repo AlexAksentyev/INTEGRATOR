@@ -182,14 +182,18 @@ class TiltableElement(Element):
         self.__delta_E_field = (0, -v*dBx, 0)
 
     def BField(self, arg):
-        pure_fld = super().BField(arg)
-        delta = Field(self.__delta_B_field, self).vectorize(arg)
+        pure_fld = super().BField(arg) # calls Element.BField
+        delta = Field(self.__delta_B_field, self).vectorize(arg) # field from tilt
         return pure_fld + delta
 
+    def Ey_comp(self, arg):
+        """Compensatory E-field that we get after tilting to
+        keep the reference orbit"""
+        return Field(self.__delta_E_field, self).vectorize(arg)
+
     def EField(self, arg):
-        pure_fld = super().EField(arg)
-        comp = Field(self.__delta_E_field, self).vectorize(arg)
-        return pure_fld + comp
+        pure_fld = super().EField(arg) # calls Element.EField
+        return pure_fld + self.Ey_comp(arg)
 
 #%%
 class Drift(Element):
@@ -252,12 +256,6 @@ class MDipole(TiltableElement):
 
     def get_B_field(self):
         return self._Element__B_field[:]
-
-    def BField(self, arg):
-        return super().BField(arg)
-
-    def EField(self, arg):
-       return super().EField(arg)
        
 
 class Solenoid(Element):
@@ -399,15 +397,13 @@ class CylWien(TiltableElement):
         self._Element__E_field = (E_field, 0, 0)
 
     def EField(self, arg):
+        # redefinition of Element.EField
         x, = select(arg, 'x')
         Ex = self._Element__E_field[0]/(1+self.curve*x)
 
         z = np.zeros(len(x))
-        fld = (Ex, z, z)
-        return Field(fld, self)
-
-    def BField(self, arg):
-        return super().BField(arg)
+        pure_fld = (Ex, z, z)
+        return Field(pure_fld, self) + self.Ey_comp(arg) # redefines TiltableElement.EField()
 
     def front_kick(self, state):
         u = self._U(state[:, IMAP['x']])
