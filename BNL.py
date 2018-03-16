@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     lattice.name = 'BNL'
 
-    lattice.tilt('s', 0, .0057) # 1e-4 rad
+    #lattice.tilt('s', 0, .0057) # 1e-4 rad
 
     #%%
     lattice.insert_RF(0, 0, deu, E_field=15e7)
@@ -116,7 +116,6 @@ if __name__ == '__main__':
     print("Tracking took {} secs".format(clock()-start))
     log1 = log.get_turns(1)
     log.plot('y', 's', pids=[0])
-    plt.show()
 
     pid = 0
     Sx = log['Sx'][:, pid]
@@ -124,6 +123,9 @@ if __name__ == '__main__':
     s = log['s'][:, pid]
 
     plt.plot(s, Sx, '-b', s, Sy, '-.r')
+    plt.title('Sx (blue) and Sy (red)')
+    plt.xlabel('s [m]')
+    plt.ylabel('Sx, Sy')
     plt.show()
 
     #%%
