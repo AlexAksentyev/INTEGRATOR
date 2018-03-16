@@ -26,6 +26,23 @@ import particle as pcl
 
 from rhs import IMAP, index, select, VAR_NUM
 
+def tilted(pure_field): # accepts an untilted field function
+    """Decorator for the fields of those elements, which should be tilted; 
+    i.e.:
+    * MDipole
+    * CylWien
+    * StraightWien"""
+    def tilted_field(self, arg): # the current tilt method works for state-independent
+        # fields (specifically the magnetic field); the guiding vertical field is preserved
+        # under tilt, the effeect of tilt is in adding the radial, longitudinal field components
+        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
+        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
+        fld = pure_field(self, arg)
+        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
+        return fld
+    return tilted_field
+
+
 class Field(np.ndarray):
     """Representation of an element's EM-field;
     makes more sense to call field.tilt, instead of
@@ -115,23 +132,8 @@ class Element:
     def EField_prime_s(self, arg): # added for testing with ERF
         return Field((0, 0, 0), self).vectorize(arg)
 
-    # def BField(self, arg):
-    #     return Field(self.__B_field, self).vectorize(arg)
-    ### THIS SHOULD NOW BE THE BEHAVIOR OF
-    ### * MDipole
-    ### * CylWien
-    ### * StraightWien
-    ### * ECylDEflector[0] (no effect)
-    ### * Drift (no effect)
-    ### * Solenoid (no effect)
-    ### * ERF (no effect)
-    ### * etc (Observer, EVert, ... no effect)
-    def BField(self, arg): 
-        tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
-        tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
-        fld = Field(self.__B_field, self).vectorize(arg)
-        fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
-        return fld    
+    def BField(self, arg):
+        return Field(self.__B_field, self).vectorize(arg) 
 
     def front_kick(self, state):
         """If I want not to reshape the state vector before writing to
@@ -151,7 +153,6 @@ class Element:
         return str(self.__chars)
 
     def tilt(self, order, *args, append=False):
-        print('calling element.tilt()')
         self.tilt_(order, *args, append=append)
 
 class Bend:
@@ -255,12 +256,10 @@ class MDipole(Element, Bend):
     def compute_radius(self, KinEn, B_field):
         return self._Bend__Pc(KinEn)*1e6/(B_field*pcl.CLIGHT)
 
-    # def BField(self, arg):
-    #     tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
-    #     tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
-    #     fld = Field(self._Element__B_field, self).vectorize(arg)
-    #     fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
-    #     return fld
+    @tilted
+    def BField(self, arg):
+        return super().BField(arg)
+       
 
 class Solenoid(Element):
 
@@ -408,12 +407,9 @@ class CylWien(Element):
         fld = (Ex, z, z)
         return Field(fld, self)
 
-    # def BField(self, arg):
-    #     tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
-    #     tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
-    #     fld = Field(self._Element__B_field, self).vectorize(arg)
-    #     fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
-    #     return fld
+    @tilted
+    def BField(self, arg):
+        return super().BField(arg)
 
     def front_kick(self, state):
         u = self._U(state[:, IMAP['x']])
