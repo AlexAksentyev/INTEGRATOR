@@ -44,6 +44,8 @@ SFN = ent.MSext(15e-2, -2.09836542*0,"SFN")
 
 BPM = ent.Drift(15e-2, "BPM")
 
+Obs = ent.Observer('OUT')
+
 # TESTING
 By = 0.46002779
 # tilt_s = .57 # degrees, 1e-4 rad
@@ -96,7 +98,7 @@ if __name__ == '__main__':
 
     lattice.name = 'BNL'
 
-    #lattice.tilt('s', 0, .0057) # 1e-4 rad
+    lattice.tilt('s', 0, .0057) # 1e-4 rad
 
     #%%
     lattice.insert_RF(0, 0, deu, E_field=15e7)
