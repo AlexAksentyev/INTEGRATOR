@@ -314,12 +314,14 @@ class ECylDeflector0(Element):
         return Field(fld, self)
 
     def front_kick(self, state):
-        u = self._U(state[:, IMAP['x']])
-        state[:, IMAP['dK']] -= u*1e-6/self._ref_kinetic_energy
+        u = self._U(select(state, 'x')[0])
+        i_dK, = index(state, 'dK')
+        state[i_dk] -= u*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
-        u = self._U(state[:, IMAP['x']])
-        state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
+        u = self._U(select(state, 'x')[0])
+        i_dK, = index(state, 'dK')
+        state[i_dk] += u*1e-6/self._ref_kinetic_energy
 
 class ECylDeflector(Element):
     """Electrostatic cylindrical deflector, as defined in Andrey's matlab code.
@@ -357,12 +359,14 @@ class ECylDeflector(Element):
         return Field(fld, self)
 
     def front_kick(self, state):
-        u = self._U(state[:, IMAP['x']])
-        state[:, IMAP['dK']] -= u*1e-6/self._ref_kinetic_energy
+        u = self._U(select(state, 'x')[0])
+        i_dK, = index(state, 'dK')
+        state[i_dK] -= u*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
-        u = self._U(state[:, IMAP['x']])
-        state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
+        u = self._U(select(state, 'x')[0])
+        i_dK, = index(state, 'dK')
+        state[i_dK] += u*1e-6/self._ref_kinetic_energy
 
 class CylWien(TiltableElement):
     """Cylindtical Wien filter.
@@ -406,12 +410,14 @@ class CylWien(TiltableElement):
         return Field(pure_fld, self) + self.Ey_comp(arg) # redefines TiltableElement.EField()
 
     def front_kick(self, state):
-        u = self._U(state[:, IMAP['x']])
-        state[:, IMAP['dK']] -= u*1e-6/self._ref_kinetic_energy
+        u = self._U(select(state, 'x')[0])
+        i_dK, = index(state, 'dK')
+        state[i_dK] -= u*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
-        u = self._U(state[:, IMAP['x']])
-        state[:, IMAP['dK']] += u*1e-6/self._ref_kinetic_energy
+        u = self._U(select(state, 'x')[0])
+        i_dK, = index(state, 'dK')
+        state[i_dK] += u*1e-6/self._ref_kinetic_energy
 
 
 class StraightWien(TiltableElement):
@@ -427,10 +433,12 @@ class StraightWien(TiltableElement):
         self._Element__B_field = (0, B_field, 0)
 
     def front_kick(self, state):
-        state[:, IMAP['dK']] -= self._U*1e-6/self._ref_kinetic_energy
+        i_dK, = index(state, 'dK')
+        state[i_dK] -= self._U*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
-        state[:, IMAP['dK']] += self._U*1e-6/self._ref_kinetic_energy
+        i_dK, = index(state, 'dK')
+        state[i_dK] += self._U*1e-6/self._ref_kinetic_energy
 
 
 
@@ -493,11 +501,13 @@ class ERF(Element):
 
     def front_kick(self, state):
         u = self.__U
-        state[:, IMAP['dK']] -= u*1e-6/self.reference_particle.kinetic_energy
+        i_dK, = index(state, 'dK')
+        state[i_dK] -= u*1e-6/self.reference_particle.kinetic_energy
 
     def rear_kick(self, state):
         u = self.__U
-        state[:, IMAP['dK']] += u*1e-6/self.reference_particle.kinetic_energy
+        i_dK, = index(state, 'dK')
+        state[i_dK] += u*1e-6/self.reference_particle.kinetic_energy
 
     def kickVolts(self):
         return self.__U

@@ -19,6 +19,9 @@ from particle_log import PLog, StateList
 import rhs
 reload(rhs)
 
+RotY = lambda phi: np.array([[np.cos(phi), -np.sin(phi)],
+                                  [np.sin(phi), np.cos(phi)]])
+    
 
 TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut', 'rtol', 'atol'])
 
@@ -132,7 +135,7 @@ class Tracker:
 
             try:
                 element.front_kick(state)
-                state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2]
+                # state = state.reshape(n_ics*n_var) # flat [x0,y0,...,x1,y1,...,x2,y2] # already flat *****
                 ### consider moving this segment to class Element
                 if not skip:
                     # start = clock()
@@ -143,16 +146,16 @@ class Tracker:
                 else:
                     element.advance(state)
                 ###
-                state = state.reshape(n_ics, n_var) # [[x0,y0,...],
-                                                    # [x1,y1,...],
-                                                    # [x2,y2,...]]
+                # state = state.reshape(n_ics, n_var) # [[x0,y0,...],
+                #                                     # [x1,y1,...],
+                #                                     # [x2,y2,...]]
                 element.rear_kick(state)
                 if not skip and self.controls.inner:
                     for k in range(brks-1):
                         self.log[log_index] = ((current_turn, element.name, eid, k), vals[k])
                         log_index += 1
                 self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker),
-                                       state.flatten())
+                                       state) # state.flatten() no longer required *****
                 log_index += 1
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
@@ -198,6 +201,11 @@ class Tracker:
             ics.append(list(ic.values()))
         state = np.array(ics) # [[x0,y0,...], [x1,y1,...], [x2,y2,...]]
 
+        state = state.flatten() # [x0,y0,... x1, y1, ... ]
+
+        # save initial spin direction in x-s plane for later turning Spin back *#!
+        S0_xz = np.array(rhs.select(state, 'Sx', 'Sz'))
+
         # create the RHS
         self.rhs = rhs.RHS(self.log.particle, self.log.n_ics, lattice.get_RF()) # setting up the RHS
 
@@ -225,6 +233,21 @@ class Tracker:
                     print('Emergency data-saving')
                     self.log.write_file(file_handle, old_ind, log_ind)
                     return self.log
+
+                ## turn Sx back to its initial value *#!
+                Sx_i, Sz_i = rhs.index(state, 'Sx', 'Sz')
+                S_xz = np.array([state[Sx_i], state[Sz_i]])
+                # computing the angles between S_xz and S0_xz
+                sin_phi = np.cross(S_xz.T, S0_xz.T)/np.linalg.norm(S_xz)/np.linalg.norm(S0_xz)
+                phis = np.arcsin(sin_phi)
+                # rotate the spins by the average angle
+                phi = np.mean(phis)
+                Ry = RotY(phi)
+                S_xz = Ry.dot(S_xz)
+                # update state
+                state[Sx_i] = S_xz[0]
+                state[Sz_i] = S_xz[1]
+                
 
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))
