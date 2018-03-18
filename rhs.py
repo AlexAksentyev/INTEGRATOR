@@ -54,12 +54,11 @@ class RHS:
             raise ValueError('NaN state variable(s)')
         x, y, s, t, theta, H, px, py, dEn, Sx, Sy, Ss = state.reshape(VAR_NUM, self.n_ics, order='F')
 
-        S = np.sqrt(Sx**2 + Sy**2 + Ss**2)
-        I = np.ones_like(S)
-        delta_spin = np.abs(S-I)
-        spin_error = np.any(delta_spin > self.spin_err_tol)
+        S = np.array([Sx, Sy, Ss])
+        spin_norm = np.linalg.norm(S, axis=0)
+        spin_error = np.any(np.abs(spin_norm - 1) > self.spin_err_tol)
         if spin_error:
-            print(delta_spin)
+            print(spin_norm)
             raise ValueError('|Spin - 1| > error tolerance ({})'.format(self.spin_err_tol))
 
         KinEn = self.particle.kinetic_energy*(1+dEn) # dEn = (En - En0) / En0
