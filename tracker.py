@@ -237,13 +237,31 @@ class Tracker:
                 ## turn Sx back to its initial value *#!
                 Sx_i, Sz_i = rhs.index(state, 'Sx', 'Sz')
                 S_xz = np.array([state[Sx_i], state[Sz_i]])
+                ## measuring the original deviation (!)
+                prior_deviation = np.linalg.norm(S_xz-S0_xz)
+                print("  prior deviation: {}".format(prior_deviation))
                 # computing the angles between S_xz and S0_xz
                 sin_phi = np.cross(S_xz.T, S0_xz.T)/np.linalg.norm(S_xz)/np.linalg.norm(S0_xz)
                 phis = np.arcsin(sin_phi)
                 # rotate the spins by the average angle
-                phi = np.mean(phis)
-                Ry = RotY(phi)
-                S_xz = Ry.dot(S_xz)
+                phi = phis[0]# np.mean(phis)
+                iter_count = 0
+                while True: # turn the spin in the direction of S0
+                    Ry = RotY(phi)
+                    S_xz_new = Ry.dot(S_xz)
+                    iter_count += 1
+                    ## check correction (!)
+                    current_deviation = np.linalg.norm(S_xz_new-S0_xz)
+                    print("current deviation: {} ".format(current_deviation))
+                    # if the corrected deviation > than before, stop correction;
+                    # DON'T overwrite S_xz
+                    if (current_deviation > prior_deviation) | (iter_count > 50):
+                        print ("Iterations: {}".format(iter_count))
+                        break
+                    # if the deviation is less, accept the new S_xz state for
+                    # the next iteration
+                    S_xz = S_xz_new
+                    prior_deviation = current_deviation
                 # update state
                 state[Sx_i] = S_xz[0]
                 state[Sz_i] = S_xz[1]

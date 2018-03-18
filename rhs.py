@@ -60,7 +60,7 @@ class RHS:
         spin_error = np.any(delta_spin > self.spin_err_tol)
         if spin_error:
             print(delta_spin)
-            raise ValueError('|Spin - 1| > error tolerance ({})'.formatC(self.spin_err_tol))
+            raise ValueError('|Spin - 1| > error tolerance ({})'.format(self.spin_err_tol))
 
         KinEn = self.particle.kinetic_energy*(1+dEn) # dEn = (En - En0) / En0
 

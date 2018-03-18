@@ -67,7 +67,8 @@ ARC1 = ARC1*8
 
 SS2H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
          QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
-         QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2]
+         QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
+             Obs] #TESTING OBSERVER
 
 SS2H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
          QFA2, OD1, OSF, OD2, ORB, OD2, BPM, OD1, QDA2,
@@ -98,14 +99,14 @@ if __name__ == '__main__':
 
     lattice.name = 'BNL'
 
-    lattice.tilt('s', 0, .0057) # 1e-4 rad
+    lattice.tilt('s', -8.6e-4, .0) # 1e-4 rad
 
     #%%
     lattice.insert_RF(0, 0, deu, E_field=15e7)
 
     from particle_log import StateList
 
-    n_turns = int(10)
+    n_turns = int(input("Number of turns: "))
 
     bunch = StateList(Sz=1, dK=(-1e-4, 1e-4, 5), x=(-1e-3, 2e-4, 4))
     state = np.array(bunch.as_list()).flatten()
@@ -116,17 +117,20 @@ if __name__ == '__main__':
     start = clock()
     log = trkr.track(deu, bunch, lattice, n_turns)
     print("Tracking took {} secs".format(clock()-start))
+    print("Maximum |Sx| = {}".format(np.max(np.abs(log[-1]['Sx']))))
+    
     log1 = log.get_turns(1)
     log.plot('y', 's', pids=[0])
+    plt.show()
 
     pid = 0
     Sx = log['Sx'][:, pid]
     Sy = log['Sy'][:, pid]
-    s = log['s'][:, pid]
+    s = log['Turn'][:, pid]
 
     plt.plot(s, Sx, '-b', s, Sy, '-.r')
     plt.title('Sx (blue) and Sy (red)')
-    plt.xlabel('s [m]')
+    plt.xlabel('turn')
     plt.ylabel('Sx, Sy')
     plt.show()
 
@@ -148,3 +152,10 @@ if __name__ == '__main__':
     theta_s.mean = lambda : None
     theta_s.mean.deg = statistics.mean(theta_s.deg)
     theta_s.mean.rad = statistics.mean(theta_s.rad)
+
+    ##%
+    lattice.make_segment('OUT')
+    pid = 0
+    lattice.plot_segment('OUT',log, 'Sx', 'Turn', pids=[pid])
+    lattice.plot_segment('OUT',log, 'Sy', 'Turn', pids=[pid], new_plot=False)
+    plt.ylabel('Sx (blue), Sy (orange) for pid {}'.format(pid)); plt.show()

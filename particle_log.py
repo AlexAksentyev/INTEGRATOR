@@ -364,7 +364,6 @@ class PLog(np.recarray):
         PLT.xlabel(Xlab)
         PLT.ylabel(Ylab)
         PLT.grid()
-        PLT.show()
 
         return PLT.gcf()
 
