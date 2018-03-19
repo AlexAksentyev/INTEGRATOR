@@ -13,15 +13,14 @@ from tables import open_file
 
 import numpy as np
 from scipy.integrate import odeint
+import math
 
 from particle_log import PLog, StateList
 
 import rhs
 reload(rhs)
 
-RotY = lambda phi: np.array([[np.cos(phi), -np.sin(phi)],
-                                  [np.sin(phi), np.cos(phi)]])
-    
+norm = np.linalg.norm
 
 TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut', 'rtol', 'atol'])
 
@@ -205,7 +204,7 @@ class Tracker:
 
         # save initial spin direction in x-s plane for later turning Spin back *#!
         S0_xz = np.array(rhs.select(state, 'Sx', 'Sz'))
-
+        assert(np.all(norm(S0_xz, axis=0) == 1)), "|S0_xz| != 1"
         # create the RHS
         self.rhs = rhs.RHS(self.log.particle, self.log.n_ics, lattice.get_RF()) # setting up the RHS
 
@@ -237,31 +236,17 @@ class Tracker:
                 ## turn Sx back to its initial value *#!
                 Sx_i, Sz_i = rhs.index(state, 'Sx', 'Sz')
                 S_xz = np.array([state[Sx_i], state[Sz_i]])
-                ## measuring the original deviation (!)
-                prior_deviation = np.linalg.norm(S_xz-S0_xz)
-                print("  prior deviation: {}".format(prior_deviation))
+                S_xz_u = S_xz/norm(S_xz, axis=0) # |S0_xz| = 1 by assertion (above) 
                 # computing the angles between S_xz and S0_xz
-                sin_phi = np.cross(S_xz.T, S0_xz.T)/np.linalg.norm(S_xz)/np.linalg.norm(S0_xz)
-                phis = np.arcsin(sin_phi)
-                # rotate the spins by the average angle
-                phi = phis[0]# np.mean(phis)
-                iter_count = 0
-                while True: # turn the spin in the direction of S0
-                    Ry = RotY(phi)
-                    S_xz_new = Ry.dot(S_xz)
-                    iter_count += 1
-                    ## check correction (!)
-                    current_deviation = np.linalg.norm(S_xz_new-S0_xz)
-                    print("current deviation: {} ".format(current_deviation))
-                    # if the corrected deviation > than before, stop correction;
-                    # DON'T overwrite S_xz
-                    if (current_deviation > prior_deviation) | (iter_count > 50):
-                        print ("Iterations: {}".format(iter_count))
-                        break
-                    # if the deviation is less, accept the new S_xz state for
-                    # the next iteration
-                    S_xz = S_xz_new
-                    prior_deviation = current_deviation
+                sin_phi = np.cross(S_xz_u.T, S0_xz.T)
+                cos_psy = S_xz_u.T.dot(S0_xz[:, 0]) # REFERENCE PARTICLE
+                # arrgegate angle: is reference particle's
+                sin_phi = sin_phi[0]
+                cos_psy = cos_psy[0]
+                # sin_psy = math.sqrt(1 - cos_psy**2)*np.sign(sin_phi)
+                # rotate the spins by the angle of the reference particle's spin
+                Ry = np.array([[cos_psy, -sin_phi], [sin_phi, cos_psy]])
+                S_xz = Ry.dot(S_xz)
                 # update state
                 state[Sx_i] = S_xz[0]
                 state[Sz_i] = S_xz[1]
