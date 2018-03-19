@@ -237,21 +237,21 @@ class Tracker:
                 ## turn Sx back to its initial value *#!
                 Sx_i, Sz_i = rhs.index(state, 'Sx', 'Sz')
                 S_xz = np.array([state[Sx_i], state[Sz_i]])
-                ## measuring the original deviation (!)
-                prior_deviation = np.linalg.norm(S_xz-S0_xz)
+                ## measuring the original deviation of the reference particle's spin (!)
+                prior_deviation = np.linalg.norm(S_xz[:,0]-S0_xz[:,0])
                 print("  prior deviation: {}".format(prior_deviation))
                 # computing the angles between S_xz and S0_xz
                 sin_phi = np.cross(S_xz.T, S0_xz.T)/np.linalg.norm(S_xz)/np.linalg.norm(S0_xz)
                 phis = np.arcsin(sin_phi)
-                # rotate the spins by the average angle
-                phi = phis[0]# np.mean(phis)
+                # rotate the spins by the reference angle
+                phi = phis[0]# np.mean(phis) # this, if average angle
                 iter_count = 0
                 while True: # turn the spin in the direction of S0
                     Ry = RotY(phi)
                     S_xz_new = Ry.dot(S_xz)
                     iter_count += 1
                     ## check correction (!)
-                    current_deviation = np.linalg.norm(S_xz_new-S0_xz)
+                    current_deviation = np.linalg.norm(S_xz_new[:,0]-S0_xz[:,0])
                     print("current deviation: {} ".format(current_deviation))
                     # if the corrected deviation > than before, stop correction;
                     # DON'T overwrite S_xz
