@@ -120,19 +120,19 @@ if __name__ == '__main__':
     print("Maximum |Sx| = {}".format(np.max(np.abs(log[-1]['Sx']))))
     
     log1 = log.get_turns(1)
-    log.plot('y', 's', pids=[0])
-    plt.show()
+    # log.plot('y', 's', pids=[0])
+    # plt.show()
 
-    pid = 0
-    Sx = log['Sx'][:, pid]
-    Sy = log['Sy'][:, pid]
-    s = log['Turn'][:, pid]
+    # pid = 0
+    # Sx = log['Sx'][:, pid]
+    # Sy = log['Sy'][:, pid]
+    # s = log['Turn'][:, pid]
 
-    plt.plot(s, Sx, '-b', s, Sy, '-.r')
-    plt.title('Sx (blue) and Sy (red)')
-    plt.xlabel('turn')
-    plt.ylabel('Sx, Sy')
-    plt.show()
+    # plt.plot(s, Sx, '-b', s, Sy, '-.r')
+    # plt.title('Sx (blue) and Sy (red)')
+    # plt.xlabel('turn')
+    # plt.ylabel('Sx, Sy')
+    # plt.show()
 
     #%%
     ## run thru elements
@@ -159,3 +159,21 @@ if __name__ == '__main__':
     lattice.plot_segment('OUT',log, 'Sx', 'Turn', pids=[pid])
     lattice.plot_segment('OUT',log, 'Sy', 'Turn', pids=[pid], new_plot=False)
     plt.ylabel('Sx (blue), Sy (orange) for pid {}'.format(pid)); plt.show()
+
+    #%%
+    pi = math.pi
+    R = lambda x: np.array([[math.cos(x) , -math.sin(x)], [math.sin(x), math.cos(x)]])
+    s0 = np.array([0, 1])
+    s1 = R(.3).dot(s0)
+    s2 = R(pi/2-.23).dot(s0)
+    s3 = R(pi-.05).dot(s0)
+    s4 = R(-pi + .4).dot(s0)
+    s5 = R(-pi/2 + .24).dot(s0)
+    s = np.array([s1,s2,s3,s4,s5])
+
+    s00 = np.array([s0,s0,s0,s0,s0])
+    sin_phi = np.cross(s, s00)
+    cos_psy = s.dot(s0)
+    for i, s_i in enumerate(s):
+        Ry = np.array([[cos_psy[i], -sin_phi[i]], [sin_phi[i], cos_psy[i]]])
+        print(Ry.dot(s_i))
