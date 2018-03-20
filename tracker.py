@@ -20,7 +20,39 @@ from particle_log import PLog, StateList
 import rhs
 reload(rhs)
 
+
+def orthogonize_spin(state):
+    ## orthogonality correction
+    ###### implementation leads to Sy staying at 1 (w/o x-s rotation)
+    Sx_i, Sy_i, Sz_i = rhs.index(state, 'Sx', 'Sy', 'Sz')
+    Ss2 = np.ones_like(Sx_i) - state[Sx_i]**2 - state[Sy_i]**2
+    if np.all(Ss2 > 0):
+        state[Sz_i] = np.sqrt(Ss2)
+    else:
+        state[Sz_i] = np.zeros_like(Sx_i)
+
+def rotate_spin(state, S0_xz):
+    ## turn Sx back to its initial value *#!
+    Sx_i, Sz_i = rhs.index(state, 'Sx', 'Sz')
+    S_xz = np.array([state[Sx_i], state[Sz_i]])
+    S_xz_u = S_xz/norm(S_xz, axis=0) # |S0_xz| = 1 by assertion (above) 
+    # computing the angles between S_xz and S0_xz
+    sin_phi = np.cross(S_xz_u.T, S0_xz.T)
+    cos_psy = S_xz_u.T.dot(S0_xz[:, 0]) # REFERENCE PARTICLE
+    # arrgegate angle: is reference particle's
+    sin_phi = sin_phi[0]
+    cos_psy = cos_psy[0]
+    # sin_psy = np.sqrt(1 - cos_psy**2)*np.sign(sin_phi)
+    # rotate the spins by the angle of the reference particle's spin
+    Ry = np.array([[cos_psy, -sin_phi], [sin_phi, cos_psy]])
+    S_xz = Ry.dot(S_xz)
+    # update state
+    state[Sx_i] = S_xz[0]
+    state[Sz_i] = S_xz[1]
+
+
 norm = np.linalg.norm
+det = np.linalg.det
 
 TrackerControls = namedtuple('TrackerControls', ['fwd', 'inner', 'breaks', 'ncut', 'rtol', 'atol'])
 
@@ -159,6 +191,8 @@ class Tracker:
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
                 raise StopTracking('Stopping tracking due to a ValueError in _run_turn')
+            # orthogonize_spin(state)
+            rotate_spin(state, self._S0_xz)
         # end element loop
 
         return state, log_index
@@ -205,6 +239,7 @@ class Tracker:
         # save initial spin direction in x-s plane for later turning Spin back *#!
         S0_xz = np.array(rhs.select(state, 'Sx', 'Sz'))
         assert(np.all(norm(S0_xz, axis=0) == 1)), "|S0_xz| != 1"
+        self._S0_xz = S0_xz
         # create the RHS
         self.rhs = rhs.RHS(self.log.particle, self.log.n_ics, lattice.get_RF()) # setting up the RHS
 
@@ -233,24 +268,7 @@ class Tracker:
                     self.log.write_file(file_handle, old_ind, log_ind)
                     return self.log
 
-                ## turn Sx back to its initial value *#!
-                Sx_i, Sz_i = rhs.index(state, 'Sx', 'Sz')
-                S_xz = np.array([state[Sx_i], state[Sz_i]])
-                S_xz_u = S_xz/norm(S_xz, axis=0) # |S0_xz| = 1 by assertion (above) 
-                # computing the angles between S_xz and S0_xz
-                sin_phi = np.cross(S_xz_u.T, S0_xz.T)
-                cos_psy = S_xz_u.T.dot(S0_xz[:, 0]) # REFERENCE PARTICLE
-                # arrgegate angle: is reference particle's
-                sin_phi = sin_phi[0]
-                cos_psy = cos_psy[0]
-                # sin_psy = math.sqrt(1 - cos_psy**2)*np.sign(sin_phi)
-                # rotate the spins by the angle of the reference particle's spin
-                Ry = np.array([[cos_psy, -sin_phi], [sin_phi, cos_psy]])
-                S_xz = Ry.dot(S_xz)
-                # update state
-                state[Sx_i] = S_xz[0]
-                state[Sz_i] = S_xz[1]
-                
+                # rotate_spin(state, S0_xz) 
 
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))
