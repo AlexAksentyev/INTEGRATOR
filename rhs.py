@@ -57,9 +57,9 @@ class RHS:
         S = np.array([Sx, Sy, Ss])
         spin_norm = np.linalg.norm(S, axis=0)
         spin_error = np.any(np.abs(spin_norm - 1) > self.spin_err_tol)
-        if spin_error:
-            print(spin_norm)
-            raise ValueError('|Spin - 1| > error tolerance ({})'.format(self.spin_err_tol))
+        # if spin_error:
+        #     print(spin_norm)
+        #     raise ValueError('|Spin - 1| > error tolerance ({})'.format(self.spin_err_tol))
 
         KinEn = self.particle.kinetic_energy*(1+dEn) # dEn = (En - En0) / En0
 
