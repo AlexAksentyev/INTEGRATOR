@@ -46,7 +46,7 @@ class Lattice:
         for index, element in enumerate(self._sequence):
             eid = id(element)
             if eid in ids:
-                print('Repeated element; copying...')
+                #print('Repeated element; copying...')
                 self._sequence[index] = copy.deepcopy(element)
             ids.add(eid)
         ##

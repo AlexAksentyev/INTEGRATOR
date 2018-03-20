@@ -54,9 +54,9 @@ class RHS:
             raise ValueError('NaN state variable(s)')
         x, y, s, t, theta, H, px, py, dEn, Sx, Sy, Ss = state.reshape(VAR_NUM, self.n_ics, order='F')
 
-        S = np.array([Sx, Sy, Ss])
-        spin_norm = np.linalg.norm(S, axis=0)
-        spin_error = np.any(np.abs(spin_norm - 1) > self.spin_err_tol)
+        # S = np.array([Sx, Sy, Ss])
+        # spin_norm = np.linalg.norm(S, axis=0)
+        # spin_error = np.any(np.abs(spin_norm - 1) > self.spin_err_tol)
         # if spin_error:
         #     print(spin_norm)
         #     raise ValueError('|Spin - 1| > error tolerance ({})'.format(self.spin_err_tol))
@@ -76,7 +76,8 @@ class RHS:
 
         kappa = element.curve
 #        kappa = 0 # test id D001
-        hs = 1 + kappa*x # look here http://www.iaea.org/inis/collection/NCLCollectionStore/_Public/23/011/23011647.pdf
+        hs = 1 + kappa*x # look here:
+        # http://www.iaea.org/inis/collection/NCLCollectionStore/_Public/23/011/23011647.pdf
                             # ds' = (R+x)dphi = (1+x/R)ds = hs ds, ds = Rdphi
                             # slope = Px/Ps = dx/ds' = x'/hs => x' = Px/Ps * hs (eq 2.6)
         xp, yp = [x * hs/Ps for x in (Px, Py)]
