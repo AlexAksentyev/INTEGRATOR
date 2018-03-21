@@ -276,8 +276,6 @@ class Tracker:
                     self.log.write_file(file_handle, old_ind, log_ind)
                     return self.log
 
-                # rotate_spin(state, S0_xz) 
-
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))
                     start = clock()
