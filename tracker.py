@@ -23,11 +23,11 @@ reload(rhs)
 
 def orthogonize_spin(state):
     ## orthogonality correction
-    ###### implementation leads to Sy staying at 1 (w/o x-s rotation)
     Sx_i, Sy_i, Sz_i = rhs.index(state, 'Sx', 'Sy', 'Sz')
+    sSs = np.sign(state[Sz_i])
     Ss2 = np.ones_like(Sx_i) - state[Sx_i]**2 - state[Sy_i]**2
     if np.all(Ss2 > 0):
-        state[Sz_i] = np.sqrt(Ss2)
+        state[Sz_i] = sSs*np.sqrt(Ss2)
     else:
         state[Sz_i] = np.zeros_like(Sx_i)
 
@@ -35,7 +35,14 @@ def rotate_spin(state, S0_xz):
     ## turn Sx back to its initial value *#!
     Sx_i, Sz_i = rhs.index(state, 'Sx', 'Sz')
     S_xz = np.array([state[Sx_i], state[Sz_i]])
-    S_xz_u = S_xz/norm(S_xz, axis=0) # |S0_xz| = 1 by assertion (above) 
+    norm_S_xz = norm(S_xz, axis=0)
+    # if np.any(norm_S_xz) == 0:
+    #     return
+    # catching those vectors whose norm is 0
+    # if the norm is 0, the vector is [0,0] anyway,
+    # so just set norm to 1
+    norm_S_xz = np.array([1 if x==0 else x for x in norm_S_xz])
+    S_xz_u = S_xz/norm_S_xz # |S0_xz| = 1 by assertion (above) 
     # computing the angles between S_xz and S0_xz
     sin_phi = np.cross(S_xz_u.T, S0_xz.T)
     cos_psy = S_xz_u.T.dot(S0_xz[:, 0]) # REFERENCE PARTICLE
@@ -192,8 +199,8 @@ class Tracker:
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
                 raise StopTracking('Stopping tracking due to a ValueError in _run_turn')
-            # orthogonize_spin(state)
-            # rotate_spin(state, self._S0_xz)
+            rotate_spin(state, self._S0_xz)
+            orthogonize_spin(state)
         # end element loop
 
         return state, log_index
@@ -269,7 +276,7 @@ class Tracker:
                     self.log.write_file(file_handle, old_ind, log_ind)
                     return self.log
 
-                rotate_spin(state, S0_xz) 
+                # rotate_spin(state, S0_xz) 
 
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))
