@@ -39,9 +39,10 @@ def rotate_spin(state, S0_xz):
     # computing the angles between S_xz and S0_xz
     sin_phi = np.cross(S_xz_u.T, S0_xz.T)
     cos_psy = S_xz_u.T.dot(S0_xz[:, 0]) # REFERENCE PARTICLE
+    sc = np.sign(cos_psy)
     # arrgegate angle: is reference particle's
-    sin_phi = sin_phi[0]
-    cos_psy = cos_psy[0]
+    sin_phi = sin_phi[0]*sc[0]
+    cos_psy = cos_psy[0]*sc[0]
     # sin_psy = np.sqrt(1 - cos_psy**2)*np.sign(sin_phi)
     # rotate the spins by the angle of the reference particle's spin
     Ry = np.array([[cos_psy, -sin_phi], [sin_phi, cos_psy]])
@@ -192,7 +193,7 @@ class Tracker:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
                 raise StopTracking('Stopping tracking due to a ValueError in _run_turn')
             # orthogonize_spin(state)
-            rotate_spin(state, self._S0_xz)
+            # rotate_spin(state, self._S0_xz)
         # end element loop
 
         return state, log_index
@@ -268,7 +269,7 @@ class Tracker:
                     self.log.write_file(file_handle, old_ind, log_ind)
                     return self.log
 
-                # rotate_spin(state, S0_xz) 
+                rotate_spin(state, S0_xz) 
 
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))
