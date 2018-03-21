@@ -1,36 +1,35 @@
+import BNL
+from tracker import Tracker
+from particle import Particle
+from particle_log import StateList
+from math import degrees as deg
 import numpy as np
-import math
-from pandas import DataFrame
+import matplotlib.pyplot as plt
 
-rad = np.deg2rad
-deg = np.rad2deg
+trkr = Tracker()
 
-pi = np.pi
-R = lambda x: np.array([[np.cos(rad(x)) , -np.sin(rad(x))], [np.sin(rad(x)), np.cos(rad(x))]])
-s0 = np.array([0, 1])
+deu = Particle()
+deu.kinetic_energy += .5e-6*deu.kinetic_energy
+deu.gamma -= deu.gamma*2e-5/1.42
 
-arg = -np.array([45, 135, 225, 315, -180])
-s1 = R(arg[0]).dot(s0)
-s2 = R(arg[1]).dot(s0)
-s3 = R(arg[2]).dot(s0)
-s4 = R(arg[3]).dot(s0)
-s5 = R(arg[4]).dot(s0)
-s = np.array([s1,s2,s3,s4,s5])
+bunch_dict = {'dK': StateList(Sz=1, dK=(-1e-4, 1e-4, 20)),
+         'x' : StateList(Sz=1, x=(-1e-3, 1e-3, 20)),
+         'y' : StateList(Sz=1, y=(-1e-3, 1e-3, 20))}
 
-s00 = np.array([s0,s0,s0,s0,s0])
-cos_psy = s.dot(s0)
-sin_phi = np.cross(s, s00)
+lattice = BNL.make_lattice(deu)
 
-for i, s_i in enumerate(s):
-    sc = np.sign(cos_psy[i])
-    c = sc*cos_psy[i]
-    s = sc*sin_phi[i]
-    Ry = np.array([[c, -s], [s, c]])
-    #print((s_i, Ry.dot(Ry.dot(s_i))))
-    print(Ry.dot(s_i))
+n_turns = 10
+n_trials = 35
 
-arg_cos = deg(np.arccos(cos_psy))
-arg_sin = deg(np.arcsin(sin_phi))
-cw = np.sign(cos_psy*sin_phi)
-print(DataFrame({'Atheta':arg, #'Ctheta':arg_cos, 'Stheta':arg_sin,
-                 'cos':cos_psy, 'sin':sin_phi, 'Ttheta':cw}) )
+mean_angle = 0
+sigma_angle = deg(1e-4)
+
+Sy_dict = {}
+for key, bunch  in bunch_dict.items():
+    Sy_hist = []
+    for trial in range(n_trials):
+        lattice.tilt('s', mean_angle, sigma_angle)
+        log = trkr.track(deu, bunch, lattice, n_turns)
+        Sy = log['Sy']
+        Sy_hist = np.append(Sy_hist, Sy[-1]-Sy[-1][0])
+    Sy_dict.update({key: Sy_hist})
