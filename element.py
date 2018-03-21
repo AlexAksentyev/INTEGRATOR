@@ -445,7 +445,7 @@ class StraightWien(TiltableElement):
 class ERF(Element):
     """RF element."""
 
-    def __init__(self, reference_particle, length, acc_length, E_field=15e5, phase=0.5*np.pi, H_number=50, name="RF"):
+    def __init__(self, reference_particle, length, acc_length, E_field=15e5, phase=-0.5*np.pi, H_number=50, name="RF"):
         super().__init__(curve=0, length=length, name=name)
 
         if length == 0:
