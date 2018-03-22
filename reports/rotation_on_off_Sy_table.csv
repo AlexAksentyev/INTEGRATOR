@@ -1,6 +1,6 @@
 Variation of the REB elements' tilt angle about the s axis.
 Mean and sigma of the normal distribution from which the tilt angles were drawn;
-Avg is the actual average for the given sample.
+Avg is the actual average for the given sample. Angles are in radians.
 Sy after 10 turns: Raw --- no x-s plane spin correction; 
 Rotated --- w/correction.
 

@@ -476,7 +476,7 @@ class ERF(Element):
         fld = (z, z, A*np.cos(wave_num*s+phi))
         return Field(fld, self)
 
-    def EField_prime_s(self, arg): # Es prime divided by time prime
+    def EField_prime_s(self, arg): # Es prime 
         s, = select(arg, 's')
         A = self.amplitude
         wave_num = self.wave_num
