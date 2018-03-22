@@ -10,6 +10,7 @@ import tables as tbl
 import rhs
 import copy
 import particle as pcl
+from collections import Iterable
 
 from utilities import Bundle
 
@@ -29,7 +30,7 @@ class StateList:
     Use
     ----------------
     To define an ensemble of initial conditions varying in the variable **x**, write: \n
-        StateList(x=(lower_bound, upper_bound, number_of_states), ...)
+        StateList(x=[x0, x1, x2, ..., xn], ...)
 
     To set a variable **y** constant accross all states, write: \n
         StateList(..., y = shared_value)
@@ -43,10 +44,9 @@ class StateList:
         ntot = 1
         arg_dict = dict()
         for key, val in kwargs.items():
-            try:
-                lb, ub, num = val
-                val = np.linspace(lb, ub, num)
-            except TypeError: # if key = value, set value for all pcls
+            if isinstance(val, Iterable):
+                num = len(val)
+            else: # passed a single value, cannot use len()
                 num = 1
             ntot *= num
             arg_dict.update({rhs.IMAP[key]: val})
