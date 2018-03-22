@@ -87,6 +87,16 @@ class Tracker:
         self.file_handle = None # for data backup
         self.log = None # need to know the number of records, particles
 
+        self._rotation_flag = True # for tests; remove later
+
+    @property
+    def rotation_flag(self):
+        return self._rotation_flag
+
+    @rotation_flag.setter
+    def rotation_flag(self, value):
+        self._rotation_flag=value
+
     def set_controls(self, fwd=True, inner=False, breaks=101, ncut=0, rtol=None, atol=None):
         """
         Arguments
@@ -199,7 +209,9 @@ class Tracker:
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
                 raise StopTracking('Stopping tracking due to a ValueError in _run_turn')
-            rotate_spin(state, self._S0_xz)
+
+            if self.rotation_flag:
+                rotate_spin(state, self._S0_xz)
             orthogonize_spin(state)
         # end element loop
 
