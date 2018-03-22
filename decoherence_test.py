@@ -13,8 +13,8 @@ deu.kinetic_energy += .5e-6*deu.kinetic_energy
 deu.gamma -= deu.gamma*2e-5/1.42
 
 bunch_dict = {'dK': StateList(Sz=1, dK=(-1e-4, 1e-4, 20)),
-         'x' : StateList(Sz=1, x=(-1e-3, 1e-3, 20)),
-         'y' : StateList(Sz=1, y=(-1e-3, 1e-3, 20))}
+              'x' : StateList(Sz=1, x=(-1e-3, 1e-3, 20)),
+              'y' : StateList(Sz=1, y=(-1e-3, 1e-3, 20))}
 
 lattice = BNL.make_lattice(deu)
 
