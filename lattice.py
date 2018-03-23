@@ -8,7 +8,7 @@ import copy
 import re
 import collections as cln
 import numpy as np
-from element import ERF, Tilt
+from element import ERF, Tilt, Shift
 from utilities import MutableNamedTuple
 
 class RF(MutableNamedTuple):
@@ -275,42 +275,45 @@ class Lattice:
             print('Dimension mismatch: order {}, mean {}, sigma {}'.format(tilt_num, nmean, nsig))
             return
 
-        # this code block should no longer execute, b/c Lattice now contains copies of elements
-        # instead of multiple references to the same element
-        nuids = len(np.unique([id(e.tilt_) for e in self]))
-        if nuids != self.count:
-            print('Non-unique elements ({}/{}) in lattice. Smart tilting.'.format(self.count-nuids, self.count))
-            print('\t Not tilting:')
-
         # tilting proper
-        i = 0
-        ids = set()
-        cnt = 1
-        for element in self.elements():
-            eid = id(element.tilt_)
-            if eid in ids:
-                print('\t\t {} element {} at lattice index {}'.format(cnt, element.name, i))
-                cnt += 1
-                i += 1
-                continue
+        # i = 0
+        for i, element in enumerate(self.elements()):
             element.tilt(order, *angle[i], append=append)
-            ids.add(eid)
-            i += 1
+            # i += 1
 
         self._state += 1  # the lattice is in a new state => write into a new group
 
-    def clear_tilt(self):
-        """Resets the lattice to the original state."""
-        ids = set()
-        for element in self.elements():
-            eid = id(element.tilt_)
-            if eid in ids:
-                continue
-            element.tilt_ = Tilt()
-            ids.add(eid)
+    def shift(self, x=(0,0), y=(0,0), append=False):
+        """
+        Arguments
+        ________________
+        
+        x, y : pair (mean shift, sigma shift)
 
+        append : boolean
+            if the lattice has already been rotated, append=True adds new
+            shifts on top of the old ones
+
+        """
+        mu, sigma = x
+        x_shift = np.random.normal(mu, sigma, self.count)
+        mu, sigma = y
+        y_shift = np.random.normal(mu, sigma, self.count)
+
+        for i, element in enumerate(self.elements()):
+            element.shift(x_shift[i], y_shift[i], append=append)
+
+        self._state += 1
+
+    def clear(self):
+        """Resets the lattice to the original state."""
+        for element in self.elements():
+            element.tilt_ = Tilt()
+            element.shift_ = Shift()
+            
         self._state = 0
 
+        
 
     def plot_segment(self, segment_name, log,
                      Ylab='-D dK', Xlab='-D Theta', **kwargs):

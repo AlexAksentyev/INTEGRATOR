@@ -89,6 +89,14 @@ class Tilt:
 
 class Shift(MutableNamedTuple):
     __slots__ = ['x_shift', 'y_shift']
+
+    def __init__(self, x=0, y=0):
+        super().__init__(x,y)
+
+    def __add__(self, pair):
+        self.x_shift += pair[0]
+        self.y_shift += pair[1]
+        return self
 #%%
 
 class Element:
@@ -104,7 +112,7 @@ class Element:
         self.__delta_E_field = (0, 0, 0)
 
         self.tilt_ = Tilt()
-        self.shift_ = Shift(0,0)
+        self.shift_ = Shift()
 
         self.__bool_skip = False # for ERF.advance()
 
@@ -148,9 +156,11 @@ class Element:
     def tilt(self, order, *args, append=False):
         return self.tilt_(order, *args, append=append)
 
-    def shift(self, x_shift=0, y_shift=0):
-        self.shift_.x_shift = x_shift
-        self.shift_.y_shift = y_shift
+    def shift(self, x_shift=0, y_shift=0, append=False):
+        if append:
+            self.shift_ += (x_shift, y_shift)
+        else:
+            self.shift_ = Shift(x_shift, y_shift)
 
 #%%
 
@@ -558,8 +568,11 @@ if __name__ == '__main__':
 
     state = np.array(bunch.as_list()).flatten()
 
-    B0 = (element1.BField(state))
+    B0 = element1.BField(state)
     
     element1.shift(1e-3, -1e-3)
 
-    B1 = (element1.BField(state))
+    B1 = element1.BField(state)
+    element1.shift(-1e-3, 1e-3, True)
+
+    B2 = element1.BField(state)
