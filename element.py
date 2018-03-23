@@ -21,27 +21,11 @@ import pandas as pds
 import numpy as np
 import collections as cln
 import math
+from utilities import MutableNamedTuple
 
 import particle as pcl
 
 from rhs import IMAP, index, select, VAR_NUM
-
-# def tilted(pure_field): # accepts an untilted field function
-#     """Decorator for the fields of those elements, which should be tilted; 
-#     i.e.:
-#     * MDipole
-#     * CylWien
-#     * StraightWien"""
-#     def tilted_field(self, arg): # the current tilt method works for state-independent
-#         # fields (specifically the magnetic field); the guiding vertical field is preserved
-#         # under tilt, the effeect of tilt is in adding the radial, longitudinal field components
-#         tan_theta_x = math.tan(self.tilt_.angle['X']) # in rads
-#         tan_theta_s = math.tan(self.tilt_.angle['S']) # in rads
-#         fld = pure_field(self, arg)
-#         fld += np.array([fld[1]*tan_theta_s, np.zeros_like(fld[1]), fld[1]*tan_theta_x])
-#         return fld
-#     return tilted_field
-
 
 class Field(np.ndarray):
     """Representation of an element's EM-field;
@@ -101,6 +85,10 @@ class Tilt:
 
     def __repr__(self):
         return self.__rep_str
+
+
+class Shift(MutableNamedTuple):
+    __slots__ = ['x_shift', 'y_shift']
 #%%
 
 class Element:
@@ -116,6 +104,7 @@ class Element:
         self.__delta_E_field = (0, 0, 0)
 
         self.tilt_ = Tilt()
+        self.shift_ = Shift(0,0)
 
         self.__bool_skip = False # for ERF.advance()
 
@@ -159,6 +148,10 @@ class Element:
     def tilt(self, order, *args, append=False):
         return self.tilt_(order, *args, append=append)
 
+    def shift(self, x_shift=0, y_shift=0):
+        self.shift_.x_shift = x_shift
+        self.shift_.y_shift = y_shift
+
 #%%
 
 class TiltableElement(Element):
@@ -195,6 +188,7 @@ class TiltableElement(Element):
         pure_fld = super().EField(arg) # calls Element.EField
         return pure_fld + self.Ey_comp(arg)
 
+
 #%%
 class Drift(Element):
     """Drift space."""
@@ -214,9 +208,11 @@ class MQuad(Element):
     def BField(self, arg):
         i_x, i_y = index(arg, 'x', 'y')
         x = arg[i_x]
+        x0 = self.shift_.x_shift
+        y0 = self.shift_.y_shift
         y = arg[i_y]
         fld = (self.__grad*y, self.__grad*x, np.zeros(len(x)))
-        return  Field(fld, self)
+        return  Field(fld, self) - self.__grad*np.array([[y0], [x0], [0]])
 
 
 class MDipole(TiltableElement):
@@ -555,36 +551,15 @@ if __name__ == '__main__':
     trkr = Tracker()
     trkr.set_controls(inner=True)
 
-    #element = CylWien(180.77969e-2, 5e-2, deu, 120e5, 0.46002779, name="RBE")
-    #R = 42.18697266284172
-    #element = ECylDeflector(180.77969e-2, 5e-2, deu, 120e5)
-
-    # el0 = EVert(deu, 1)
+    bunch = StateList(Sz=1, x=[-1e-3, 1e-3], y=[-1e-3, 1e-3])
     
     element0 = MDipole(deu, 180e-2, B_field=1, name="DIP")
     element1 = MQuad(25e-2, 8.6, name="QF")
-    lattice = Lattice([element0], "unitlted_dip")
-    #element0.tilt('s', .0057)
-    lattice_1 = Lattice([element0], "tilted_dip")
-    lattice_1.tilt('s', .0057)
 
-    bunch = StateList(Sz=1, x=(-1e-3, 5e-3, 3), dK=(0, 1e-4, 2))
     state = np.array(bunch.as_list()).flatten()
 
-    log = trkr.track(deu, bunch, lattice, 5)
-    log_1 = trkr.track(deu, bunch, lattice_1, 5)
+    B0 = (element1.BField(state))
+    
+    element1.shift(1e-3, -1e-3)
 
-    # log.plot('Sx', 's', pids=[5])
-    # log_1.plot('Sx', 's', pids=[5])
-
-    pid=0
-    Sx = log['Sx'][:, pid]
-    Sx_1 = log_1['Sx'][:, pid]
-    s = log['s'][:, pid]
-
-    plt.plot(s, Sx, '-b', s, Sx_1, '-.r')
-    plt.legend()
-    plt.xlabel('s, m')
-    plt.ylabel('Sx, unit')
-
-    plt.show()
+    B1 = (element1.BField(state))
