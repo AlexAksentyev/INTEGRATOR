@@ -91,6 +91,7 @@ if __name__ == '__main__':
     from tracker import Tracker
     from particle_log import StateList
     from particle import Particle
+    import numpy as np
 
     deu = Particle()
     deu.kinetic_energy += .5e-6*deu.kinetic_energy
@@ -98,7 +99,7 @@ if __name__ == '__main__':
     
     lattice = make_lattice(deu)
     trkr = Tracker()
-    bunch = StateList(Sz=1, dK=(-1e-4, 1e-4, 15))
+    bunch = StateList(Sz=1, dK=np.linspace(-1e-4, 1e-4, 15))
 
     mean_angle = float(input("Mean tilt angle: "))
     sigma_angle = float(input("Sigma: "))
@@ -107,5 +108,6 @@ if __name__ == '__main__':
     #%%
     n_turns = int(input("Number of turns: "))
 
+    trkr.rotation_flag = True
     log = trkr.track(deu, bunch, lattice, n_turns)
    
