@@ -110,4 +110,5 @@ if __name__ == '__main__':
 
     trkr.rotation_flag = True
     log = trkr.track(deu, bunch, lattice, n_turns)
+    
    
