@@ -25,7 +25,7 @@ def tilt_lattice(lattice):
     return np.array(angles)
 
 trkr = Tracker()
-trkr.set_controls(ncut=1)
+trkr.set_controls(ncut=10)
 
 deu = Particle()
 deu.kinetic_energy += .5e-6*deu.kinetic_energy
@@ -61,8 +61,17 @@ with tbl.open_file('./data/decoherence_test.h5', 'w') as f:
         for trial in range(n_trials):
             tilt_angles = tilt_lattice(lattice)
             tilt_hist.append([tilt_angles])
+            lat_filename = lattice.name+'_'+str(lattice.state)
+            l_file_path = './data/'+lat_filename+'.h5'
             log = trkr.track(deu, bunch, lattice, n_turns)
-            Sy_hist.append([log['Sy'][-1]-log['Sy'][-1][0]])
+            with tbl.open_file(l_file_path, 'r') as l_file:
+                Sy = []
+                for log in l_file.root.logs:
+                    Sy.append(log.read(field='Sy'))
+                Sy = np.array(Sy).T
+                print(Sy)
+                Sy_hist.append([Sy[-1]-Sy[-1][0]])
+            os.remove(l_file_path)
             # print computation progress
             percent = int((trl_cnt-1)/n_tot_trls*100)
             if percent%10 == 0 and percent != old_percent:
