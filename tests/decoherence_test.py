@@ -12,56 +12,57 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tables as tbl
 
-gauss = np.random.normal
+def tilt_lattice(lattice):
+    mean_angle = 0
+    sigma_angle = deg(1e-4)
+
+    lattice.tilt('s', mean_angle, sigma_angle)
+    angles = []
+    for element in lattice.elements():
+        if isinstance(element, CylWien):
+            angles.append(element.tilt_.angle['S'])
+
+    return np.array([angles])
 
 trkr = Tracker()
+trkr.set_controls(ncut=10)
 
 deu = Particle()
 deu.kinetic_energy += .5e-6*deu.kinetic_energy
 deu.gamma -= deu.gamma*2e-5/1.42
 
-bunch_dict = {'dK': (0, 1e-4, 20),
-              'x' : (0, 1e-3, 20),
-              'y' : (0, 1e-3, 20)}
+gauss = np.random.normal
+n_ics = 10
+bunch_dict = {'dK': StateList(Sz=1, dK=gauss(0, 1e-4, n_ics)),
+              'x' : StateList(Sz=1, x=gauss(0, 1e-3, n_ics)),
+              'y' : StateList(Sz=1, y=gauss(0, 1e-3, n_ics))}
 
 lattice = BNL.make_lattice(deu)
 
-n_turns = 100
-n_trials = 70
+# count the number of CylWiens
+n_WF = 0
+for element in lattice.elements():
+    if isinstance(element, CylWien):    
+        n_WF += 1
+
+n_turns = 10
+n_trials = 3
 
 n_tot_trls = n_trials * len(bunch_dict)
-
-mean_angle = 0
-sigma_angle = deg(1e-4)
-lattice.tilt('s', mean_angle, sigma_angle)
-
-avg_angle = []
-for element in lattice.elements():
-    if isinstance(element, CylWien):
-        avg_angle.append(element.tilt_.angle['S'])
-
-avg_angle = float(np.mean(avg_angle))
-
-run_parameters = np.array([(n_turns, n_trials, mean_angle, sigma_angle, avg_angle)],
-                          dtype=[('N_turns', int),
-                                 ('N_trials', int),
-                                 ('Mean_tilt', float),
-                                 ('Sigma_tilt', float),
-                                 ('Avg_tilt', float)])
-
 
 trl_cnt = 0
 old_percent = -1
 with tbl.open_file('./data/decoherence_test.h5', 'w') as f:
-    f.create_table('/', 'run_parameters', run_parameters)
-    f.create_group('/', 'hists', 'histograms')
-    for key, distr  in bunch_dict.items():
-        Sy_hist = f.create_earray(f.root.hists, key, tbl.FloatAtom(), shape=(0,))
+    f.create_group('/', 'bunch')
+    for key, bunch  in bunch_dict.items():
+        f.create_group(f.root.bunch, key, 'Sy-Sy0 & tilt angles')
+        Sy_hist = f.create_earray('/bunch/' + key, 'Sy_hist', tbl.FloatAtom(), shape=(0, n_ics))
+        tilt_hist = f.create_earray('/bunch/'+key, 'tilt_hist', tbl.FloatAtom(), shape=(0, n_WF))
         for trial in range(n_trials):
-            vals = gauss(*distr)
-            bunch = StateList(**{'Sz':1, key:vals})
+            tilt_angles = tilt_lattice(lattice)
+            tilt_hist.append([tilt_angles])
             log = trkr.track(deu, bunch, lattice, n_turns)
-            Sy_hist.append(log['Sy'][-1]-log['Sy'][-1][0])
+            Sy_hist.append([log['Sy'][-1]-log['Sy'][-1][0]])
             # print computation progress
             percent = int((trl_cnt-1)/n_tot_trls*100)
             if percent%10 == 0 and percent != old_percent:
