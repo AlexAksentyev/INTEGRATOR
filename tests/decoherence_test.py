@@ -44,7 +44,7 @@ def get_data(file_path):
     return np.array(Sx).T, np.array(Sy).T, dt
 
 trkr = Tracker()
-trkr.set_controls(ncut=10)
+#trkr.set_controls(ncut=10)
 trkr.log_vars = ['t','Sx','Sy']
 
 deu = Particle()
@@ -52,7 +52,7 @@ deu.kinetic_energy += .5e-6*deu.kinetic_energy
 deu.gamma -= deu.gamma*2e-5/1.42
 
 gauss = np.random.normal
-n_ics = 9
+n_ics = 999
 bunch_dict = {'dK': StateList(Sz=1, dK=gauss(0, 1e-4, n_ics)),
               'x' : StateList(Sz=1, x=gauss(0, 1e-3, n_ics)),
               'y' : StateList(Sz=1, y=gauss(0, 1e-3, n_ics))}
@@ -65,8 +65,8 @@ for element in lattice.elements():
     if isinstance(element, CylWien):    
         n_WF += 1
 
-n_turns = 10
-n_trials = 2
+n_turns = 100
+n_trials = 70*3
 
 n_tot_trls = n_trials * len(bunch_dict)
 
@@ -85,6 +85,8 @@ with tbl.open_file('./data/decoherence_test.h5', 'w') as f:
             log = trkr.track(deu, bunch, lattice, n_turns)
 
             Sx, Sy, dt = get_data(l_file_path)
+
+            os.remove(l_file_path)
             
             Wx_hist.append([Sy / dt])
             Wy_hist.append([Sx / dt])
