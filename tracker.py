@@ -89,6 +89,8 @@ class Tracker:
 
         self._rotation_flag = True # for tests; remove later
 
+        self.log_vars = rhs.VAR_NAME # by default, log all variables
+
     @property
     def rotation_flag(self):
         return self._rotation_flag
@@ -142,7 +144,7 @@ class Tracker:
             nrow += 1 # +1 for injection values
             ind = 1 # odeint won't return injection values; set them manually
 
-        self.log = PLog(ics, particle, nrow)
+        self.log = PLog(ics, particle, nrow, self.log_vars)
 
         return ind
 
@@ -201,10 +203,15 @@ class Tracker:
                 element.rear_kick(state)
                 if not skip and self.controls.inner:
                     for k in range(brks-1):
+                        ## filtering of reqired states to log from odeint output
+                        vals[k] = np.array(rhs.select(vals[k], *self.log_vars)).T.flatten()
                         self.log[log_index] = ((current_turn, element.name, eid, k), vals[k])
                         log_index += 1
+
+                ## log variables filtering from odein output
+                _state = np.array(rhs.select(state, *self.log_vars)).T.flatten()
                 self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker),
-                                       state) # state.flatten() no longer required *****
+                                       _state) # state.flatten() no longer required *****
                 log_index += 1
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))

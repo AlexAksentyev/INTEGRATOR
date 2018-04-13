@@ -15,6 +15,7 @@ deu.gamma -= deu.gamma*2e-5/1.42
 lattice = BNL.make_lattice(deu)
 
 trkr = Tracker()
+trkr.log_vars = ['s','Sx','Sy', 'Sz']
 bunch = StateList(Sz=1, dK=np.linspace(-1e-4, 1e-4, 5), x=[-1e-3, 1e-3], y=[-1e-3, 1e-3])
 
 mean_angle = float(input("Mean tilt angle: "))

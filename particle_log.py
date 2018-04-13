@@ -124,7 +124,7 @@ class PLog(np.recarray):
     metadata_type = [('Turn', int), ('Element', el_field_type),
                      ('EID', int), ('Point', int)]
     variable_type = list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
-    record_type = metadata_type + [('PID', int)] + variable_type
+    # record_type = metadata_type + [('PID', int)] + variable_type
                 ## PID field is weird like this to enable automatic
                 ## pid setting in setitem (if it were metadata, i'd have to supply it,
                 ## and that causes problems in __array_finalize__
@@ -134,7 +134,7 @@ class PLog(np.recarray):
     _state_var_1st_ind = len(metadata_type) + 1 # len(metadata) + len(PID) - 1 + 1
     last_pnt_marker = -1 # marker of the state vector upon exiting an element
 
-    def __new__(cls, ini_states, particle, n_records):
+    def __new__(cls, ini_states, particle, n_records, fields=rhs.VAR_NAME):
 
         if not len(ini_states[0]) == rhs.VAR_NUM:
             print('Wrong number of state variables')
@@ -145,7 +145,11 @@ class PLog(np.recarray):
 
         n_ics = len(ini_states)
 
-        obj = np.recarray((n_records, n_ics), dtype=cls.record_type, order='C').view(cls)
+        ## filter only those fields that are required
+        var_type = [e for e in cls.variable_type if e[0] in fields]
+        record_type = cls.metadata_type + [('PID', int)] + var_type
+        
+        obj = np.recarray((n_records, n_ics), dtype=record_type, order='C').view(cls)
         super(PLog, obj).fill(np.nan)
         obj.n_ics = n_ics
         obj.ics = ini_states
@@ -155,7 +159,8 @@ class PLog(np.recarray):
         for ic in ini_states:
             ics.append(list(ic.values()))
 
-        ics = np.array(ics).flatten()
+        ii = [rhs.VAR_NAME.index(e[0]) for e in var_type]
+        ics = (np.array(ics)[:, ii])#\.flatten()
 
         obj[0] = ((0, 'START', -1, cls.last_pnt_marker), ics)
 
