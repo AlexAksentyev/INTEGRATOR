@@ -1,0 +1,11 @@
+from tables import open_file
+import matplotlib.pyplot as plt
+
+
+f = open_file('./data/decoherence_test.h5', 'r')
+
+bunches = f.root.bunch
+
+Wx_dK = bunches.dK.Wx_hist.read()
+Wy_dK = bunches.dK.Wy_hist.read()
+tilt_dK = bunches.dK.tilt_hist.read()
