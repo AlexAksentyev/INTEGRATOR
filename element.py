@@ -22,6 +22,7 @@ import numpy as np
 import collections as cln
 import math
 from utilities import MutableNamedTuple
+from scipy.integrate import odeint
 
 import particle as pcl
 
@@ -162,6 +163,15 @@ class Element:
         else:
             self.shift_ = Shift(x_shift, y_shift)
 
+    def track(self, rhs, state, brks, controls_dict={}):
+        """ Default element tracking behavior: integrate;
+        if there exists a map for the specific element, use that instead;
+        or whatever"""
+        at = np.linspace(0, self.length, brks)
+        vals = odeint(rhs, state, at, args=(self, ),**controls_dict)
+        state[:] = vals[brks-1]
+        return vals
+
 #%%
 
 class TiltableElement(Element):
@@ -205,6 +215,7 @@ class Drift(Element):
 
     def __init__(self, length, name="Drift"):
         super().__init__(curve=0, length=length, name=name)
+        self.map = None
 
 
 class MQuad(Element):
@@ -491,9 +502,9 @@ class ERF(Element):
         fld = (z, z, -wave_num*A*np.sin(wave_num*s+phi))
         return Field(fld, self)
 
-    def advance(self, state):
-        """ alternative to integration,
-            supposed to mimick a discrete kick
+    def track(self, rhs, state, brks, controls_dict={}):
+        """ Alternative to integration, supposed to mimick a discrete kick.
+        Only uses the **state** argument.
         """
         w = self.freq*2*np.pi
         u = self.__U
@@ -531,7 +542,7 @@ class Observer(Element):
     def skip(self):
         return self._Element__bool_skip
 
-    def advance(self, state):
+    def track(self, rhs, state, brks, controls_dict={}):
         """In Tracker::track, when an element's skip is true, it uses
         the element's advance method. Hence it is defined here.
         """
