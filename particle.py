@@ -19,6 +19,7 @@ class Particle:
         self._kin_nrg_0 = mass*(gamma - 1)
         self.G = G
 
+        self._beta = np.sqrt(gamma**2-1)/gamma
         self.mass0_kg = self.mass0/CLIGHT**2*EZERO*1e6
 
     @property
@@ -29,6 +30,7 @@ class Particle:
     def gamma(self, value):
         assert value > 0, "Negative gamma!"
         self._gamma = value
+        self._beta = np.sqrt(value**2-1)/value
         self._kin_nrg_0 = self.mass0*(value - 1)
 
     @property
@@ -41,6 +43,10 @@ class Particle:
         self._kin_nrg_0 = value
         self._gamma = 1 + value/self.mass0
 
+    @property
+    def beta(self):
+        return self._beta
+    
     def get_params(self):
         return np.array([(self.mass0, self._kin_nrg_0, self.G)],
                         dtype=[('Mass0', float), ('KinEn0', float), ('G', float)])

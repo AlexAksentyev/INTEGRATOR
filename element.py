@@ -485,12 +485,13 @@ class ERF(Element):
         self.__U = self.amplitude*length # length instead self.length for compatibility with length 0
 
     def EField(self, arg):
-        s, = select(arg, 's')
+        z, = select(arg, 'z')
         A = self.amplitude
-        wave_num = self.wave_num
         phi = self.phase
+        beta = self.reference_particle.beta
+        phase = -z*self.freq*2*np.pi/beta/CLIGHT + phi
         z = np.zeros(len(s))
-        fld = (z, z, A*np.cos(wave_num*s+phi))
+        fld = (z, z, A*np.cos(phase))
         return Field(fld, self)
 
     def EField_prime_s(self, arg): # Es prime 

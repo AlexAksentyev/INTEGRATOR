@@ -52,9 +52,11 @@ class RHS:
         """
         if np.isnan(state).any():
             raise ValueError('NaN state variable(s)')
-        x, y, s, t, theta, H, px, py, dEn, Sx, Sy, Ss = state.reshape(VAR_NUM, self.n_ics, order='F')
+        x, px, y, py, z, dK, Sx, Sy, Ss = state.reshape(VAR_NUM, self.n_ics, order='F')
 
-        KinEn = self.particle.kinetic_energy*(1+dEn) # dEn = (En - En0) / En0
+        KinEn = self.particle.kinetic_energy*(1+dK) # dK = (K - K0) / K0
+        _, beta = self.particle.GammaBeta(KinEn)
+        zp = CLIGHT*beta
 
         Pc = self.particle.Pc(KinEn) # momentum in MeVs
         P0c = self.particle.Pc(self.particle.kinetic_energy) # reference momentum
@@ -88,17 +90,17 @@ class RHS:
 
         tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
 
-        dEnp = (Ex*xp +Ey*yp +Es + Esp*s) * 1e-6 # added Kinetic energy prime (in MeV)
+        dKp = (Ex*xp +Ey*yp + Es + Esp*z) * 1e-6 # added Kinetic energy prime (in MeV)
                                     # this last term here is questionable
                                     # it was added by me and doesn't exist in the
                                     # original set of equations
                                     # however, the OSE considered only static fields
                                     # p 25 Andrey's thesis
 
-        gammap = dEnp/self.particle.mass0 # gamma prime
+        gammap = dKp/self.particle.mass0 # gamma prime
 
          ## see Andrey's thesis, p. 35, for these formulas
-        betap = (dEnp*self.particle.mass0**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
+        betap = (dKp*self.particle.mass0**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
         D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
 
         # these two are in the original dimensions
@@ -131,10 +133,10 @@ class RHS:
                                       (sp1*Bx+sp2*Px)*Sy - \
                                       (sp1*By+sp2*Py)*Sx
 
-        DX = [xp, yp, np.repeat(1, self.n_ics), #xp, yp, sp
-              tp, self.w_freq*tp, Hp, #tp, Thetap, Hp
-              Pxp/P0c, Pyp/P0c, dEnp/self.particle.kinetic_energy, #pxp, pyp, dKp
-              Sxp, Syp, Ssp] #Sxp, Syp, Ssp
+        DX = [xp, Pxp/P0c,
+              yp, Pyp/P0c,
+              zp, dKp,
+              Sxp, Syp, Ssp]
 
 
         return np.reshape(DX, VAR_NUM*self.n_ics, order='F')
