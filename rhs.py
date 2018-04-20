@@ -9,9 +9,9 @@ import numpy as np
 from particle import EZERO, CLIGHT
 
 # this defines the dictionary order of variables
-VAR_NAME = ['x', 'px',
-            'y', 'py',
-            'z', 'dK',
+VAR_NAME = ['x', 'a',
+            'y', 'b',
+            'l', 'd',
             'Sx', 'Sy', 'Sz']
 IMAP = dict(zip(VAR_NAME, range(len(VAR_NAME))))
 VAR_NUM = len(VAR_NAME)
@@ -52,70 +52,38 @@ class RHS:
         """
         if np.isnan(state).any():
             raise ValueError('NaN state variable(s)')
-        x, px, y, py, z, dK, Sx, Sy, Sz = state.reshape(VAR_NUM, self.n_ics, order='F')
+        x, a, y, b, l, d, Sx, Sy, Sz = state.reshape(VAR_NUM, self.n_ics, order='F')
 
-        KinEn = self.particle.kinetic_energy*(1+dK) # dK = (K - K0) / K0
-        _, beta = self.particle.GammaBeta(KinEn)
-        beta0 = self.particle.beta
-        zp = CLIGHT*(beta-beta0)
+        K = self.particle.kinetic_energy * (1 + d)
+        q = self.particle.charge
+        V = element.V(x)
+        m0 = self.particle.mass0_kg
+        m0c2 = m0*CLIGHT**2
 
-        Pc = self.particle.Pc(KinEn) # momentum in MeVs
-        P0c = self.particle.Pc(self.particle.kinetic_energy) # reference momentum
+        eta = (K - q*V)/m0c2
+        zeta = np.sqrt(eta/eta[0]*(eta+2)/(eta[0]+2) - a*a - b*b)
 
-        Px, Py = [P0c*x for x in (px, py)] # turn px,py back to MeVs
-        Ps = np.sqrt(Pc**2 - Px**2 - Py**2)
+        gamma, beta = self.particle.GammaBeta(K)
+        v = CLIGHT*beta
+        P = self.particle.Pc(K)/CLIGHT*1e6*EZERO
+        chim = P/q; chie = chim*v
+
+        h = element.curve
+        ftr = 1 + h*x
+        ftr1 = (1+eta)/(1+eta[0])
 
         Ex, Ey, Es = element.EField(state)
-# TESTING
-        Exp, Eyp, Esp = element.EField_prime_s(state) #TESTING
         Bx, By, Bs = element.BField(state)
-
-        kappa = element.curve
-#        kappa = 0 # test id D001
-        hs = 1 + kappa*x # look here:
-        # http://www.iaea.org/inis/collection/NCLCollectionStore/_Public/23/011/23011647.pdf
-                            # ds' = (R+x)dphi = (1+x/R)ds = hs ds, ds = Rdphi
-                            # slope = Px/Ps = dx/ds' = x'/hs => x' = Px/Ps * hs (eq 2.6)
-        xp, yp = [x * hs/Ps for x in (Px, Py)]
-
-        Hp = Pc*hs/Ps # path traveled by particle
-                     # H^2 = ds'^2 + dx^2 + dy^2, dx = x' ds, dy = y' ds, ds' = (1+c*x)ds
-                     # H^2 = ds^2 hs^2 *(1 + (Px/Ps)^2 + (Py/Ps)^2) = (ds hs)^2 (Pc)^2/Ps^2
-                     # H' = Pc/Ps hs
-
-        gamma, beta = self.particle.GammaBeta(KinEn)
-
-        q = EZERO
-        v = beta*CLIGHT
-        m0 = self.particle.mass0_kg
-
-        tp = Hp/v # dt = H/v; t' = dt/ds = H'/v
-
-        dKp = (Ex*xp +Ey*yp + Es + Esp*z) * 1e-6 # added Kinetic energy prime (in MeV)
-                                    # this last term here is questionable
-                                    # it was added by me and doesn't exist in the
-                                    # original set of equations
-                                    # however, the OSE considered only static fields
-                                    # p 25 Andrey's thesis
-
-        gammap = dKp/self.particle.mass0 # gamma prime
-
-         ## see Andrey's thesis, p. 35, for these formulas
-        betap = (dKp*self.particle.mass0**2)/((KinEn+self.particle.mass0)**2*np.sqrt(KinEn**2+2*KinEn*self.particle.mass0))
-        D = (q/(m0*hs))*(xp*By-yp*Bx+Hp*Es/v)-((gamma*v)/(Hp*hs))*3*kappa*xp # what's this?
-
-        # these two are in the original dimensions
-        xpp = ((-Hp*D)/(gamma*v))*xp+(CLIGHT*Hp/(Pc*1e6))*(Hp*Ex/v+yp*Bs-hs*By)+kappa*hs
-        ypp = ((-Hp*D)/(gamma*v))*yp+(CLIGHT*Hp/(Pc*1e6))*(Hp*Ey/v+hs*Bx-xp*Bs)
-
-        # these two are in MeVs
-        Pxp = Px*(betap/beta - gammap/gamma)+Pc*xpp/Hp-Px*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
-        Pyp = Py*(betap/beta - gammap/gamma)+Pc*ypp/Hp-Py*((Px*xpp)/(Pc*Hp)+(Py*ypp)/(Pc*Hp)+(hs*kappa*xp)/(Hp**2))
-
-        Px, Py, Ps = [e*q*1e6/CLIGHT for e in (Px, Py, Ps)] # the original formulas use momenta, not P*c
+        
+        xp = a*ftr/zeta
+        yp = b*ftr/zeta
+        dp = np.zeros_like(d)
+        ap = ftr*(ftr1/zeta*Ex/chie[0] - By/chim[0] + b/zeta*Bs/chim[0]) + h*zeta
+        bp = ftr*(ftr1/zeta*Ey/chie[0] + Bx/chim[0] - a/zeta*Bs/chim[0])
+        lp = -gamma[0]/(1+gamma[0])*(ftr*ftr1/zeta - 1)
+        
 
         G = self.particle.G
-        m0c2 = m0*CLIGHT**2
         t5 = tp
         t6 =  t5* (q / (gamma * m0 * m0c2)) * (G + 1/(1 + gamma))
         sp1 = t5*(-q / (gamma*m0))*(1 + G * gamma)
@@ -136,7 +104,7 @@ class RHS:
 
         DX = [xp, Pxp/P0c,
               yp, Pyp/P0c,
-              zp, dKp,
+              zp, dp,
               Sxp, Syp, Szp]
 
 

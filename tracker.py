@@ -176,9 +176,6 @@ class Tracker:
             if self.controls.fwd: element = self.lattice[eid]
             else: element = self.lattice[el_num-1-eid]
 
-            # choose if integrate or otherwise advance the state vector
-            skip = element.skip
-
             #integrate at these points
             at = np.linspace(0, element.length, brks)
 
@@ -192,9 +189,9 @@ class Tracker:
                 #                                     # [x1,y1,...],
                 #                                     # [x2,y2,...]]
                 element.rear_kick(state)
-                if not skip and self.controls.inner:
-                    for k in range(brks-1):
-                        self.log[log_index] = ((current_turn, element.name, eid, k), vals[k])
+                if self.controls.inner:
+                    for k, valsk in enumerate(vals):
+                        self.log[log_index] = ((current_turn, element.name, eid, k), valsk)
                         log_index += 1
                 self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker),
                                        state) # state.flatten() no longer required *****

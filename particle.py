@@ -13,7 +13,7 @@ CLIGHT = 2.99792458e8 # m/s
 
 class Particle:
 
-    def __init__(self, mass=1876.5592, gamma=1.14394, G=-.142987):
+    def __init__(self, mass=1876.5592, gamma=1.14394, G=-.142987, Z=1):
         self.mass0 = mass
         self._gamma = gamma
         self._kin_nrg_0 = mass*(gamma - 1)
@@ -21,6 +21,11 @@ class Particle:
 
         self._beta = np.sqrt(gamma**2-1)/gamma
         self.mass0_kg = self.mass0/CLIGHT**2*EZERO*1e6
+        self._charge = Z*EZERO
+
+    @property
+    def charge(self):
+        return self._charge
 
     @property
     def gamma(self):

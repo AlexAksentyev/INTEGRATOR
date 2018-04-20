@@ -121,9 +121,8 @@ class Element:
 
         super().__init__(**kwargs)
 
-    @property
-    def skip(self):
-        return self.__bool_skip
+    def V(self, x):
+        return np.zeros_like(x)
 
     def get_fields(self):
         return self.__E_field, self.__B_field
@@ -322,6 +321,9 @@ class ECylDeflector0(Element):
         self._U = lambda x: -V + 2*V*np.log((R+x)/R1)/np.log(R2/R1)
         self._Element__E_field = (E0, 0, 0)
 
+    def V(self, x):
+        return self._U(x)
+
     def EField(self, arg):
         x, = select(arg, 'x')
         Ex = self._Element__E_field[0]/(1+self.curve*x)
@@ -366,6 +368,9 @@ class ECylDeflector(Element):
 
         self._U = lambda x: -V + 2*V*np.log((R+x)/R1)/np.log(R2/R1)
         self._Element__E_field = (E_field, 0, 0)
+
+    def V(self, x):
+        return self._U(x)
 
     def EField(self, arg):
         x, = select(arg, 'x')
@@ -417,6 +422,9 @@ class CylWien(TiltableElement):
         self._Element__B_field = (0, B_field, 0)
         self._Element__E_field = (E_field, 0, 0)
 
+    def V(self, x):
+        return self._U(x)
+
     def EField(self, arg):
         # redefinition of Element.EField
         x, = select(arg, 'x')
@@ -448,6 +456,9 @@ class StraightWien(TiltableElement):
         self._U = h_gap*E_field
         self._Element__E_field = (E_field, 0, 0)
         self._Element__B_field = (0, B_field, 0)
+
+    def V(self, x):
+        return np.repeat(self._U, len(x))
 
     def front_kick(self, state):
         i_dK, = index(state, 'dK')
@@ -484,6 +495,9 @@ class ERF(Element):
 
         self.__U = self.amplitude*length # length instead self.length for compatibility with length 0
 
+    def V(self, x):
+        return np.repeat(self._U, len(x))
+
     def EField(self, arg):
         z, = select(arg, 'z')
         A = self.amplitude
@@ -518,6 +532,7 @@ class ERF(Element):
         state[i_dK] += u*np.cos(+self.phase)*1e-6/self.reference_particle.kinetic_energy
         state[i_z] += self.length
         _, beta = self.reference_particle.GammaBeta(K)
+        return state
 
     def front_kick(self, state):
         u = self.__U
@@ -529,9 +544,6 @@ class ERF(Element):
         i_dK, = index(state, 'dK')
         state[i_dK] += u*1e-6/self.reference_particle.kinetic_energy
 
-    def kickVolts(self):
-        return self.__U
-
 class Observer(Element):
     """This element of zero length is put where we want
     to check the state vector.
@@ -541,9 +553,8 @@ class Observer(Element):
         super().__init__(0, 0, name)
         self._Element__bool_skip = True
 
-    @property
-    def skip(self):
-        return self._Element__bool_skip
+    def V(self, x):
+        return np.zeros_like(x)
 
     def track(self, rhs, state, brks, controls_dict={}):
         """In Tracker::track, when an element's skip is true, it uses
