@@ -138,8 +138,8 @@ class Element:
 
     def front_kick(self, state):
         """If I want not to reshape the state vector before writing to
-        PLog, all I need to do is change state[:,IMAP['dK']] = ....
-        to  i_dK = index('dK'); state[i_dK] = ...
+        PLog, all I need to do is change state[:,IMAP['d']] = ....
+        to  i_d = index('d'); state[i_d] = ...
         """
         pass # do nothing
 
@@ -216,7 +216,18 @@ class Drift(Element):
         super().__init__(curve=0, length=length, name=name)
         self.map = None
 
+    def track(self, rhs, state, brks, controls_dict={}):
+        """ Alternative to integration, supposed to mimick a discrete kick.
+        Only uses the **state** argument.
+        """
+        i_x, i_y, i_l = index(state, 'x', 'y', 'l')
+        a, b, d = select(state, 'a', 'b', 'd')
 
+        state[i_x] += a/(1+d)*self.length
+        state[i_y] += b/(1+d)*self.length
+        state[i_l] += - (a*a + b*b)/2/(1+d)**2*self.length
+        return state
+    
 class MQuad(Element):
     """Magnetic quadrupole."""
 
@@ -334,12 +345,12 @@ class ECylDeflector0(Element):
 
     def front_kick(self, state):
         u = self._U(select(state, 'x')[0])
-        i_dK, = index(state, 'dK')
+        i_d, = index(state, 'd')
         state[i_dk] -= u*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
         u = self._U(select(state, 'x')[0])
-        i_dK, = index(state, 'dK')
+        i_d, = index(state, 'd')
         state[i_dk] += u*1e-6/self._ref_kinetic_energy
 
 class ECylDeflector(Element):
@@ -382,13 +393,13 @@ class ECylDeflector(Element):
 
     def front_kick(self, state):
         u = self._U(select(state, 'x')[0])
-        i_dK, = index(state, 'dK')
-        state[i_dK] -= u*1e-6/self._ref_kinetic_energy
+        i_d, = index(state, 'd')
+        state[i_d] -= u*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
         u = self._U(select(state, 'x')[0])
-        i_dK, = index(state, 'dK')
-        state[i_dK] += u*1e-6/self._ref_kinetic_energy
+        i_d, = index(state, 'd')
+        state[i_d] += u*1e-6/self._ref_kinetic_energy
 
 class CylWien(TiltableElement):
     """Cylindtical Wien filter.
@@ -436,13 +447,13 @@ class CylWien(TiltableElement):
 
     def front_kick(self, state):
         u = self._U(select(state, 'x')[0])
-        i_dK, = index(state, 'dK')
-        state[i_dK] -= u*1e-6/self._ref_kinetic_energy
+        i_d, = index(state, 'd')
+        state[i_d] -= u*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
         u = self._U(select(state, 'x')[0])
-        i_dK, = index(state, 'dK')
-        state[i_dK] += u*1e-6/self._ref_kinetic_energy
+        i_d, = index(state, 'd')
+        state[i_d] += u*1e-6/self._ref_kinetic_energy
 
 
 class StraightWien(TiltableElement):
@@ -461,12 +472,12 @@ class StraightWien(TiltableElement):
         return np.repeat(self._U, len(x))
 
     def front_kick(self, state):
-        i_dK, = index(state, 'dK')
-        state[i_dK] -= self._U*1e-6/self._ref_kinetic_energy
+        i_d, = index(state, 'd')
+        state[i_d] -= self._U*1e-6/self._ref_kinetic_energy
 
     def rear_kick(self, state):
-        i_dK, = index(state, 'dK')
-        state[i_dK] += self._U*1e-6/self._ref_kinetic_energy
+        i_d, = index(state, 'd')
+        state[i_d] += self._U*1e-6/self._ref_kinetic_energy
 
 
 
@@ -498,51 +509,50 @@ class ERF(Element):
     def V(self, x):
         return np.repeat(self._U, len(x))
 
-    def EField(self, arg):
-        z, = select(arg, 'z')
-        A = self.amplitude
-        beta = self.reference_particle.beta
-        w = self.freq*2*np.pi
-        phase = -z*w/beta/CLIGHT + self.phase # delta phi + phi_ref
-        z = np.zeros(len(s))
-        fld = (z, z, A*np.cos(phase))
-        return Field(fld, self)
+    # def EField(self, arg):
+    #     z, = select(arg, 'l')
+    #     A = self.amplitude
+    #     beta = self.reference_particle.beta
+    #     w = self.freq*2*np.pi
+    #     phase = -z*w/beta/CLIGHT + self.phase # delta phi + phi_ref
+    #     z = np.zeros(len(s))
+    #     fld = (z, z, A*np.cos(phase))
+    #     return Field(fld, self)
 
-    def EField_prime_s(self, arg): # Es prime 
-        z, = select(arg, 'z')
-        A = self.amplitude
-        beta = self.reference_particle.beta
-        w = self.freq*2*np.pi
-        phase = -z*w/beta/CLIGHT + self.phase # delta phi + phi_ref
-        z = np.zeros(len(s))
-        fld = (z, z, A*w/betaa/CLIGHT*np.sin(phase))
-        return Field(fld, self)
+    # def EField_prime_s(self, arg): # Es prime 
+    #     z, = select(arg, 'l')
+    #     A = self.amplitude
+    #     beta = self.reference_particle.beta
+    #     w = self.freq*2*np.pi
+    #     phase = -z*w/beta/CLIGHT + self.phase # delta phi + phi_ref
+    #     z = np.zeros(len(s))
+    #     fld = (z, z, A*w/betaa/CLIGHT*np.sin(phase))
+    #     return Field(fld, self)
 
     def track(self, rhs, state, brks, controls_dict={}):
         """ Alternative to integration, supposed to mimick a discrete kick.
         Only uses the **state** argument.
         """
         w = self.freq*2*np.pi
-        u = self.__U
-        i_dK, i_z = index(state, 'dK', 'z')
-        K = self.reference_particle.kinetic_energy * (1 + state[i_dK])
+        V0 = self.__U
+        i_d, = index(state, 'd')
+        l, = select(state, 'l')
+        K = self.reference_particle.kinetic_energy * (1 + state[i_d])
         _, beta = self.reference_particle.GammaBeta(K)
-        dphi = -w/beta/pcl.CLIGHT*state[i_z]
+        q = self.reference_particle.charge
 
-        state[i_dK] += u*np.cos(+self.phase)*1e-6/self.reference_particle.kinetic_energy
-        state[i_z] += self.length
-        _, beta = self.reference_particle.GammaBeta(K)
+        state[i_d] += -q*V0/pcl.EZERO*1e-6/K*np.cos(self.phase - w*l/beta/pcl.CLIGHT)
         return state
 
-    def front_kick(self, state):
-        u = self.__U
-        i_dK, = index(state, 'dK')
-        state[i_dK] -= u*1e-6/self.reference_particle.kinetic_energy
+    # def front_kick(self, state):
+    #     u = self.__U
+    #     i_d, = index(state, 'd')
+    #     state[i_d] -= u*1e-6/self.reference_particle.kinetic_energy
 
-    def rear_kick(self, state):
-        u = self.__U
-        i_dK, = index(state, 'dK')
-        state[i_dK] += u*1e-6/self.reference_particle.kinetic_energy
+    # def rear_kick(self, state):
+    #     u = self.__U
+    #     i_d, = index(state, 'd')
+    #     state[i_d] += u*1e-6/self.reference_particle.kinetic_energy
 
 class Observer(Element):
     """This element of zero length is put where we want

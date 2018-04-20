@@ -52,6 +52,8 @@ class RHS:
         """
         if np.isnan(state).any():
             raise ValueError('NaN state variable(s)')
+
+        ## this is taken from Eremey's thesis
         x, a, y, b, l, d, Sx, Sy, Sz = state.reshape(VAR_NUM, self.n_ics, order='F')
 
         K = self.particle.kinetic_energy * (1 + d)
@@ -81,7 +83,13 @@ class RHS:
         ap = ftr*(ftr1/zeta*Ex/chie[0] - By/chim[0] + b/zeta*Bs/chim[0]) + h*zeta
         bp = ftr*(ftr1/zeta*Ey/chie[0] + Bx/chim[0] - a/zeta*Bs/chim[0])
         lp = -gamma[0]/(1+gamma[0])*(ftr*ftr1/zeta - 1)
-        
+
+        ## this is taken from Andrey's thesis
+        Px = a*P[0]
+        Py = b*P[0]
+        Ps = P[0]*zeta
+        Hp = ftr*P/Ps
+        tp = Hp/v
 
         G = self.particle.G
         t5 = tp
@@ -89,7 +97,7 @@ class RHS:
         sp1 = t5*(-q / (gamma*m0))*(1 + G * gamma)
         sp2 = t5*( q / (gamma*m0**2 * m0c2)) * (G/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
 
-        Sxp =      kappa * Sz + t6 * ((Ps * Ex - Px * Es) * Sz - \
+        Sxp =      h * Sz + t6 * ((Ps * Ex - Px * Es) * Sz - \
                                       (Px * Ey - Py * Ex) * Sy) + \
                                       (sp1*By+sp2*Py)*Sz - \
                                       (sp1*Bs+sp2*Ps)*Sy
@@ -97,14 +105,14 @@ class RHS:
                                       (Py * Es - Ps * Ey) * Sz) + \
                                       (sp1*Bs+sp2*Ps)*Sx - \
                                       (sp1*Bx+sp2*Px)*Sz
-        Szp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
+        Szp = (-1)*h * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
                                       (Ps * Ex - Px * Es) * Sx) + \
                                       (sp1*Bx+sp2*Px)*Sy - \
                                       (sp1*By+sp2*Py)*Sx
 
-        DX = [xp, Pxp/P0c,
-              yp, Pyp/P0c,
-              zp, dp,
+        DX = [xp, ap,
+              yp, bp,
+              lp, dp,
               Sxp, Syp, Szp]
 
 

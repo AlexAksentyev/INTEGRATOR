@@ -266,7 +266,7 @@ class PLog(np.recarray):
     def get_reference(self):
         return self._reference_particle
 
-    def plot(self, Ylab='-D dK', Xlab='-D Theta', pids='all',
+    def plot(self, Ylab='-D d', Xlab='-D l', pids='all',
              mark_special=None, new_plot=True, **kwargs):
         """
         Arguments:
