@@ -9,9 +9,9 @@ import numpy as np
 from particle import EZERO, CLIGHT
 
 # this defines the dictionary order of variables
-VAR_NAME = ['x', 'y', 's',
-            't', 'Theta', 'H',
-            'px', 'py', 'dK',
+VAR_NAME = ['x', 'px',
+            'y', 'py',
+            'z', 'dK',
             'Sx', 'Sy', 'Sz']
 IMAP = dict(zip(VAR_NAME, range(len(VAR_NAME))))
 VAR_NUM = len(VAR_NAME)
@@ -52,11 +52,12 @@ class RHS:
         """
         if np.isnan(state).any():
             raise ValueError('NaN state variable(s)')
-        x, px, y, py, z, dK, Sx, Sy, Ss = state.reshape(VAR_NUM, self.n_ics, order='F')
+        x, px, y, py, z, dK, Sx, Sy, Sz = state.reshape(VAR_NUM, self.n_ics, order='F')
 
         KinEn = self.particle.kinetic_energy*(1+dK) # dK = (K - K0) / K0
         _, beta = self.particle.GammaBeta(KinEn)
-        zp = CLIGHT*beta
+        beta0 = self.particle.beta
+        zp = CLIGHT*(beta-beta0)
 
         Pc = self.particle.Pc(KinEn) # momentum in MeVs
         P0c = self.particle.Pc(self.particle.kinetic_energy) # reference momentum
@@ -120,15 +121,15 @@ class RHS:
         sp1 = t5*(-q / (gamma*m0))*(1 + G * gamma)
         sp2 = t5*( q / (gamma*m0**2 * m0c2)) * (G/(1 + gamma))*(Px*Bx+Py*By+Ps*Bs)
 
-        Sxp =      kappa * Ss + t6 * ((Ps * Ex - Px * Es) * Ss - \
+        Sxp =      kappa * Sz + t6 * ((Ps * Ex - Px * Es) * Sz - \
                                       (Px * Ey - Py * Ex) * Sy) + \
-                                      (sp1*By+sp2*Py)*Ss - \
+                                      (sp1*By+sp2*Py)*Sz - \
                                       (sp1*Bs+sp2*Ps)*Sy
         Syp =                   t6 * ((Px * Ey - Py * Ex) * Sx - \
-                                      (Py * Es - Ps * Ey) * Ss) + \
+                                      (Py * Es - Ps * Ey) * Sz) + \
                                       (sp1*Bs+sp2*Ps)*Sx - \
-                                      (sp1*Bx+sp2*Px)*Ss
-        Ssp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
+                                      (sp1*Bx+sp2*Px)*Sz
+        Szp = (-1)*kappa * Sx + t6 * ((Py * Es - Ps * Ey) * Sy - \
                                       (Ps * Ex - Px * Es) * Sx) + \
                                       (sp1*Bx+sp2*Px)*Sy - \
                                       (sp1*By+sp2*Py)*Sx
@@ -136,7 +137,7 @@ class RHS:
         DX = [xp, Pxp/P0c,
               yp, Pyp/P0c,
               zp, dKp,
-              Sxp, Syp, Ssp]
+              Sxp, Syp, Szp]
 
 
         return np.reshape(DX, VAR_NUM*self.n_ics, order='F')

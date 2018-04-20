@@ -487,20 +487,21 @@ class ERF(Element):
     def EField(self, arg):
         z, = select(arg, 'z')
         A = self.amplitude
-        phi = self.phase
         beta = self.reference_particle.beta
-        phase = -z*self.freq*2*np.pi/beta/CLIGHT + phi
+        w = self.freq*2*np.pi
+        phase = -z*w/beta/CLIGHT + self.phase # delta phi + phi_ref
         z = np.zeros(len(s))
         fld = (z, z, A*np.cos(phase))
         return Field(fld, self)
 
     def EField_prime_s(self, arg): # Es prime 
-        s, = select(arg, 's')
+        z, = select(arg, 'z')
         A = self.amplitude
-        wave_num = self.wave_num
-        phi = self.phase
+        beta = self.reference_particle.beta
+        w = self.freq*2*np.pi
+        phase = -z*w/beta/CLIGHT + self.phase # delta phi + phi_ref
         z = np.zeros(len(s))
-        fld = (z, z, -wave_num*A*np.sin(wave_num*s+phi))
+        fld = (z, z, A*w/betaa/CLIGHT*np.sin(phase))
         return Field(fld, self)
 
     def track(self, rhs, state, brks, controls_dict={}):
@@ -509,13 +510,14 @@ class ERF(Element):
         """
         w = self.freq*2*np.pi
         u = self.__U
-        i_dK, i_s, i_t = index(state, 'dK', 's', 't')
+        i_dK, i_z = index(state, 'dK', 'z')
         K = self.reference_particle.kinetic_energy * (1 + state[i_dK])
-
-        state[i_dK] += u*np.cos(w*state[i_t]+self.phase)*1e-6/self.reference_particle.kinetic_energy
-        state[i_s] += self.length
         _, beta = self.reference_particle.GammaBeta(K)
-        state[i_t] += self.length/beta/pcl.CLIGHT
+        dphi = -w/beta/pcl.CLIGHT*state[i_z]
+
+        state[i_dK] += u*np.cos(+self.phase)*1e-6/self.reference_particle.kinetic_energy
+        state[i_z] += self.length
+        _, beta = self.reference_particle.GammaBeta(K)
 
     def front_kick(self, state):
         u = self.__U
