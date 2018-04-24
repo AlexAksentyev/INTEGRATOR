@@ -1,0 +1,18 @@
+class Element:
+
+    def __init__(self, particle, length, curve, name="Element"):
+        self._length = length
+        self._curve = curve
+        self._name=name
+        self._particle = particle
+
+    def track(state):
+        pass
+
+class Drift(Element):
+
+    def __init__(self, length, name="Drift"):
+        super().__init__(length, 0, name)
+
+    def track_map(self, state):
+        state
