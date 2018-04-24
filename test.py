@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 EZERO = 1.62E-19
 CLIGHT = 2.9997E8
 
+VAR_NAME=['x','px','y','py','z','d']
+
 class Particle:
     def __init__(self, mass0=1876, gamma0=1.14):
         self._gamma0 = gamma0
@@ -11,6 +13,31 @@ class Particle:
         self._mass0 = mass0
 
         MeV2J = EZERO*1e6
+
+class PLog(np.recarray):
+    rec_type = list(zip(VAR_NAME, np.repeat(float, 6)))
+
+    def __new__(cls, ini_states, n_rec):
+        n_ics = ini_states.shape[1]
+        obj = np.recarray((n_rec, n_ics), dtype=cls.rec_type, order='C').view(cls)
+        super(PLog, obj).fill(np.nan)
+        
+        obj[0] = ini_states
+        obj.n_ics = n_ics
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+
+        self.n_ics = getattr(obj, 'n_ics', None)
+
+    def __setitem__(self, item):
+        vector = np.empty(self.n_ics, self.dtype)
+        for ind, vec in enumerate(vector):
+            stamped[ind] = stamp + (ind,) + tuple(vec)
+
+        super(PLog, self).__setitem__(i, stamped)
 
 class Element:
 
@@ -84,12 +111,13 @@ if __name__ == '__main__':
     F = MQuad(p, 25e-2, 8.6)
     D = MQuad(p, 25e-2, -8.11)
 
-    state = np.array([np.linspace(-1e-3, 1e-3, 5),
-                      np.repeat(1e-3,5),
-                      np.zeros(5),
-                      np.random.normal(0,1e-3,5),
-                      np.zeros(5),
-                      np.random.normal(0, 1e-4,5)])
+    n_ics = 5
+    state = np.array([np.linspace(-1e-3, 1e-3, n_ics),
+                      np.repeat(1e-3,n_ics),
+                      np.zeros(n_ics),
+                      np.random.normal(0,1e-3,n_ics),
+                      np.zeros(n_ics),
+                      np.random.normal(0, 1e-4,n_ics)])
 
     Om = O._matrix
     Fm = F._matrix
@@ -97,18 +125,8 @@ if __name__ == '__main__':
     M = Om.dot(Dm.dot(Om.dot(Fm)))
 
     state_list = [state]
-    for i in range(10):
+    for i in range(n_trn):
         state = M.dot(state)
         state_list.append(state)
-
-
-    x = np.zeros(len(state_list))
-    y = np.zeros_like(x)
-    px = np.zeros_like(x)
-    py = np.zeros_like(x)
-    z = np.zeros_like(x)
-    d = np.zeros_like(x)
-    for n, s in enumerate(state_list):
-        
         
     print("test success!")
