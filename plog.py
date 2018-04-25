@@ -71,6 +71,6 @@ class PLog(np.recarray):
 
         stamped = np.empty(self.n_ics, self.dtype)
         for ind, vec in enumerate(vector):
-            stamped[ind] = stamp + (ind,) + tuple(vec.A1)
+            stamped[ind] = stamp + (ind,) + tuple(vec)
 
         super(PLog, self).__setitem__(i, stamped)
