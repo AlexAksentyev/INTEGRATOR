@@ -1,5 +1,6 @@
 import numpy as np
 from particle import CLIGHT, EZERO
+from copy import deepcopy
 
 class Element:
 
@@ -29,7 +30,7 @@ class Drift(Element):
         self._matrix = np.bmat([[Mx, Z, Z], [Z, Mx, Z], [Z, Z, Mz]])
 
     def __call__(self, state):
-        state_c = state[:]
+        state_c = deepcopy(state)
         px = state_c[1]
         py = state_c[3]
         delta = state_c[5]
@@ -105,5 +106,8 @@ class RF(Element):
 
         self._matrix = np.bmat([[I, Z, Z],[Z, I, Z],[Z, Z, Mz]])
 
-    # def __call__(self, state):
-    #     state_c = state[:]
+    def __call__(self, state):
+        state_c = deepcopy(state)
+        t = state_c[4]/CLIGHT
+        state_c[5] += self._A*np.sin(self._ref_phase - self._w*t)
+        return state_c
