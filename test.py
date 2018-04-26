@@ -12,7 +12,7 @@ F = MQuad(p, 25e-2, 8.6)
 D = MQuad(p, 25e-2, -8.11)
 RF = RF(p, 25e-2*3, 150000)
 
-state = StateList(x=np.random.normal(0, 1e-3, 4), d = [-1e-4, 1e-4]).array
+state = StateList(x=np.random.normal(0, 1e-3, 4), d = [-.5e-4, 1e-4]).array
 
 Om = O.M
 Fm = F.M
@@ -20,14 +20,18 @@ Dm = D.M
 RFm = RF.M
 FODOm = RFm.dot(Om.dot(Dm.dot(Om.dot(Fm))))
 
-n_trn = int(10e3)
-log = PLog(state, n_trn+1)
+n_trn = int(10e5)
+n_rec = int(n_trn/1000)
+log = PLog(state, n_rec) # save every thousandth phase picture
+ind = 0
 for i in range(1, n_trn+1):
     state = FODOm.dot(state).A
-    log[i] = ((i,), state)
+    if i%1000 == 0:
+        log[ind] = ((i,), state)
+        ind += 1
 
 print("test success!")
 
 pcl = log[:, :]
-plt.plot(pcl['d'], '--.', markersize=.5); plt.show()
+plt.plot(pcl['z'], pcl['d'], '--.', markersize=.5); plt.show()
     
