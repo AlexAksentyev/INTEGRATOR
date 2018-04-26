@@ -9,11 +9,26 @@ class Element:
         self._curve = curve
         self._name=name
         self._particle = particle
-        self._matrix = None
+        I = np.eye(6)
+        self._matrix = I
+        self._tilt_matrix = I
+        self._tilt_matrix_inv = I
 
     @property
     def M(self):
-        return self._matrix
+        return self._tilt_matrix*self._matrix*self._tilt_matrix_inv
+
+    def s_tilt(self, angle):
+        """Give angle in radians."""
+        c, s = np.cos(angle), np.sin(angle)
+        I = np.eye(2)
+        Z = np.zeros((2,2))
+        self._tilt_matrix = np.bmat([[c*I, s*I, Z], [-s*I, c*I, Z], [Z, Z, I]])
+        self._tilt_matrix_inv = np.linalg.inv(self._tilt_matrix)
+
+    def clear_tilt(self):
+        self._tilt_matrix = np.eye(6)
+        self._tilt_matrix_inv = np.eye(6)
 
 class Drift(Element):
 
