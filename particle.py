@@ -22,6 +22,11 @@ class Particle:
         self._beta = np.sqrt(gamma**2-1)/gamma
         self.mass0_kg = self.mass0/CLIGHT**2*EZERO*1e6
         self._charge = Z*EZERO
+        self._Z = Z
+
+    @property
+    def Z(self):
+        return self._Z
 
     @property
     def charge(self):

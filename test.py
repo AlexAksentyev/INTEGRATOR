@@ -1,6 +1,7 @@
 from particle import Particle, EZERO, CLIGHT
 from plog import PLog
-from element import Drift, MQuad
+from element import Drift, MQuad, RF
+from state_list import StateList
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,21 +10,17 @@ p = Particle()
 O = Drift(p, 25e-2)
 F = MQuad(p, 25e-2, 8.6)
 D = MQuad(p, 25e-2, -8.11)
+RF = RF(p, 25e-2*3, 150000)
 
-n_ics = 5
-state = np.array([np.linspace(-1e-3, 1e-3, n_ics),
-                   np.repeat(1e-3,n_ics),
-                   np.zeros(n_ics),
-                   np.random.normal(0,1e-3,n_ics),
-                   np.zeros(n_ics),
-                   np.random.normal(0, 1e-4,n_ics)])
+state = StateList(x=np.random.normal(0, 1e-3, 4), d = [-1e-4, 1e-4]).array
 
 Om = O.M
 Fm = F.M
 Dm = D.M
-FODOm = Om.dot(Dm.dot(Om.dot(Fm)))
+RFm = RF.M
+FODOm = RFm.dot(Om.dot(Dm.dot(Om.dot(Fm))))
 
-n_trn = int(10e2)
+n_trn = int(10e3)
 log = PLog(state, n_trn+1)
 for i in range(1, n_trn+1):
     state = FODOm.dot(state).A
@@ -32,5 +29,5 @@ for i in range(1, n_trn+1):
 print("test success!")
 
 pcl = log[:, :]
-plt.plot(pcl['x'], pcl['px'], '--.'); plt.show()
+plt.plot(pcl['d'], '--.', markersize=.5); plt.show()
     

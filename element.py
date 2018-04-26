@@ -1,4 +1,5 @@
 import numpy as np
+from particle import CLIGHT, EZERO
 
 class Element:
 
@@ -81,9 +82,28 @@ class MQuad(Element):
 
         self._matrix = np.bmat([[Mx, Z, Z], [Z, My, Z], [Z, Z, Mz]])
 
-# class RF(Element):
+class RF(Element):
 
-#     def __init__(self, particle, acc_length, ref_phase, h_number):
-#         beta0 = self._particle.beta
-#         gamma0 = self._particle.gamma
-#         Ts = 
+    def __init__(self, particle, acc_length, voltage, ref_phase=np.pi/2, h_number=50, name="RF"):
+        super().__init__(particle, 0, 0, name)
+        beta0 = self._particle.beta
+        gamma0 = self._particle.gamma
+        Ts = acc_length/CLIGHT/beta0
+        w = 2*np.pi/Ts*h_number
+        P0c = particle.Pc()
+
+        Z = particle.Z
+        A = Z*voltage*1e-6/P0c # qV/Pc w/energy in MeVs
+        self._w = w
+        self._ref_phase = ref_phase
+        self._voltage = voltage
+        self._A = A
+
+        I = np.eye(2)
+        Z = np.zeros((2,2))
+        Mz = np.array([[1, 0],[-w*A*np.cos(ref_phase), 1]])
+
+        self._matrix = np.bmat([[I, Z, Z],[Z, I, Z],[Z, Z, Mz]])
+
+    # def __call__(self, state):
+    #     state_c = state[:]
