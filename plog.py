@@ -2,6 +2,7 @@ import numpy as np
 
 VAR_NAME=['x','px','y','py','z','d']
 VAR_NUM=len(VAR_NAME)
+IMAP = dict(zip(VAR_NAME, range(VAR_NUM)))
 
 class PLog(np.recarray):
     """Particle log is a 3D recarray, where the 1st index refers to the particle (ics),
