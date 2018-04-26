@@ -23,8 +23,6 @@ Fm = F.M
 Dm = D.M
 FODOm = Om.dot(Dm.dot(Om.dot(Fm)))
 
-# print(O(state))
-
 n_trn = int(10e2)
 log = PLog(state, n_trn+1)
 for i in range(1, n_trn+1):

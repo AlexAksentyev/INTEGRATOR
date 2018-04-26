@@ -51,22 +51,39 @@ class MQuad(Element):
         super().__init__(particle, length, 0, name)
         self._grad = grad
 
-        w = np.sqrt(abs(grad))
+        kx = np.sqrt(grad + 0j) #turn grad complex to take sqrt if negative
+        ky = 1j*kx
         L = self._length
-        wL = w*L
-        c = np.cos(wL)
-        s = np.sin(wL)
-        ch = np.cosh(wL)
-        sh = np.sinh(wL)
+
+        cx = np.cos(kx*L)
+        sx = np.sin(kx*L)/kx 
+        cy = np.cos(ky*L) 
+        sy = np.sin(ky*L)/ky
+        
         beta0 = self._particle.beta
         gamma0 = self._particle.gamma
         b2g2 = beta0*beta0*gamma0*gamma0
-        Mf = np.array([[c, s/w], [-w*s, c]])
-        Md = np.array([[ch, sh/w], [w*sh, ch]])
+        
+        Mx = np.array([[cx, sx], [-grad*sx, cx]])
+        My = np.array([[cy, sy], [ grad*sy, cy]])
         Mz = np.array([[1, L/b2g2], [0, 1]])
         Z = np.zeros((2,2))
 
-        if grad > 0:
-            self._matrix = np.bmat([[Mf, Z, Z], [Z, Md, Z], [Z, Z, Mz]])
-        else:
-            self._matrix = np.bmat([[Md, Z, Z], [Z, Mf, Z], [Z, Z, Mz]])
+        def check_complex(matrix):
+            if np.all(matrix.imag == 0):
+                matrix = matrix.real
+            else:
+                print("WARNING: Complex transfer matrix!")
+            return matrix
+
+        Mx = check_complex(Mx)
+        My = check_complex(My)
+
+        self._matrix = np.bmat([[Mx, Z, Z], [Z, My, Z], [Z, Z, Mz]])
+
+# class RF(Element):
+
+#     def __init__(self, particle, acc_length, ref_phase, h_number):
+#         beta0 = self._particle.beta
+#         gamma0 = self._particle.gamma
+#         Ts = 
