@@ -28,8 +28,6 @@ F = MQuad(p, 25e-2, 8.6)
 D = MQuad(p, 25e-2, -8.11)
 RF = RF(p, 25e-2*3, 75000)
 
-D.s_tilt(1e-4)
-
 Om = O.M
 Fm = F.M
 Dm = D.M

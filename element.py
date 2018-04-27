@@ -45,6 +45,10 @@ class Drift(Element):
         self._matrix = np.bmat([[Mx, Z, Z], [Z, Mx, Z], [Z, Z, Mz]])
 
     def __call__(self, state):
+        """This map is taken from the Cockroft lectures, NOT the MAD manual.
+        It is different; even if we assume delta_s = 0 (reference Ps == design P0).
+        The matrix is from the MAD manual, as for all elements.
+        """
         state_c = deepcopy(state)
         px = state_c[1]
         py = state_c[3]
