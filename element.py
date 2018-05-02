@@ -199,3 +199,45 @@ class RF(Element):
         t = state_c[4]/CLIGHT
         state_c[5] += self._A*np.sin(self._ref_phase - self._w*t)
         return state_c
+
+class CylWien(Element):
+    def __init__(self, particle, length, B_field, E_field, name="CWF"):
+        gamma, beta = particle.GammaBeta()
+        g2 = gamma*gamma
+        v = CLIGHT * beta
+        mv2 = gamma*particle.mass0_kg *  v*v
+        ## the expression for R0 is different from Optim, where it is:
+        ## 1/R0 = EZERO * E_field / (beta*CLIGHT) + EZERO * B_field/ CLIGHT
+        R0 = mv2 / (-EZERO * (E_field - v*B_field) )
+        super().__init__(particle, length, 1/R0, name)
+
+        ## matrix from OptimX:
+        ## http://home.fnal.gov/~ostiguy/OptiM/OptimHelp/electrostatic_combined_function.html
+        term = EZERO*E_field/mv2/gamma**2
+        kappa_p = 1 + (term*R0/gamma)**2
+        # gradients G_B, G_E = 0
+        kx = 1/R0**2 + term**2 
+        ky = 0
+        kx2 = kx*kx
+        kpR0 = kappa_p/R0
+        kpkx = kappa_p/kx
+
+        L = length
+        cx = np.cos(kx*L)
+        sx = np.sin(kx*L)
+        dx = 1 - cx
+        cy = 1; sy = 0 # b/c ky == 0
+        
+        Z = np.zeros((2,2))
+        Mxx = np.array([[cx, sx/kx], [-kx*sx, cx]])
+        Mxy = Z
+        Mxz = np.array([[0, kpR0*dx/kx2], [0, kpR0/kx*sx]])
+        Myx = Z
+        Myy = np.array([[1, 1], [0, 1]])
+        Myz = Z
+        Mzx = np.array([[kpR0/kx*sx, kpR0/kx2*dx], [0, 0]])
+        Mzy = Z
+        Mzz = np.array([[1, L/g2 - kpR0*kpkx/kx*(L*kx - sx)], [0, 1]])
+
+        self._matrix = np.bmat([[Mxx, Mxy, Mxz], [Myx, Myy, Myz], [Mzx, Mzy, Mzz]])
+        
