@@ -25,6 +25,14 @@ class Element:
     def M(self):
         return self._tilt_matrix*self._matrix*self._tilt_matrix_inv
 
+    @property
+    def length(self):
+        return self._length
+
+    @property
+    def name(self):
+        return self._name
+
     def s_tilt(self, angle):
         """Give angle in radians."""
         c, s = np.cos(angle), np.sin(angle)
@@ -241,3 +249,6 @@ class CylWien(Element):
 
         self._matrix = np.bmat([[Mxx, Mxy, Mxz], [Myx, Myy, Myz], [Mzx, Mzy, Mzz]])
         
+class Observer(Element):
+    def __init__(self, particle, name="OBS"):
+        super().__init__(particle, 0, 0, name)
