@@ -1,6 +1,7 @@
 from particle import Particle, EZERO, CLIGHT
 from plog import PLog
 from element import Drift, MQuad, RF, MDipoleSect, CylWien
+from lattice import Lattice
 from state_list import StateList
 from time import clock
 
@@ -26,6 +27,8 @@ O = Drift(p, 25e-2)
 F = MQuad(p, 25e-2, 8.6)
 D = MQuad(p, 25e-2, -8.11)
 RF = RF(p, 25e-2*3, 75000)
+
+FODO = Lattice([O,F,O,D,O,RF], 'FODO')
 
 DIP = MDipoleSect(p, 25e-2, 1)
 
