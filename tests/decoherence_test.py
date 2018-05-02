@@ -52,7 +52,7 @@ deu.kinetic_energy += .5e-6*deu.kinetic_energy
 deu.gamma -= deu.gamma*2e-5/1.42
 
 gauss = np.random.normal
-n_ics = 999
+n_ics = 9
 bunch_dict = {'dK': StateList(Sz=1, dK=gauss(0, 1e-4, n_ics)),
               'x' : StateList(Sz=1, x=gauss(0, 1e-3, n_ics)),
               'y' : StateList(Sz=1, y=gauss(0, 1e-3, n_ics))}
@@ -65,20 +65,19 @@ for element in lattice.elements():
     if isinstance(element, CylWien):    
         n_WF += 1
 
-n_turns = 100
-n_trials = 70*3
-
-n_tot_trls = n_trials * len(bunch_dict)
-
-trl_cnt = 0
-old_percent = -1
-with tbl.open_file('./data/decoherence_test.h5', 'w') as f:
-    f.create_group('/', 'bunch')
-    for key, bunch  in bunch_dict.items():
-        Wx_hist, Wy_hist, tilt_hist = set_up_file(f)
-        for trial in range(n_trials):
-            tilt_angles = tilt_lattice(lattice); tilt_hist.append([tilt_angles])
-            
+def test_0(lattice, bunch_dict, n_turns=100):
+    """Used to generate data for the analysis meeting April 17"""
+    n_trials = 70
+    n_tot_trls = n_trials * len(bunch_dict)
+    trl_cnt = 0
+    old_percent = -1
+    with tbl.open_file('./data/decoherence_test.h5', 'w') as f:
+        f.create_group('/', 'bunch')
+        for key, bunch  in bunch_dict.items():
+            Wx_hist, Wy_hist, tilt_hist = set_up_file(f)
+            for trial in range(n_trials):
+                tilt_angles = tilt_lattice(lattice); tilt_hist.append([tilt_angles])
+                
             lat_filename = lattice.name+'_'+str(lattice.state)
             l_file_path = './data/'+lat_filename+'.h5'
 
@@ -99,3 +98,15 @@ with tbl.open_file('./data/decoherence_test.h5', 'w') as f:
                 trl_cnt += 1
 
     
+def test_1(lattice, bunch_dict, n_turns=1000):
+    """Checking if horizontal plane decoherence is unbounded or not"""
+    trkr.set_controls(ncut=0) # make sure to keep all data in RAM
+    log = dict()
+    for key, bunch in bunch_dict.items():
+        tilt_angles = tilt_lattice(lattice)
+        log[key] = trkr.track(deu, bunch, lattice, n_turns)
+
+    return log
+
+## make test
+log_dict = test_1(lattice, bunch_dict)
