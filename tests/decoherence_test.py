@@ -110,3 +110,47 @@ def test_1(lattice, bunch_dict, n_turns=1000):
 
 ## make test
 log_dict, tilt_angles = test_1(lattice, bunch_dict)
+
+
+ldk, lx, ly = log_dict.values()
+from rhs import IMAP
+dk0, x0, y0 = [np.array(e.as_list())[:, IMAP[n]] for n, e in bunch_dict.items()]
+def analysis(log, ini, var_name='Sx'):
+    from scipy.stats import linregress
+    ii = log['Element'][:,0] == b'RF'
+    ii[0] = True # include the starting value
+    log = log[ii,:]
+
+    names = ['ini', 'slp', 'icpt', 'r2', 'p', 'stdev']
+    fit = np.empty(log.shape[1], dtype=list(zip(names, np.repeat(float, len(names)))))
+    for pid in range(log.shape[1]):
+        pcl = log[:, pid]
+        fit[pid] = ini[pid], *linregress(pcl['Turn'], pcl[var_name])    
+
+    return fit, log
+
+##
+
+fit_x, lx = analysis(lx, x0)
+fit_y, ly = analysis(ly, y0)
+fit_dk, ldk = analysis(ldk, dk0)
+
+plt.figure()
+x_sd = fit_x['ini'].std()
+tof = 1e-6
+plt.plot(fit_x['ini']/x_sd, fit_x['slp']/tof, '.r', label='x');
+
+y_sd = fit_y['ini'].std()
+plt.plot(fit_y['ini']/y_sd, fit_y['slp']/tof, '.b', label='y');
+
+plt.ylabel('Wy estimate from slope');
+plt.xlabel('initial beam distribution / STDs');
+plt.legend();
+plt.grid()
+
+plt.figure()
+dk_sd = fit_dk['ini'].std()
+plt.plot(fit_dk['ini']/dk_sd, fit_dk['icpt'], '.g', label='dK');
+plt.grid();
+plt.ylabel('Wy estimate from intercept'); plt.xlabel('initial beam distribution / STDs');
+plt.legend();
