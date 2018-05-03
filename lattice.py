@@ -28,6 +28,12 @@ class Segment(MutableNamedTuple):
     def shift(self, places):
         self._EIDs = [places + e for e in self._EIDs]
 
+    def __add__(self, other):
+        count = len(self._EIDs)
+        eids = self._EIDs + [count + e for e in other._EIDs]
+        tm = other._TM * self._TM
+        return Segment(eids, tm)
+
 class Lattice:
     def __init__(self, element_sequence, name, segment_map=None):
         ## creating _sequence of elements from pointers
@@ -37,7 +43,7 @@ class Lattice:
         self._count = 0
         ids = set() # element id's
         for index, element in enumerate(self._sequence):
-            self._transfer_matrix = element.M*self._transfer_matrix
+            self._transfer_matrix = element.TM*self._transfer_matrix
             self._length += element.length
             self._count += 1
             eid = id(element)
@@ -65,6 +71,14 @@ class Lattice:
     def count(self):
         return self._count
 
+    def TM(self, segment_name=None):
+        if segment_name is not None:
+            tm = self.segment_map[segment_name].TM
+        else:
+            tm = self._transfer_matrix
+            
+        return tm
+
     def __add__(self, other):
         if not isinstance(other, Lattice):
             print('Cannot add a non-lattice object')
@@ -72,9 +86,9 @@ class Lattice:
 
         el_sequence = self._sequence + other._sequence
         name = self.name + "+" + other.name
-        for segment in other.segments():
+        for _, segment in other.segments():
             segment.shift(self.count)
-        segment_map = dict(**self.segment_map, **{other.name: other.segment_map})
+        segment_map = dict(**self.segment_map, **other.segment_map)
 
         return Lattice(el_sequence, name, segment_map)
 
@@ -93,8 +107,8 @@ class Lattice:
             yield self[eid]
 
     def segments(self):
-        for segment in self.segment_map.values():
-            yield segment
+        for name, segment in self.segment_map.items():
+            yield name, segment
 
     def list_names(self, full=False):
         names = [e.name for e in self]
@@ -126,7 +140,7 @@ class Lattice:
         self._transfer_matrix = np.eye(6)
         for i, element in enumerate(self.elements()):
             element.s_tilt(angle[i])
-            self._transfer_matrix = element.M*self._transfer_matrix
+            self._transfer_matrix = element.TM*self._transfer_matrix
 
         self._state += 1  # the lattice is in a new state => write into a new group
 
@@ -135,7 +149,7 @@ class Lattice:
         self._transfer_matrix = np.eye(6)
         for element in self.elements():
             element.clear_tilt()
-            self._transfer_matrix = element.M*self._transfer_matrix
+            self._transfer_matrix = element.TM*self._transfer_matrix
             
         self._state = 0
 
@@ -153,16 +167,18 @@ if __name__ == '__main__':
     
     p = Particle()
     O = Drift(p, 25e-2)
-    F = MQuad(p, 25e-2, 8.6)
-    D = MQuad(p, 25e-2, -8.11)
+    F = MQuad(p, 25e-2, 8.6, 'F')
+    D = MQuad(p, 25e-2, -8.11, 'D')
     RF = RF(p, 25e-2*3, 75000)
     
-    FODO = Lattice([O,F,O,D,O,RF], 'FODO')
+    FODO_0 = Lattice([O,F,O,D], 'FODO')
+    FO = Lattice([O, F], 'FO')
+    DO = Lattice([O, D], 'DO')
+    FODO_1 = FO + DO; FODO_1.name='FODO'
     
     DIP = MDipoleSect(p, 25e-2, 1)
-    
     CWF = CylWien(p, 361e-2, 120e-5, .46)
 
-    ARC = Lattice([DIP, CWF], 'ARC')
+    ARC = Lattice([DIP, CWF, RF], 'ARC')
 
-    lattice = FODO + ARC
+    lattice = FODO_0 + ARC
