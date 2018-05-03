@@ -11,6 +11,23 @@ import numpy as np
 from element import RF
 from utilities import MutableNamedTuple
 
+def track(state, transfer_map, n_trn, n_rec = None):
+    from plog import PLog
+    n_trn = int(n_trn)
+    n_rec = int(n_rec) if n_rec is not None else n_trn
+    n_skip = int(n_trn/n_rec)
+    print("N turn {}, N rec {}, N skip {}".format(n_trn, n_rec, n_skip))
+    log = PLog(state, n_rec+1) # +1 for initial state
+
+    TM_n = transfer_map**n_skip
+
+    for i in range(1, n_rec+1):
+        state = TM_n*state # state is matrix
+        log[i] = ((i*n_skip,), state.A) # retrieve array
+
+    return log
+
+
 class Segment(MutableNamedTuple):
     __slots__ = ['_EIDs', '_TM']
 
