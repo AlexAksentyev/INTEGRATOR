@@ -22,6 +22,8 @@ def track(state, transfer_map, n_trn, n_rec = None):
 
     return log
 
+state = StateList(x = [-1e-3, 1e-3], d = [-.5e-4, 1e-4]).array
+
 p = Particle()
 O = Drift(p, 25e-2)
 F = MQuad(p, 25e-2, 8.6)
@@ -34,19 +36,12 @@ DIP = MDipoleSect(p, 25e-2, 1)
 
 CWF = CylWien(p, 361e-2, 120e-5, .46)
 
+# Om = O.M
+# Fm = F.M
+# Dm = D.M
+# RFm = RF.M
+# OFODORm = RFm*Om*Dm*Om*Fm*Om
 
-Om = O.M
-Fm = F.M
-Dm = D.M
-RFm = RF.M
-OFODORm = RFm*Om*Dm*Om*Fm*Om
-
-state = StateList(x = [-1e-3, 1e-3], d = [-.5e-4, 1e-4]).array
-
-lfodo = track(state, OFODORm, 1e6, 100)
-
+lfodo = track(state, FODO.TM(), 1e6, 100)
 pcl = lfodo[:, :]
 # plt.plot(pcl['z'], pcl['d'], '--.', markersize=.5); plt.show()
-    
-ldip = track(state, DIP.M, 100)
-lcwf = track(state, CWF.M*O.M*O.M*RF.M*O.M, 100e3, 1000) 
