@@ -161,6 +161,13 @@ class MSext(Element):
         super().__init__(particle, length, 0, name)
         self._grad = grad
 
+        b2g2 = self._b2g2
+        Mx = np.array([[1, length], [0, 1]])
+        Z = np.zeros((2,2))
+        Mz = np.array([[1, length/b2g2], [0, 1]])
+
+        self._matrix = np.bmat([[Mx, Z, Z], [Z, Mx, Z], [Z, Z, Mz]])
+
     def __call__(self, state):
         state_c = deepcopy(state)
         x, px, y, py, t, pt = state_c
@@ -218,7 +225,7 @@ class RF(Element):
         return state_c
 
 class CylWien(Element):
-    def __init__(self, particle, length, B_field, E_field, name="CWF"):
+    def __init__(self, particle, length, E_field, B_field, name="CWF"):
         gamma, beta = particle.GammaBeta()
         g2 = gamma*gamma
         v = CLIGHT * beta
