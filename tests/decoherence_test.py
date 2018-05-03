@@ -102,11 +102,11 @@ def test_1(lattice, bunch_dict, n_turns=1000):
     """Checking if horizontal plane decoherence is unbounded or not"""
     trkr.set_controls(ncut=0) # make sure to keep all data in RAM
     log = dict()
+    tilt_angles = 0 #tilt_lattice(lattice)
     for key, bunch in bunch_dict.items():
-        tilt_angles = tilt_lattice(lattice)
         log[key] = trkr.track(deu, bunch, lattice, n_turns)
 
-    return log
+    return log, tilt_angles
 
 ## make test
-log_dict = test_1(lattice, bunch_dict)
+log_dict, tilt_angles = test_1(lattice, bunch_dict)
