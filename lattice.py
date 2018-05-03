@@ -4,111 +4,77 @@ Created on Sat Dec  9 20:08:45 2017
 
 @author: Аксентьев
 """
-import copy
+from copy import deepcopy
 import re
 import collections as cln
 import numpy as np
-from element import RF as ERF#, Tilt, Shift
+from element import RF
 from utilities import MutableNamedTuple
 
-class RF(MutableNamedTuple):
-    """Container class to keep information about the lattice's RF element.
-    """
-    __slots__ = ['index', 'count']
+class Segment(MutableNamedTuple):
+    __slots__ = ['_EIDs', '_TM']
+
+    def __init__(self, eid_list, transfer_matrix=np.eye(6)):
+        self._EIDs = eid_list[:]
+        self._TM = transfer_matrix
+
+    @property
+    def TM(self):
+        return self._TM
+    @property
+    def EIDs(self):
+        return self._EIDs
+
+    def shift(self, places):
+        self._EIDs = [places + e for e in self._EIDs]
 
 class Lattice:
     def __init__(self, element_sequence, name, segment_map=None):
-        sequence = copy.deepcopy(element_sequence)
-        ## ensuring the lattice doesn't have more than one RF element
-        self.RF = RF(None, 0)
-        self.length = 0
-        remove_indices = []
-        for ind, element in enumerate(sequence):
-            if isinstance(element, ERF):
-                print('Found RF at {}'.format(ind))
-                if self.RF.count < 1:
-                    self.RF.count += 1
-                    self.RF.index = ind
-                else:
-                    print('Second RF element encountered; not adding to lattice')
-                    remove_indices.append(ind)
-                    continue
-            self.length += element.length
-        remove_indices.reverse() # so that when i start popping, RF elements don't shift places
-        for ind in remove_indices:
-            sequence.pop(ind)
-
-        self.count = len(sequence)
-
         ## creating _sequence of elements from pointers
-        self._sequence = sequence
+        self._sequence = deepcopy(element_sequence)
         self._transfer_matrix = np.eye(6) ## ALSO, construct the segment transfer matrix
-        ids = set()
+        self._length = 0
+        self._count = 0
+        ids = set() # element id's
         for index, element in enumerate(self._sequence):
             self._transfer_matrix = element.M*self._transfer_matrix
+            self._length += element.length
+            self._count += 1
             eid = id(element)
-            if eid in ids:
-                self._sequence[index] = copy.deepcopy(element)
+            if eid in ids: # if this id has been encountered before
+                self._sequence[index] = deepcopy(element) # replace this position with a new object
             ids.add(eid)
-            
         ##
-
         self.name = name
         if segment_map is None:
-            self.segment_map = {name: list(range(self.count))}
+            self.segment_map = {self.name: Segment(list(range(self._count)), self._transfer_matrix)}
         else:
             self.segment_map = segment_map
 
         self._state = 0
-
-    def unique_ids(self):
-        ids = set()
-        for element in self.elements():
-            eid = id(element)
-            if eid in ids:
-                continue
-            ids.add(eid)
-        return ids
 
     @property
     def state(self):
         return self._state
 
     @property
-    def M(self):
-        return self._transfer_matrix
+    def length(self):
+        return self._length
+
+    @property
+    def count(self):
+        return self._count
 
     def __add__(self, other):
         if not isinstance(other, Lattice):
             print('Cannot add a non-lattice object')
             return # but think about adding an element sequence
 
-        # remove RF's of both
-        rf0 = self.pop(self.RF.index)
-        if rf0 is not None:
-            self.RF.count -= 1
-            self.RF.index = None
-            print('Achtung! segment {} was updated.'.format(self.name))
-        rf1 = other.pop(other.RF.index)
-        if rf1 is not None:
-            other.RF.count -= 1
-            other.RF.index = None
-            print('Achtung! segment {} was updated.'.format(other.name))
-        print('New lattice w/o RF elements.')
-
-
-        # make a sections map:
-        # (segment_name, {indices in lattice})
-        seg0_num = self.count
-        seg1_num = other.count
-        segment_map = copy.deepcopy(self.segment_map)
-        segmap1 = other.segment_map
-        segmap1.update({other.name: list(range(seg0_num, seg0_num + seg1_num))})
-        segment_map.update(segmap1)
-
-        # make the common sequence, compound lattice name
         el_sequence = self._sequence + other._sequence
-        name = self.name + '+' + other.name
+        name = self.name + "+" + other.name
+        for segment in other.segments():
+            segment.shift(self.count)
+        segment_map = dict(**self.segment_map, **{other.name: other.segment_map})
 
         return Lattice(el_sequence, name, segment_map)
 
@@ -126,119 +92,9 @@ class Lattice:
         for eid in range(from_, to_):
             yield self[eid]
 
-    def insert_RF(self, position, length, reference_particle, **ERF_pars):
-        """
-        Arguments:
-            position : integer
-                the index inside the lattice element sequence (starts from 0)
-
-            length : float
-                at length 0 the RF is simulated by an energy kick;
-                internally, for the computation of the potential energy jump,
-                assumes a default length of 5e-4, i.e. V = E_field * 5e-4.
-
-        Keyword arguments (ERF_pars):
-            E_field : float
-                the amplitude of the electric field wave (default 15e5)
-
-            phase : float
-                the time-domain phase of the reference particle (default 1.5*pi)
-
-            H_number : integer
-                the harmonic huimber (default 50)
-
-            name : string
-                defaults to "RF"
-
-        """
-        if self.RF.index is not None and self.RF.index != position:
-            print("""Trying to add a second RF element;
-                  current RF position is {}""".format(self.RF.index))
-            return
-        if position == self.RF.index:
-            print('Replacing RF {}'.format(self.pop(position)))
-            self.RF.count -= 1
-
-        # creating an RF element
-        full_acc_len = self.length + length
-        rf = ERF(reference_particle, length, full_acc_len, **ERF_pars)
-
-        self.insert(position, rf)
-        self.RF.index = position
-        self.RF.count += 1
-
-    def get_RF(self):
-        try:
-            return self[self.RF.index]
-        except TypeError:
-            return None
-
-    def _update_segment_map(self, index, element, action='add'):
-        action = action.lower()
-        if action[:3] == 'add':
-            action = 1
-            self.segment_map.update({element.name: [index]})
-        elif action[:3] == 'sub':
-            action = -1
-            try:
-                self.segment_map.pop(element.name)
-            except KeyError:
-                pass
-        else:
-            raise Exception('Unknown action')
-
-        for name, map_ in self.segment_map.items():
-            if name == element.name:
-                continue
-            self.segment_map[name] = [j for j in map_ if j < index] \
-                + [j + action for j in map_ if j >= index]
-
-
-    ## these two will require recomputation fo the transfer map i think
-    ## better yet, make the segment transfer maps items of Lattice.segment_map
-    def insert(self, index, element):
-        # inserting the element
-        self._sequence.insert(index, element)
-        self.count += 1
-        self.length += element.length
-        # updating segment map
-        self._update_segment_map(index, element, 'add')
-
-    def pop(self, ind):
-        if ind is None:
-            print('Passed index is None; no element popped.')
-            return None
-
-        try:
-            # popping the element
-            element = self._sequence.pop(ind)
-            self.count -= 1
-            self.length -= element.length
-            if isinstance(element, ERF):
-                self.RF.count -= 1
-                self.RF.index = None
-            # updating segment map
-            self._update_segment_map(ind, element, 'subtract')
-        except IndexError:
-            print('Wrong index; no element popped.')
-            return None
-
-        return element
-
-    def make_segment(self, name):
-        """Groups all elements with *name* into a separate segment.
-        Doesn't remove the elements from other segments.
-
-        Arguments:
-            name: string
-                for the present, the exact name of the element; i.e, names
-                in the form name_index won't be understood.
-        """
-        # find all elements with name
-        element_names = self.list_names(True)
-        element_indices = [i for i, x in enumerate(element_names) if x == name]
-        self.segment_map.update({name: element_indices})
-
+    def segments(self):
+        for segment in self.segment_map.values():
+            yield segment
 
     def list_names(self, full=False):
         names = [e.name for e in self]
@@ -282,3 +138,31 @@ class Lattice:
             self._transfer_matrix = element.M*self._transfer_matrix
             
         self._state = 0
+
+
+if __name__ == '__main__':
+    from particle import Particle, EZERO, CLIGHT
+    from plog import PLog
+    from element import Drift, MQuad, RF, MDipoleSect, CylWien
+    from lattice import Lattice
+    from state_list import StateList
+    from time import clock
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    p = Particle()
+    O = Drift(p, 25e-2)
+    F = MQuad(p, 25e-2, 8.6)
+    D = MQuad(p, 25e-2, -8.11)
+    RF = RF(p, 25e-2*3, 75000)
+    
+    FODO = Lattice([O,F,O,D,O,RF], 'FODO')
+    
+    DIP = MDipoleSect(p, 25e-2, 1)
+    
+    CWF = CylWien(p, 361e-2, 120e-5, .46)
+
+    ARC = Lattice([DIP, CWF], 'ARC')
+
+    lattice = FODO + ARC
