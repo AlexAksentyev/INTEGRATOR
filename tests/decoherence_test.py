@@ -20,9 +20,9 @@ def set_up_file(f):
 
     return Wx_hist, Wy_hist, tilt_hist
 
-def tilt_lattice(lattice):
-    mean_angle = 0
-    sigma_angle = deg(1e-4)
+def tilt_lattice(lattice, mean=0, sd=deg(1e-4)):
+    mean_angle = mean
+    sigma_angle = sd
 
     lattice.tilt('s', mean_angle, sigma_angle)
     angles = []
@@ -42,6 +42,21 @@ def get_data(file_path):
             Sy.append(log[-1]['Sy'])
             dt.append(log[-1]['t'])
     return np.array(Sx).T, np.array(Sy).T, dt
+
+def analysis(log, ini, var_name='Sx'):
+    from scipy.stats import linregress
+    ii = log['Element'][:,0] == b'RF'
+    ii[0] = True # include the starting value
+    log = log[ii,:]
+
+    names = ['ini', 'slp', 'icpt', 'r2', 'p', 'stdev']
+    fit = np.empty(log.shape[1], dtype=list(zip(names, np.repeat(float, len(names)))))
+    for pid in range(log.shape[1]):
+        pcl = log[:, pid]
+        fit[pid] = ini[pid], *linregress(pcl['Turn'], pcl[var_name])    
+
+    return fit, log
+
 
 trkr = Tracker()
 #trkr.set_controls(ncut=10)
@@ -65,6 +80,8 @@ for element in lattice.elements():
     if isinstance(element, CylWien):    
         n_WF += 1
 
+
+## TESTS
 def test_0(lattice, bunch_dict, n_turns=100):
     """Used to generate data for the analysis meeting April 17"""
     n_trials = 70
@@ -98,59 +115,60 @@ def test_0(lattice, bunch_dict, n_turns=100):
                 trl_cnt += 1
 
     
-def test_1(lattice, bunch_dict, n_turns=1000):
+def test_1(lattice, bunch_dict, n_turns=1000, mean=0, sd=deg(1e-4)):
     """Checking if horizontal plane decoherence is unbounded or not"""
     trkr.set_controls(ncut=0) # make sure to keep all data in RAM
     log = dict()
-    tilt_angles = 0 #tilt_lattice(lattice)
+    tilt_angles = tilt_lattice(lattice, mean, sd)
     for key, bunch in bunch_dict.items():
         log[key] = trkr.track(deu, bunch, lattice, n_turns)
 
     return log, tilt_angles
 
+def test_2(lattice, bunch_dict, n_turns=1000, mean=0, sd=deg(5e-4)):
+    """Comparison of tilted and non-tilted lattice decoherence"""
+    log_clear, tilt_clear = test_1(lattice, bunch_dict, n_turns, 0, 0)
+    log_tilted, tilt_tilted = test_1(lattice, bunch_dict, n_turns, mean, sd)
+
+    from rhs import IMAP
+    ini = {n: np.array(e.as_list())[:, IMAP[n]] for n, e in bunch_dict.items()}
+    
+    ## analysis
+    fit_result = dict()
+    for k, v in ini.items():
+        fit0, l0 = analysis(log_clear[k], v)
+        fit1, l1 = analysis(log_tilted[k], v)
+        fit_result[k] = [fit0, fit1, l0, l1]
+
+    return fit_result, tilt_clear, tilt_tilted
+
+
+
 ## make test
-log_dict, tilt_angles = test_1(lattice, bunch_dict)
-
-
-ldk, lx, ly = log_dict.values()
-from rhs import IMAP
-dk0, x0, y0 = [np.array(e.as_list())[:, IMAP[n]] for n, e in bunch_dict.items()]
-def analysis(log, ini, var_name='Sx'):
-    from scipy.stats import linregress
-    ii = log['Element'][:,0] == b'RF'
-    ii[0] = True # include the starting value
-    log = log[ii,:]
-
-    names = ['ini', 'slp', 'icpt', 'r2', 'p', 'stdev']
-    fit = np.empty(log.shape[1], dtype=list(zip(names, np.repeat(float, len(names)))))
-    for pid in range(log.shape[1]):
-        pcl = log[:, pid]
-        fit[pid] = ini[pid], *linregress(pcl['Turn'], pcl[var_name])    
-
-    return fit, log
+fit_result, a0, a1 = test_2(lattice, bunch_dict, 1000)
 
 ##
 
-fit_x, lx = analysis(lx, x0)
-fit_y, ly = analysis(ly, y0)
-fit_dk, ldk = analysis(ldk, dk0)
+# fit_x, lx = analysis(lx, x0)
+# fit_y, ly = analysis(ly, y0)
+# fit_dk, ldk = analysis(ldk, dk0)
 
-plt.figure()
-x_sd = fit_x['ini'].std()
-tof = 1e-6
-plt.plot(fit_x['ini']/x_sd, fit_x['slp']/tof, '.r', label='x');
+# plt.figure()
+# x_sd = fit_x['ini'].std()
+# tof = 1e-6
+# plt.plot(fit_x['ini']/x_sd, fit_x['slp']/tof, '.r', label='x');
 
-y_sd = fit_y['ini'].std()
-plt.plot(fit_y['ini']/y_sd, fit_y['slp']/tof, '.b', label='y');
+# y_sd = fit_y['ini'].std()
+# plt.plot(fit_y['ini']/y_sd, fit_y['slp']/tof, '.b', label='y');
 
-plt.ylabel('Wy estimate from slope');
-plt.xlabel('initial beam distribution / STDs');
-plt.legend();
-plt.grid()
+# plt.ylabel('Wy estimate from slope');
+# plt.xlabel('initial beam distribution / STDs');
+# plt.legend();
+# plt.grid()
 
-plt.figure()
-dk_sd = fit_dk['ini'].std()
-plt.plot(fit_dk['ini']/dk_sd, fit_dk['icpt'], '.g', label='dK');
-plt.grid();
-plt.ylabel('Wy estimate from intercept'); plt.xlabel('initial beam distribution / STDs');
-plt.legend();
+# plt.figure()
+# dk_sd = fit_dk['ini'].std()
+# plt.plot(fit_dk['ini']/dk_sd, fit_dk['icpt'], '.g', label='dK');
+# plt.grid();
+# plt.ylabel('Wy estimate from intercept'); plt.xlabel('initial beam distribution / STDs');
+# plt.legend();
