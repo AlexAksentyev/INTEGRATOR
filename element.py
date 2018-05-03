@@ -22,7 +22,7 @@ class Element:
         
 
     @property
-    def M(self):
+    def TM(self):
         return self._tilt_matrix*self._matrix*self._tilt_matrix_inv
 
     @property
@@ -33,6 +33,15 @@ class Element:
     def name(self):
         return self._name
 
+    def __repr__(self):
+        return self.name
+
+    def __call__(self, state):
+        """Applies element map to the state matrix"""
+        # by default __call__ uses a linear transformation of the state matrix;
+        # other elements may overwrite this behavior to use non-linear mapping
+        return self.TM*state
+    
     def s_tilt(self, angle):
         """Give angle in radians."""
         c, s = np.cos(angle), np.sin(angle)
