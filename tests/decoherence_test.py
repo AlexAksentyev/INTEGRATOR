@@ -146,29 +146,3 @@ def test_2(lattice, bunch_dict, n_turns=1000, mean=0, sd=deg(5e-4)):
 
 ## make test
 fit_result, a0, a1 = test_2(lattice, bunch_dict, 1000)
-
-##
-
-# fit_x, lx = analysis(lx, x0)
-# fit_y, ly = analysis(ly, y0)
-# fit_dk, ldk = analysis(ldk, dk0)
-
-# plt.figure()
-# x_sd = fit_x['ini'].std()
-# tof = 1e-6
-# plt.plot(fit_x['ini']/x_sd, fit_x['slp']/tof, '.r', label='x');
-
-# y_sd = fit_y['ini'].std()
-# plt.plot(fit_y['ini']/y_sd, fit_y['slp']/tof, '.b', label='y');
-
-# plt.ylabel('Wy estimate from slope');
-# plt.xlabel('initial beam distribution / STDs');
-# plt.legend();
-# plt.grid()
-
-# plt.figure()
-# dk_sd = fit_dk['ini'].std()
-# plt.plot(fit_dk['ini']/dk_sd, fit_dk['icpt'], '.g', label='dK');
-# plt.grid();
-# plt.ylabel('Wy estimate from intercept'); plt.xlabel('initial beam distribution / STDs');
-# plt.legend();
