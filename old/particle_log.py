@@ -122,7 +122,7 @@ class PLog(np.recarray):
     max_len_name = 10
     el_field_type = tbl.StringCol(max_len_name) # otherwise problems writing into hdf5 file
     metadata_type = [('Turn', int), ('Element', el_field_type),
-                     ('EID', int), ('Point', int)]
+                     ('EID', int), ('Point', int), ('s', float)]
     variable_type = list(zip(rhs.VAR_NAME, np.repeat(float, rhs.VAR_NUM)))
     record_type = metadata_type + [('PID', int)] + variable_type
                 ## PID field is weird like this to enable automatic
@@ -157,7 +157,7 @@ class PLog(np.recarray):
 
         ics = np.array(ics).flatten()
 
-        obj[0] = ((0, 'START', -1, cls.last_pnt_marker), ics)
+        obj[0] = ((0, 'START', -1, cls.last_pnt_marker, 0), ics)
 
         return obj
 

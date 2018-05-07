@@ -129,7 +129,11 @@ class MQuad(Element):
         super().__init__(particle, length, 0, name)
         self._grad = grad
 
-        kx = np.sqrt(grad + 0j) #turn grad complex to take sqrt if negative
+        P0c = particle.Pc()*MeV2J
+        Brho = P0c/particle.charge
+        print("B-rho: {}".format(Brho))
+        
+        kx = np.sqrt(grad/Brho + 0j) # turn grad complex to take sqrt if negative
         ky = 1j*kx
         L = self._length
 

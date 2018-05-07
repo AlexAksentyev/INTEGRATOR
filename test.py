@@ -1,7 +1,7 @@
 from particle import Particle, EZERO, CLIGHT
 from plog import PLog
 import element as ent
-from lattice import Lattice, track
+from lattice import Lattice, track, track_each
 from state_list import StateList
 import matplotlib.pyplot as plt
 
@@ -42,10 +42,25 @@ Obs = ent.Observer(p, 'OUT')
 
 RBE = ent.CylWien(p, 180.77969e-2, 120e5, 0.46002779, name="RBE")
 
-################################################################################%
+################################################################################
+SS1H2 = [QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, OSF, OD2, ORB, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, OSD, OD2, ORB, OD2, BPM, OD1, QFA2]
+ARC1 = [QFA1, OD1, SFP, OD2, RBE, OD2, BPM, OD1, QDA1,
+        QDA1, OD1, SDP, OD2, RBE, OD2, BPM, OD1, QFA1]
+ARC1 = ARC1*8
+SS2H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
+         QDA2, OD1, SDP, OD2, ORB, OD2, BPM, OD1, QFA2,
+         QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
+         Obs] #TESTING OBSERVER
 
-FODO = Lattice([ent.Drift(p, 25e-2, 'marker'), RF, QDA2, OD1, QFA2], 'FODO')
+# FODO = Lattice(SS1H2, 'FODO')
+seq = [QDA2, OD1, OD1, QFA2, QFA2, OD1, OD1, QDA2]#SS1H2+ARC1+SS2H1
+log = track_each(state, seq, 20)
 
-lfodo = track(state, FODO.TM(), 100)
-pcl = lfodo[:, :]
-plt.plot(pcl['Turn'], pcl['x'], '--.', markersize=.5); plt.show()
+# lfodo = track(state, FODO.TM(), 10)
+eid = log['EID'][:,0]
+pcl = log[ (eid >= 0) & (eid <= 26), :]
+plt.plot(pcl['s'], pcl['x'], '-', markersize=.5)
+plt.grid()
+plt.show()

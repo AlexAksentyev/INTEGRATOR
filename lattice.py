@@ -10,9 +10,9 @@ import collections as cln
 import numpy as np
 from element import RF
 from utilities import MutableNamedTuple
+from plog import PLog
 
 def track(state, transfer_map, n_trn, n_rec = None):
-    from plog import PLog
     n_trn = int(n_trn)
     n_rec = int(n_rec) if n_rec is not None else n_trn
     n_skip = int(n_trn/n_rec)
@@ -23,7 +23,25 @@ def track(state, transfer_map, n_trn, n_rec = None):
 
     for i in range(1, n_rec+1):
         state = TM_n*state # state is matrix
-        log[i] = ((i*n_skip,), state.A) # retrieve array
+        log[i] = ((i*n_skip, -1, -1), state.A) # retrieve array
+
+    return log
+
+def track_each(state, map_sequence, n_trn):
+    n_el = len(map_sequence)
+    print(n_el)
+    log = PLog(state, n_trn*n_el+1) # +1 for initial state
+
+    i = 1; s=0
+    for trn in range(n_trn):
+        # print("turn {}".format(trn))
+        for el in range(n_el):
+            element = map_sequence[el]
+            # print("element: {} ({})".format(element.name, el))
+            state = element.TM*state
+            s += element.length
+            log[i] = ((trn, el, s), state.A)
+            i += 1
 
     return log
 

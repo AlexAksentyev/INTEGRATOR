@@ -163,7 +163,7 @@ class Tracker:
                                           'P'+str(pid), self.log.dtype,
                                           expectedrows=nrow)
 
-    def _run_turn(self, current_turn, log_index, state):
+    def _run_turn(self, current_turn, log_index, state, current_s):
         brks = self.controls.breaks
 
         el_num = self.lattice.count
@@ -171,6 +171,7 @@ class Tracker:
         n_ics = self.rhs.n_ics
         n_var = rhs.VAR_NUM
 
+        s = current_s
         for eid in range(el_num): # element loop
             # pick element
             if self.controls.fwd: element = self.lattice[eid]
@@ -191,11 +192,12 @@ class Tracker:
                 element.rear_kick(state)
                 if self.controls.inner:
                     for k, valsk in enumerate(vals):
-                        self.log[log_index] = ((current_turn, element.name, eid, k), valsk)
+                        self.log[log_index] = ((current_turn, element.name, eid, k, s+at[k]), valsk)
                         log_index += 1
-                self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker),
+                self.log[log_index] = ((current_turn, element.name, eid, PLog.last_pnt_marker, s+element.length),
                                        state) # state.flatten() no longer required *****
                 log_index += 1
+                s += element.length
             except ValueError:
                 print('NAN error: Element {}, turn {}, log index {}'.format(element.name, current_turn, log_index))
                 raise StopTracking('Stopping tracking due to a ValueError in _run_turn')
@@ -263,8 +265,8 @@ class Tracker:
             old_turn = 0 # every ncut turns
             old_percent = -1 # to print 0 %
             print('\t\t LATTICE: {} '.format(latname))
+            current_s = 0
             for turn in range(1, n_turns+1): # turn loop
-
                 # print computation progress
                 percent = int((turn-1)/n_turns*100)
                 if percent%10 == 0 and percent != old_percent:
@@ -272,11 +274,14 @@ class Tracker:
                     old_percent = percent
 
                 try:
-                    state, log_ind = self._run_turn(turn, log_ind, state)
+                    state, log_ind = self._run_turn(turn, log_ind, state, current_s)
                 except StopTracking:
                     print('Emergency data-saving')
                     self.log.write_file(file_handle, old_ind, log_ind)
                     return self.log
+
+                # update current_s
+                current_s += self.lattice.length
 
                 if (turn-old_turn)%ncut == 0:
                     print('turn {}, writing data ...'.format(turn))

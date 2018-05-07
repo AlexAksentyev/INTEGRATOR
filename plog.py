@@ -11,7 +11,7 @@ class PLog(np.recarray):
 
     max_len_name = 10
     el_field_type = object#tbl.StringCol(max_len_name) # otherwise problems writing into hdf5 file
-    metadata_type = [('Turn', int)]
+    metadata_type = [('Turn', int), ('EID', int), ('s', float)]
     variable_type = list(zip(VAR_NAME, np.repeat(float, VAR_NUM)))
     record_type = metadata_type + [('PID', int)] + variable_type
                 ## PID field is weird like this to enable automatic
@@ -35,7 +35,7 @@ class PLog(np.recarray):
         obj.n_ics = n_ics
         obj.ics = ini_states
 
-        obj[0] = ((0,), ini_states)
+        obj[0] = ((0, -1, 0), ini_states)
 
         return obj
 
