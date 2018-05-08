@@ -29,6 +29,9 @@ def track(state, transfer_map, acc_len, n_trn, n_rec = None):
     return log
 
 def track_each(state, map_sequence, n_trn):
+    if n_trn > 100:
+        print("You don't want that many turns")
+        return 
     n_el = len(map_sequence)
     print(n_el)
     log = PLog(state, n_trn*n_el+1) # +1 for initial state
@@ -57,6 +60,7 @@ class Segment(MutableNamedTuple):
     @property
     def TM(self):
         return self._TM
+
     @property
     def EIDs(self):
         return self._EIDs
@@ -70,16 +74,34 @@ class Segment(MutableNamedTuple):
         tm = other._TM * self._TM
         return Segment(eids, tm)
 
+def compose2(f, g):
+    return lambda *a, **kw: f(g(*a, **kw))
+def compose(*fs):
+    return reduce(compose2, fs)
+
+
 class Lattice:
-    def __init__(self, element_sequence, name, segment_map=None):
+    def __init__(self, element_sequence, name, call=False, segment_map=None):
+        """If call==True, self._transfer_map is a composition of the elements' __call__ functions;
+        else, it is a composition of the elements' transfer matrices. Since, if not specified otherwise, 
+        an element's __call__(state) method simply does TM*state, TM being the transfer matrix, 
+        mathematically we could just compose the transfer map regardless of the call flag;
+        however, multiple function calls would slow down code."""
+        self._call = call
         ## creating _sequence of elements from pointers
         self._sequence = deepcopy(element_sequence)
-        self._transfer_matrix = np.eye(6) ## ALSO, construct the segment transfer matrix
+        if call==False:
+            self._transfer_map = np.eye(6) ## ALSO, construct the segment transfer matrix
+        else:
+            self._transfer_map = lambda x: x
         self._length = 0
         self._count = 0
         ids = set() # element id's
         for index, element in enumerate(self._sequence):
-            self._transfer_matrix = element.TM*self._transfer_matrix
+            if call==False:
+                self._transfer_map = element.TM*self._transfer_map
+            else:
+                self._transfer_map = compose2(element.__call__, self._transfer_map)
             self._length += element.length
             self._count += 1
             eid = id(element)
@@ -89,7 +111,7 @@ class Lattice:
         ##
         self.name = name
         if segment_map is None:
-            self.segment_map = {self.name: Segment(list(range(self._count)), self._transfer_matrix)}
+            self.segment_map = {self.name: Segment(list(range(self._count)), self._transfer_map)}
         else:
             self.segment_map = segment_map
 
@@ -111,9 +133,31 @@ class Lattice:
         if segment_name is not None:
             tm = self.segment_map[segment_name].TM
         else:
-            tm = self._transfer_matrix
+            tm = self._transfer_map
             
         return tm
+
+    def __call__(self, state, n_trn, n_rec=None):
+        n_trn = int(n_trn)
+        n_rec = int(n_rec) if n_rec is not None else n_trn
+        n_skip = int(n_trn/n_rec)
+        log = PLog(state, n_rec+1) # +1 for initial state
+
+        print("Turn: {}, Rec: {}, Skip: {}".format(n_trn, n_rec, n_skip))
+
+        i = 1; s = 0
+        for trn in range(1, n_trn+1):
+            for key, segment in self.segments():
+                TM = segment.TM
+                if isinstance(TM, np.ndarray):
+                    state = TM*state
+                else:
+                    state = TM(state)
+            if trn%n_skip == 0:
+                log[i] = ((trn, -1, trn*self._length), state.A)
+                i += 1
+
+        return log
 
     def __add__(self, other):
         if not isinstance(other, Lattice):
@@ -126,7 +170,8 @@ class Lattice:
             segment.shift(self.count)
         segment_map = dict(**self.segment_map, **other.segment_map)
 
-        return Lattice(el_sequence, name, segment_map)
+        call = self._call + other._call
+        return Lattice(el_sequence, name, call, segment_map) # False for now for compatibility with track/track_each
 
     def __getitem__(self, idx):
         return self._sequence[idx]
