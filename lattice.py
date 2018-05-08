@@ -218,6 +218,10 @@ class Lattice:
         
         # tilting proper
         ## updates the transfer matrix
+        ## THIS WON'T HAVE ANY EFFECT ON THE LATTICE __CALL__ METHOD
+        ## HAVE TO UPDATE SEGMENT TRANSFER MAPS
+        ## THOSE SEGMENTS DESCRIBED BY MATRICES, DO SIMILAR TO THIS
+        ## THOSE THAT ARE MAPS THOUGH, *****FIGURE OUT*****!!!!!
         self._transfer_matrix = np.eye(6)
         for i, element in enumerate(self.elements()):
             element.s_tilt(angle[i])
