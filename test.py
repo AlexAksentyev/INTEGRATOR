@@ -59,13 +59,13 @@ seq = SS1H2+ARC1+SS2H1
 lattice = BNL.make_lattice(p)
 
 state = StateList(x = [-1e-3, 1e-3], d=[-1e-4, 1e-4]).array
-log = track_each(state, lattice._sequence, 10)
+log = track(state, lattice.TM(), int(1e5), 100)
 
 # lfodo = track(state, FODO.TM(), 10)
 eid = log['EID'][:,0]
 pcl = log[ (eid >= -1) & (eid <= 2006), :]
 plt.ion()
-plt.plot(pcl['s'], pcl['x'], '-', markersize=.5)
+plt.plot(pcl['s'], pcl['x'], '--.', markersize=.5)
 plt.title("MATRIX")
 plt.grid()
 plt.show()

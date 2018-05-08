@@ -12,7 +12,7 @@ from element import RF
 from utilities import MutableNamedTuple
 from plog import PLog
 
-def track(state, transfer_map, n_trn, n_rec = None):
+def track(state, transfer_map, acc_len, n_trn, n_rec = None):
     n_trn = int(n_trn)
     n_rec = int(n_rec) if n_rec is not None else n_trn
     n_skip = int(n_trn/n_rec)
@@ -22,8 +22,9 @@ def track(state, transfer_map, n_trn, n_rec = None):
     TM_n = transfer_map**n_skip
 
     for i in range(1, n_rec+1):
+        trn = i*n_skip
         state = TM_n*state # state is matrix
-        log[i] = ((i*n_skip, -1, -1), state.A) # retrieve array
+        log[i] = ((trn, -1, trn*acc_len), state.A) # retrieve array
 
     return log
 
