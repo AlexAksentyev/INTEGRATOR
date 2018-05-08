@@ -81,7 +81,7 @@ def make_lattice(particle):
         lattice = lattice + segment
 
 
-    lattice = ltc.Lattice([ent.RF(particle, lattice.length, 75e3)], 'RF') + lattice
+    lattice = ltc.Lattice([ent.RF(particle, lattice.length, 75e3)], 'RF', call=True) + lattice
     lattice.name = 'BNL'
 
     return lattice

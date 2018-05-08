@@ -71,7 +71,7 @@ class Drift(Element):
         It is different; even if we assume delta_s = 0 (reference Ps == design P0).
         The matrix is from the MAD manual, as for all elements.
         """
-        state_c = deepcopy(state)
+        state_c = np.array(deepcopy(state))
         px = state_c[1]
         py = state_c[3]
         delta = state_c[5]
@@ -164,7 +164,7 @@ class MSext(Element):
         self._matrix = np.bmat([[Mx, Z, Z], [Z, Mx, Z], [Z, Z, Mz]])
 
     def __call__(self, state):
-        state_c = deepcopy(state)
+        state_c = np.array(deepcopy(state))
         x, px, y, py, t, pt = state_c
         beta_s = self._beta0
         gamma_s = self._gamma0
