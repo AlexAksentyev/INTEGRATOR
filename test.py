@@ -1,6 +1,7 @@
 from particle import Particle, EZERO, CLIGHT
 from plog import PLog
 import element as ent
+import BNL
 from lattice import Lattice, track, track_each
 from state_list import StateList
 import matplotlib.pyplot as plt
@@ -8,15 +9,14 @@ import matplotlib.pyplot as plt
 from time import clock
 import numpy as np
 
-state = StateList(x = [-1e-3, 1e-3], d = [-.5e-4, 1e-4]).array
-
 p = Particle()
 O = ent.Drift(p, 25e-2)
 F = ent.MQuad(p, 25e-2, 8.6)
 D = ent.MQuad(p, 25e-2, -8.11)
+dip = ent.MDipoleSect(p, 10e-2, 1)
 RF = ent.RF(p, 25e-2*3, 75000)
 
-########################### BNL elements ########################################
+########################### elements for test ########################################
 OD1 = ent.Drift(p, 25e-2, "OD1")
 OD2 = ent.Drift(p, 25e-2, "OD2")
 ORE = ent.Drift(p, 2.17, "ORE")
@@ -54,13 +54,18 @@ SS2H1 = [QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
          QFA2, OD1, SFP, OD2, ORB, OD2, BPM, OD1, QDA2,
          Obs] #TESTING OBSERVER
 
-# FODO = Lattice(SS1H2, 'FODO')
-seq = [QDA2, OD1, OD1, QFA2, QFA2, OD1, OD1, QDA2]#SS1H2+ARC1+SS2H1
-log = track_each(state, seq, 20)
+seq = SS1H2+ARC1+SS2H1
+
+lattice = BNL.make_lattice(p)
+
+state = StateList(x = [-1e-3, 1e-3], d=[-1e-4, 1e-4]).array
+log = track_each(state, lattice._sequence, 10)
 
 # lfodo = track(state, FODO.TM(), 10)
 eid = log['EID'][:,0]
-pcl = log[ (eid >= 0) & (eid <= 26), :]
+pcl = log[ (eid >= -1) & (eid <= 2006), :]
+plt.ion()
 plt.plot(pcl['s'], pcl['x'], '-', markersize=.5)
+plt.title("MATRIX")
 plt.grid()
 plt.show()

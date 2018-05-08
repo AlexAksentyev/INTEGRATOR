@@ -5,14 +5,10 @@ import numpy as np
 class StateList:
     """Create an ensemble of initial conditions.
     Keyword arguments are the state variables:
-        :x, y:       the particle position in the transverse plane
-        :s:           position along the optical axis
-        :t:           time of injection
-        :Theta:       RF phase at injection
-        :H:           sqrt(x^2 + y^2 + s^2)
+        :x, y:        the particle position in the transverse plane
         :px, py:      the reference-momentum-normalized momentum projections Px/P0, Py/P0
-        :dK:          normalized energy deviation (K-K0)/K0
-        :Sx, Sy, Sz:  spin projections.
+        :z, d:        the longitudinal size and normalized energy deviation (K-K0)/K0
+        :Sx, Sy, Sz:  the spin projections.
 
     Use
     ----------------
