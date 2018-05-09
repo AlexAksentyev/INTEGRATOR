@@ -16,6 +16,11 @@ from element import RF
 from utilities import MutableNamedTuple
 from plog import PLog
 
+def compose2(f, g):
+    """Composition f o g."""
+    return lambda *a, **kw: f(g(*a, **kw))
+
+###*** obsolete 
 def track(state, transfer_map, acc_len, n_trn, n_rec = None):
     n_trn = int(n_trn)
     n_rec = int(n_rec) if n_rec is not None else n_trn
@@ -52,7 +57,7 @@ def track_each(state, map_sequence, n_trn):
             i += 1
 
     return log
-
+###***
 
 class Segment(MutableNamedTuple):
     __slots__ = ['_EIDs', '_TM', '_count']
@@ -81,19 +86,10 @@ class Segment(MutableNamedTuple):
         if self._TM.__class__ != other._TM.__class__:
             print("Incompatible transfer maps!")
             return
-        other.shift(self.count)
         if isinstance(self._TM, np.ndarray):
             return Segment(self._EIDs+other._EIDs, other._TM*self._TM)
         else:
             return Segment(self._EIDs+other._EIDs, compose2(other._TM, self._TM))
-
-def compose2(f, g):
-    """Composition f o g."""
-    return lambda *a, **kw: f(g(*a, **kw))
-def compose(*fs):
-    """Composition of a list of functions."""
-    return reduce(compose2, fs)
-
 
 class Lattice:
     def __init__(self, element_sequence, name, segment_map=None):
@@ -126,26 +122,29 @@ class Lattice:
             split_i = np.array(list(range(self.count)))[flag]
             split_i = np.concatenate((split_i, split_i+1))
             split_i.sort()
-            seg_split = [seg for seg in np.split(self._sequence, split_i) if len(seg) > 0] # remove emtpy segments
+            segment_split = [seg for seg in np.split(self._sequence, split_i) if len(seg) > 0] # remove emtpy segments
             ## now construct the segment transfer maps
-            self.segment_map = {}
-            eid0 = 0
-            for cnt, seg in enumerate(seg_split):
-                if seg[0].call:
-                    tm = lambda x: x
-                    for eid, el in enumerate(seg):
-                        tm = compose2(el.TM, tm)
-                else:
-                    tm = np.eye(6)
-                    for eid, el in enumerate(seg):
-                        tm = el.TM*tm
-                eid1 = eid0+eid+1
-                seg_name = self.name+'_'+str(cnt)
-                self.segment_map.update({seg_name: Segment(list(range(eid0, eid1)), tm)})
-                eid0 = eid1
+            self._compute_segment_maps(segment_split)
         else:
             self.segment_map = segment_map
 
+
+    def _compute_segment_maps(self, segment_split):
+        self.segment_map = {}
+        eid0 = 0
+        for cnt, seg in enumerate(segment_split):
+            if seg[0].call:
+                tm = lambda x: x
+                for eid, el in enumerate(seg):
+                    tm = compose2(el.TM, tm)
+            else:
+                tm = np.eye(6)
+                for eid, el in enumerate(seg):
+                    tm = el.TM*tm
+            eid1 = eid0+eid+1
+            seg_name = self.name+'_'+str(cnt)
+            self.segment_map.update({seg_name: Segment(list(range(eid0, eid1)), tm)})
+            eid0 = eid1
 
     @property
     def state(self):
@@ -241,29 +240,26 @@ class Lattice:
 
         Arguments
         ________________
-        mean_angle : float
+        mean_angle : radians
             sets up a systematic angle deviation;
             each tuple element corresponds to an *order* letter;
             if the number of elements in the tuple > than that in the order
             string, the remaining angles are ignored
 
-        sigma : float
+        sigma : radians
             sets up the rms of the angle distributions
         """
 
         # pick angles from a the distribution
         angle = np.random.normal(mean_angle, sigma, size=self.count)
-        
-        # tilting proper
-        ## updates the transfer matrix
-        ## THIS WON'T HAVE ANY EFFECT ON THE LATTICE __CALL__ METHOD
-        ## HAVE TO UPDATE SEGMENT TRANSFER MAPS
-        ## THOSE SEGMENTS DESCRIBED BY MATRICES, DO SIMILAR TO THIS
-        ## THOSE THAT ARE MAPS THOUGH, *****FIGURE OUT*****!!!!!
-        self._transfer_matrix = np.eye(6)
+        # tilt elements
         for i, element in enumerate(self.elements()):
             element.s_tilt(angle[i])
-            self._transfer_matrix = element.TM*self._transfer_matrix
+
+        segment_split = []
+        for _, seg in self.segments():
+            segment_split.append(np.array(self._sequence)[seg.EIDs])
+        self._compute_segment_maps(segment_split)
 
         self._state += 1  # the lattice is in a new state => write into a new group
 
