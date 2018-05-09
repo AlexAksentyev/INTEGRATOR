@@ -3,6 +3,10 @@
 Created on Sat Dec  9 20:08:45 2017
 
 @author: Аксентьев
+
+TODO: 
+* rethink the Segment-Lattice paradigm; make Segment a full-fledged class, and Lattice 
+as a collection of segments
 """
 from copy import deepcopy
 import re
@@ -53,9 +57,9 @@ def track_each(state, map_sequence, n_trn):
 class Segment(MutableNamedTuple):
     __slots__ = ['_EIDs', '_TM']
 
-    def __init__(self, eid_list, transfer_matrix=np.eye(6)):
+    def __init__(self, eid_list, transfer_map=np.eye(6)):
         self._EIDs = eid_list[:]
-        self._TM = transfer_matrix
+        self._TM = transfer_map
 
     @property
     def TM(self):
@@ -68,54 +72,64 @@ class Segment(MutableNamedTuple):
     def shift(self, places):
         self._EIDs = [places + e for e in self._EIDs]
 
-    def __add__(self, other):
-        count = len(self._EIDs)
-        eids = self._EIDs + [count + e for e in other._EIDs]
-        tm = other._TM * self._TM
-        return Segment(eids, tm)
-
 def compose2(f, g):
+    """Composition f o g."""
     return lambda *a, **kw: f(g(*a, **kw))
 def compose(*fs):
+    """Composition of a list of functions."""
     return reduce(compose2, fs)
 
 
 class Lattice:
-    def __init__(self, element_sequence, name, call=False, segment_map=None):
-        """If call==True, self._transfer_map is a composition of the elements' __call__ functions;
-        else, it is a composition of the elements' transfer matrices. Since, if not specified otherwise, 
-        an element's __call__(state) method simply does TM*state, TM being the transfer matrix, 
-        mathematically we could just compose the transfer map regardless of the call flag;
-        however, multiple function calls would slow down code."""
-        self._call = call
-        ## creating _sequence of elements from pointers
+    def __init__(self, element_sequence, name, segment_map=None):
         self._sequence = deepcopy(element_sequence)
-        if call==False:
-            self._transfer_map = np.eye(6) ## ALSO, construct the segment transfer matrix
-        else:
-            self._transfer_map = lambda x: x
-        self._length = 0
-        self._count = 0
+        self._count = len(self._sequence)
+        self._length = sum([element.length for element in self._sequence])
+        self.name = name
+        self._state = 0 # this keeps track of the lattice tilt state
+
+        print("Dealing with segment name: {}".format(self.name))
+
+        ## elements in _sequence are pointers, and hence multiple pointers will point to the same
+        ## element. Hence when a _sequence element it tilted, the underlying element will be tilted
+        ## several times, instead of several places in the lattice being misaligned.
+        ## to avoid this, deep copy repeating element pointers
         ids = set() # element id's
+        rep_cnt = 0 # repeat (element) counter for check
         for index, element in enumerate(self._sequence):
-            if call==False:
-                self._transfer_map = element.TM*self._transfer_map
-            else:
-                self._transfer_map = compose2(element.__call__, self._transfer_map)
-            self._length += element.length
-            self._count += 1
             eid = id(element)
             if eid in ids: # if this id has been encountered before
                 self._sequence[index] = deepcopy(element) # replace this position with a new object
+                rep_cnt += 1
             ids.add(eid)
-        ##
-        self.name = name
+        print("Repeat elements: {}".format(rep_cnt))
+
+        ## now deal with the segment map structure
         if segment_map is None:
-            self.segment_map = {self.name: Segment(list(range(self._count)), self._transfer_map)}
+            ## this is to split the element sequence into segments:
+            flag = np.array([element.call for element in self.elements()])
+            split_i = np.array(list(range(self.count)))[flag]
+            split_i = np.concatenate((split_i, split_i+1))
+            split_i.sort()
+            seg_split = [seg for seg in np.split(self._sequence, split_i) if len(seg) > 0] # remove emtpy segments
+            ## now construct the map
+            self.segment_map = {}
+            eid0 = 0
+            for cnt, seg in enumerate(seg_split):
+                if seg[0].call:
+                    tm = lambda x: x
+                    for eid, el in enumerate(seg):
+                        tm = compose2(el.TM, tm)
+                else:
+                    tm = np.eye(6)
+                    for eid, el in enumerate(seg):
+                        tm = el.TM*tm
+                eid1 = eid0+eid+1
+                self.segment_map.update({self.name+'_'+str(cnt): Segment(list(range(eid0, eid1)), tm)})
+                eid0 = eid1
         else:
             self.segment_map = segment_map
 
-        self._state = 0
 
     @property
     def state(self):
@@ -138,6 +152,7 @@ class Lattice:
         return tm
 
     def __call__(self, state, n_trn, n_rec=None):
+        print("Lattice.__call__ method:")
         n_trn = int(n_trn)
         n_rec = int(n_rec) if n_rec is not None else n_trn
         n_skip = int(n_trn/n_rec)
@@ -170,8 +185,7 @@ class Lattice:
             segment.shift(self.count)
         segment_map = dict(**self.segment_map, **other.segment_map)
 
-        call = self._call + other._call
-        return Lattice(el_sequence, name, call, segment_map) # False for now for compatibility with track/track_each
+        return Lattice(el_sequence, name, segment_map) # False for now for compatibility with track/track_each
 
     def __getitem__(self, idx):
         return self._sequence[idx]

@@ -6,11 +6,15 @@ MeV2J = EZERO*1e6
 
 class Element:
 
-    def __init__(self, particle, length, curve, name="Element"):
+    def __init__(self, particle, length, curve, name="Element", call=False):
+        """If call == True, use the element's __call__ method instead of the
+        transfer matrix in tracking."""
+        self._particle = particle
         self._length = length
         self._curve = curve
-        self._name=name
-        self._particle = particle
+        self.name=name
+        self.call = call
+        
         I = np.eye(6)
         self._matrix = I
         self._tilt_matrix = I
@@ -19,19 +23,17 @@ class Element:
         self._beta0 = self._particle.beta
         self._gamma0 = self._particle.gamma
         self._b2g2 = self._beta0*self._beta0*self._gamma0*self._gamma0
-        
 
     @property
     def TM(self):
-        return self._tilt_matrix*self._matrix*self._tilt_matrix_inv
+        if self.call:
+            return self.__call__
+        else:
+            return self._tilt_matrix*self._matrix*self._tilt_matrix_inv
 
     @property
     def length(self):
         return self._length
-
-    @property
-    def name(self):
-        return self._name
 
     def __repr__(self):
         return self.name
@@ -152,8 +154,8 @@ class MQuad(Element):
 
 class MSext(Element):
 
-    def __init__(self, particle, length, grad, name="SXT"):
-        super().__init__(particle, length, 0, name)
+    def __init__(self, particle, length, grad, name="SXT", call=True):
+        super().__init__(particle, length, 0, name, call)
         self._grad = grad
 
         b2g2 = self._b2g2
@@ -194,8 +196,8 @@ class MSext(Element):
 
 class RF(Element):
 
-    def __init__(self, particle, acc_length, voltage, ref_phase=np.pi/2, h_number=50, name="RF"):
-        super().__init__(particle, 0, 0, name)
+    def __init__(self, particle, acc_length, voltage, ref_phase=np.pi/2, h_number=50, name="RF", call=True):
+        super().__init__(particle, 0, 0, name, call)
         Ts = acc_length/CLIGHT/self._beta0
         w = 2*np.pi/Ts*h_number
         P0c = particle.Pc()

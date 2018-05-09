@@ -25,14 +25,14 @@ def make_lattice(particle):
     QFA2 = ent.MQuad(particle, 5e-2,  8.31, 'QFA2')
 
 
-    OSF = ent.MSext(particle, 15e-2, 0, "OSF")
-    OSD = ent.MSext(particle, 15e-2, 0, "OSD")
+    OSF = ent.MSext(particle, 15e-2, 0, "OSF", call=False) # call=False b/c grad==0, hence just drift space
+    OSD = ent.MSext(particle, 15e-2, 0, "OSD", call=False)
 
     # here set grads to 0 for now
-    SDP = ent.MSext(particle, 15e-2, -3.39597809*0,"SDP")
-    SFP = ent.MSext(particle, 15e-2,  2.7695769*0, "SFP")
-    SDN = ent.MSext(particle, 15e-2,  3.79310524*0,"SDN")
-    SFN = ent.MSext(particle, 15e-2, -2.09836542*0,"SFN")
+    SDP = ent.MSext(particle, 15e-2, -3.39597809*0,"SDP", call=False)
+    SFP = ent.MSext(particle, 15e-2,  2.7695769*0, "SFP", call=False)
+    SDN = ent.MSext(particle, 15e-2,  3.79310524*0,"SDN", call=False)
+    SFN = ent.MSext(particle, 15e-2, -2.09836542*0,"SFN", call=False)
 
     Obs = ent.Observer(particle, 'OUT')
 
@@ -76,12 +76,12 @@ def make_lattice(particle):
         segments.append(ltc.Lattice(segment, name))
 
     ## creating the E+B lattice
-    lattice = ltc.Lattice(BNL_segments['SS1H2'],'SS1H2')
+    lattice = segments[0]
     for segment in segments[1:]:
         lattice = lattice + segment
 
 
-    lattice = ltc.Lattice([ent.RF(particle, lattice.length, 75e3)], 'RF', call=True) + lattice
+    lattice = ltc.Lattice([ent.RF(particle, lattice.length, 75e3)], 'RF') + lattice
     lattice.name = 'BNL'
 
     return lattice
