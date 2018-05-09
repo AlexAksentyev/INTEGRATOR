@@ -55,15 +55,20 @@ def track_each(state, map_sequence, n_trn):
 
 
 class Segment(MutableNamedTuple):
-    __slots__ = ['_EIDs', '_TM']
+    __slots__ = ['_EIDs', '_TM', '_count']
 
     def __init__(self, eid_list, transfer_map=np.eye(6)):
         self._EIDs = eid_list[:]
         self._TM = transfer_map
+        self._count = len(self._EIDs)
 
     @property
     def TM(self):
         return self._TM
+
+    @property
+    def count(self):
+        return self._count
 
     @property
     def EIDs(self):
@@ -71,6 +76,16 @@ class Segment(MutableNamedTuple):
 
     def shift(self, places):
         self._EIDs = [places + e for e in self._EIDs]
+
+    def merge(self, other):
+        if self._TM.__class__ != other._TM.__class__:
+            print("Incompatible transfer maps!")
+            return
+        other.shift(self.count)
+        if isinstance(self._TM, np.ndarray):
+            return Segment(self._EIDs+other._EIDs, other._TM*self._TM)
+        else:
+            return Segment(self._EIDs+other._EIDs, compose2(other._TM, self._TM))
 
 def compose2(f, g):
     """Composition f o g."""
@@ -112,7 +127,7 @@ class Lattice:
             split_i = np.concatenate((split_i, split_i+1))
             split_i.sort()
             seg_split = [seg for seg in np.split(self._sequence, split_i) if len(seg) > 0] # remove emtpy segments
-            ## now construct the map
+            ## now construct the segment transfer maps
             self.segment_map = {}
             eid0 = 0
             for cnt, seg in enumerate(seg_split):
@@ -150,6 +165,14 @@ class Lattice:
             tm = self._transfer_map
             
         return tm
+
+    def merge_segments(self, *names):
+        merged_name = '+'.join(names)
+        merged = self.segment_map.pop(names[0])
+        for name in names[1:]:
+            new = self.segment_map.pop(name)
+            merged = merged.merge(new)
+        self.segment_map.update({merged_name: merged})
 
     def __call__(self, state, n_trn, n_rec=None):
         print("Lattice.__call__ method:")

@@ -14,7 +14,21 @@ lattice = BNL.make_lattice(Particle())
 state = StateList(x = [-1e-3, 1e-3], d=[-1e-4, 1e-4]).array
 # log = track(state, lattice.TM(), lattice.length, int(1e5), 100) # this won't work b/c RF transfer map isn't a matrix
 
-log = lattice(state, 100, 100)
+t = clock()
+log = lattice(state, 10000, 100)
+t0 = clock()-t
+print("Unmerged time: {}".format(t0))
+
+names = list(lattice.segment_map.keys())
+names.pop(0)
+lattice.merge_segments(*names)
+t = clock()
+log = lattice(state, 10000, 100)
+t1 = clock()-t
+print("Merged time: {}".format(t1))
+print("Improvement: {}%".format((t0/t1-1)*100))
+
+
 
 # lfodo = track(state, FODO.TM(), 10)
 eid = log['EID'][:,0]
