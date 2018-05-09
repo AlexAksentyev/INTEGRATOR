@@ -146,6 +146,14 @@ class Lattice:
             self.segment_map.update({seg_name: Segment(list(range(eid0, eid1)), tm)})
             eid0 = eid1
 
+    def _segment_split(self):
+        """Produces a list of [element: element in segment] for segment in Lattice::Segments."""
+        segment_split = []
+        for _, seg in self.segments():
+            segment_split.append(np.array(self._sequence)[seg.EIDs])
+
+        return segment_split
+
     @property
     def state(self):
         return self._state
@@ -256,9 +264,7 @@ class Lattice:
         for i, element in enumerate(self.elements()):
             element.s_tilt(angle[i])
 
-        segment_split = []
-        for _, seg in self.segments():
-            segment_split.append(np.array(self._sequence)[seg.EIDs])
+        segment_split = self._segment_split()
         self._compute_segment_maps(segment_split)
 
         self._state += 1  # the lattice is in a new state => write into a new group
@@ -268,7 +274,9 @@ class Lattice:
         self._transfer_matrix = np.eye(6)
         for element in self.elements():
             element.clear_tilt()
-            self._transfer_matrix = element.TM*self._transfer_matrix
+
+        segment_split = self._segment_split()
+        self._compute_segment_maps(segment_split)
             
         self._state = 0
 
