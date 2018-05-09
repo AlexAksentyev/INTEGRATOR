@@ -1,3 +1,6 @@
+## elements that use __call__ in tracking feel no effect of tilt yet
+
+
 import numpy as np
 from particle import CLIGHT, EZERO
 from copy import deepcopy
@@ -163,6 +166,7 @@ class MSext(Element):
         Z = np.zeros((2,2))
         Mz = np.array([[1, length/b2g2], [0, 1]])
 
+        # transfer matrix of a drift space!!!!!
         self._matrix = np.bmat([[Mx, Z, Z], [Z, Mx, Z], [Z, Z, Mz]])
 
     def __call__(self, state):
