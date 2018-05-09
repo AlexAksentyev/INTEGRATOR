@@ -16,7 +16,9 @@ state = StateList(x = [-1e-3, 1e-3], d=[-1e-4, 1e-4]).array
 names = list(lattice.segment_map.keys())
 names.pop(0)
 lattice.merge_segments(*names)
-log = lattice(state, 10000, 100)
+t = clock()
+log = lattice(state, 1000000, 1000)
+print("time: {}".format(clock()-t))
 
 plt.ion()
 plt.plot(log['s'], log['x'], '--.', markersize=.5)

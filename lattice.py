@@ -140,7 +140,8 @@ class Lattice:
                     for eid, el in enumerate(seg):
                         tm = el.TM*tm
                 eid1 = eid0+eid+1
-                self.segment_map.update({self.name+'_'+str(cnt): Segment(list(range(eid0, eid1)), tm)})
+                seg_name = self.name+'_'+str(cnt)
+                self.segment_map.update({seg_name: Segment(list(range(eid0, eid1)), tm)})
                 eid0 = eid1
         else:
             self.segment_map = segment_map
