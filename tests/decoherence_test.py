@@ -146,3 +146,11 @@ def test_2(lattice, bunch_dict, n_turns=1000, mean=0, sd=deg(5e-4)):
 
 ## make test
 fit_result, a0, a1 = test_2(lattice, bunch_dict, 1000)
+
+## save logs for later use
+
+for key, fit in fit_result.items():
+    np.save(key+'_log_tilted', fit[3])
+    np.save(key+'_log_clear', fit[2])
+    np.save(key+'_fit_Sx_tilted', fit[1])
+    np.save(key+'_fit_Sx_clear', fit[0])
