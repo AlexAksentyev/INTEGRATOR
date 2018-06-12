@@ -102,7 +102,7 @@ class Lattice:
         print("Dealing with segment name: {}".format(self.name))
 
         ## elements in _sequence are pointers, and hence multiple pointers will point to the same
-        ## element. Hence when a _sequence element it tilted, the underlying element will be tilted
+        ## element. Therefore when a _sequence element it tilted, the underlying element will be tilted
         ## several times, instead of several places in the lattice being misaligned.
         ## to avoid this, deep copy repeating element pointers
         ids = set() # element id's

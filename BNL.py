@@ -96,4 +96,4 @@ if __name__ == '__main__':
     lattice = make_lattice(deu)
     state = StateList(x = [-1e-3, 1e-3], d = [-.5e-4, 1e-4]).array
 
-    log = track(state, lattice.TM('SS1H2'), 10)
+    log = track(state, lattice.TM('SS1H2_0'), 10)

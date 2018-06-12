@@ -10,7 +10,7 @@ from time import clock
 import numpy as np
 
 lattice = BNL.make_lattice(Particle())
-lattice.s_tilt(0, 1e-3)
+#lattice.s_tilt(0, 1e-3) # UNCOMMENT FOR TILT
 
 # p = Particle()
 # O = ent.Drift(p, 25e-2)
