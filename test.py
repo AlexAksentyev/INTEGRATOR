@@ -20,7 +20,7 @@ lattice = BNL.make_lattice(Particle())
 
 # lattice = Lattice([O,F,O,D], 'test') + Lattice([rf], 'RF')
 
-state = StateList(x = [-1e-3, 1e-3], d=[-1e-4, 1e-4]).array
+state = StateList(x = [-1e-3, 1e-3], y=[-1e-3, 1e-3], d=[-1e-4, 1e-4]).array
 
 names = list(lattice.segment_map.keys())
 names.pop(0)
